@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Crystal Caves (wasm render skeleton)</title>
+<style>
+  body { background:#111; color:#ddd; font-family:monospace; margin:16px; }
+  canvas { image-rendering:pixelated; width:960px; height:600px;
+           border:1px solid #444; background:#000; }
+  #bar { margin:8px 0; }
+  button { font:inherit; }
+</style>
+</head>
+<body>
+<h3>Crystal Caves Ep.1 &mdash; level render (WASM)</h3>
+<div id="bar">
+  Level <input id="lvl" type="number" value="9" min="0" max="18" style="width:5em">
+  <button id="go">Render</button>
+  <span id="status"></span>
+</div>
+<canvas id="cv" width="640" height="400"></canvas>
+<p id="hint" style="color:#888"></p>
+
+<script>
+// Loads the freestanding render.wasm (built by `make clang`) and the portable
+// assets in assets/. No Emscripten runtime required.
+const W = 640, H = 400;
+
+async function readFile(p) {
+  const r = await fetch(p);
+  if (!r.ok) throw new Error(p + ': ' + r.status);
+  return new Uint8Array(await r.arrayBuffer());
+}
+
+(async () => {
+  const status = document.getElementById('status');
+  try {
+    status.textContent = 'loading...';
+    const [wasmBytes, gfx, levels, pal] = await Promise.all([
+      readFile('render.wasm'),
+      readFile('assets/gfx.bin'),
+      readFile('assets/levels.bin'),
+      fetch('assets/palette.json').then(r => r.json()),
+    ]);
+    const { instance } = await WebAssembly.instantiate(wasmBytes, {});
+    const e = instance.exports;
+    const mem = () => new Uint8Array(e.memory.buffer);
+
+    const copyIn = (buf) => {
+      const p = e.cc_alloc(buf.length);
+      mem().set(buf, p);
+      return p;
+    };
+    e.cc_set_assets(copyIn(gfx), copyIn(levels));
+
+    const palP = e.cc_alloc(128);
+    const palU32 = new Uint32Array(e.memory.buffer, palP, 32);
+    pal.colors.forEach(([r, g, b], i) => { palU32[i] = (r << 16) | (g << 8) | b; });
+    e.cc_set_palette(palP);
+
+    const ctx = document.getElementById('cv').getContext('2d');
+    const draw = () => {
+      const level = Math.max(0, Math.min(18, parseInt(document.getElementById('lvl').value, 10) || 0));
+      e.cc_render_level(level, e.cc_framebuffer());
+      const p = e.cc_framebuffer();
+      const img = new ImageData(new Uint8ClampedArray(e.memory.buffer, p, W * H * 4), W, H);
+      ctx.putImageData(img, 0, 0);
+      status.textContent = 'level ' + level;
+    };
+    document.getElementById('go').onclick = draw;
+    draw();
+  } catch (err) {
+    status.textContent = 'error';
+    document.getElementById('hint').textContent =
+      'Build render.wasm first: `make clang` in work/wasm (and serve this dir over http). ' + err.message;
+    console.error(err);
+  }
+})();
+</script>
+</body>
+</html>

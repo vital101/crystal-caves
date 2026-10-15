@@ -1,0 +1,46 @@
+{
+  "game": "Crystal Caves v1.0a shareware (Episode 1)",
+  "gfx": {
+    "file": "gfx.bin",
+    "block_size": 8003,
+    "block_count": 23,
+    "shapes_per_block": 50,
+    "shape_size": 160,
+    "shape_w": 16,
+    "shape_h": 16,
+    "planes": 5,
+    "index_base": 1
+  },
+  "fonts": {
+    "f1": "mni_f1.bin",
+    "f2": "mni_f2.bin",
+    "glyph_size": 40,
+    "glyph_w": 8,
+    "glyph_h": 8,
+    "planes": 5,
+    "f1_range": [
+      23,
+      72
+    ],
+    "f2_range": [
+      73,
+      122
+    ]
+  },
+  "levels": {
+    "file": "levels.json",
+    "bin": "levels.bin",
+    "count": 19,
+    "width": 40,
+    "height": 25,
+    "bin_cell_bytes": 6,
+    "cell": "[blockA,shapeA,blockB,shapeB,blockC,shapeC]"
+  },
+  "palette": {
+    "file": "palette.json"
+  },
+  "commands": {
+    "file": "commands.json"
+  },
+  "tile_space": "640x400 (40x25 cells of 16x16)"
+}
