@@ -15,7 +15,8 @@ EXPORTS = cc_alloc cc_set_assets cc_set_palette cc_render_level cc_framebuffer c
 	  cc_objects_init cc_objects_step cc_obj_count cc_obj_state cc_obj_x cc_obj_y \
 	  cc_obj_kind cc_obj_shape cc_obj_tile cc_obj_p10 cc_obj_p18 cc_obj_ready cc_obj_vx cc_obj_cursor \
 	  cc_input_set cc_player_x cc_player_y cc_cam_x cc_cam_y cc_move_dir cc_collide_player \
-	  cc_draw_object
+	  cc_draw_object cc_sound_set_callback cc_score cc_collectibles_total cc_collectibles_left \
+	  cc_lives cc_level_complete
 
 clang: assets $(OUT)
 

@@ -81,6 +81,16 @@ static uint16_t g_player_speed = 7;
 static uint16_t g_512a = 0;
 static uint16_t g_513a = 0;
 
+/* Sound callback (set by host).  Called with the sound ID when the original
+ * would play a sound via 0x1F9A:0x21F. */
+static void (*g_sound_callback)(uint16_t id) = 0;
+
+/* C4: score / collectibles / lives. */
+static uint32_t g_score = 0;
+static uint16_t g_collectibles_total = 0;   /* crystals needed to complete level */
+static uint16_t g_collectibles_left = 0;    /* crystals remaining */
+static uint16_t g_lives = 3;
+
 /* ---------------------------------------------------------------- helpers */
 
 /* 0x1FCB0 anim_next(index): p10++; if (p10 > p14) p10 = 1; */
@@ -126,6 +136,14 @@ static int16_t proximity_test(int mode, int16_t radius,
         return (dy > 0) ? 1 : (dy < 0 ? -1 : 0);
     }
     return 0;
+}
+
+/* 0x1F9A:0x21F play_sound_or_effect(id).
+ * Original: manages sound channels [0x50E0]/[0x50F4], sets [0x5138]=1,
+ * [0x513F]=1, and advances the sound channel index [0x5136].
+ * Here we just forward the sound ID to the host callback. */
+static void play_sound(uint16_t id) {
+    if (g_sound_callback) g_sound_callback(id);
 }
 
 /* ---------------------------------------------------------------- input
@@ -356,6 +374,24 @@ void cc_objects_step(void) {
             if (!o->ready && cull32(s, x_new, y_new)) o->ready = 1;
         }
     }
+
+    /* C4: collectible collision - kind 1 objects (crystals) disappear when
+     * the player touches them (box proximity mode 2, radius 16). */
+    for (i = 0; i < OBJ_MAX; i++) {
+        ObjectEntry *o = &g_obj[i];
+        if (o->kind != 1) continue;
+        if (o->state == 0x63 || o->state == 0xFFFF) continue;  /* already gone */
+        int16_t dx = (int16_t)o->x - g_player_x;
+        int16_t dy = (int16_t)o->y - g_player_y;
+        int16_t adx = dx < 0 ? -dx : dx;
+        int16_t ady = dy < 0 ? -dy : dy;
+        if (adx < 8 && ady < 16) {
+            o->state = 0x63;              /* free/inactive */
+            g_collectibles_left--;
+            g_score += 10;
+            play_sound(1);                /* collect crystal sound */
+        }
+    }
 }
 
 /* ---------------------------------------------------------------- collision
@@ -384,6 +420,7 @@ int cc_collide_player(int mode, int16_t radius) {
 
 /* ---------------------------------------------------------------- exports */
 void cc_objects_init(int level) {
+    int i;
     if (level < 0 || level >= OBJ_LEVELS) level = 0;
     memcpy_(g_obj, g_obj_levels[level], sizeof(g_obj));
     g_obj_cursor = g_level_cursor[level];
@@ -402,6 +439,20 @@ void cc_objects_init(int level) {
     g_input_left = g_input_right = g_input_up = g_input_down = g_input_fire = 0;
     g_512a = 0;
     g_513a = 0;
+
+    /* Count kind-1 collectibles (crystals) for this level. */
+    g_collectibles_total = 0;
+    g_collectibles_left = 0;
+    for (i = 0; i < OBJ_MAX; i++) {
+        if (g_obj[i].kind == 1) {
+            g_collectibles_total++;
+            g_collectibles_left++;
+        }
+    }
+}
+
+void cc_sound_set_callback(void (*cb)(uint16_t id)) {
+    g_sound_callback = cb;
 }
 
 int cc_obj_count(void) { return OBJ_MAX; }
@@ -424,3 +475,10 @@ int32_t  cc_cam_x(void)    { return g_cam_x; }
 int32_t  cc_cam_y(void)    { return g_cam_y; }
 int16_t  cc_move_dir(void) { return g_move_dir; }
 int      cc_collide_player(int mode, int16_t radius);
+
+/* C5 exports: score / collectibles / lives / sound. */
+uint32_t cc_score(void)       { return g_score; }
+uint16_t cc_collectibles_total(void)  { return g_collectibles_total; }
+uint16_t cc_collectibles_left(void)   { return g_collectibles_left; }
+uint16_t cc_lives(void)             { return g_lives; }
+int      cc_level_complete(void)    { return g_collectibles_left == 0 ? 1 : 0; }

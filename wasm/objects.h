@@ -44,6 +44,17 @@ int16_t  cc_move_dir(void);
  * Returns object index or -1. */
 int  cc_collide_player(int mode, int16_t radius);
 
+/* C5: sound.  Set a callback (id -> void) invoked when the original would
+ * play a sound via 0x1F9A:0x21F. */
+void cc_sound_set_callback(void (*cb)(uint16_t id));
+
+/* C5: score / collectibles / lives / level completion. */
+uint32_t  cc_score(void);
+uint16_t  cc_collectibles_total(void);
+uint16_t  cc_collectibles_left(void);
+uint16_t  cc_lives(void);
+int       cc_level_complete(void);
+
 #ifdef __cplusplus
 }
 #endif
