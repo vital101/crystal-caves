@@ -102,3 +102,20 @@ Frequency hints: `0x1FB9` (17 sites) = generic collectible/bg sprite,
 - C3 (per-type behaviour + update loop): in progress — handlers are TP
   procedures in seg 0x1F9A, to be disassembled next.
 - C4 (player + physics/collision): pending.
+
+## Object update loop (discovery)
+
+Update loop iterates object records (index `* 0x2D`, DI at record base). Key calls:
+- `call far [di+0x4607]` (handler ptr, seg:off) at `0xD87C`, `0xD8D8` — conditional on record flags.
+- Uses `[0x4606]` (byte at +0x28) as an active/ready flag checked in places.
+- Records with state `+0x00` in {0x2, 0x2B} take special paths; state `0xD` and `0x3` also handled.
+- `call 0xF38` checks collision/map interaction (takes object index+1 and coords).
+- Handler 0x1F9A:0x251D called directly at `0xD918` in one path.
+- When `+0x4606` cleared and conditions met, `+0x4606` set to 1.
+- Some paths free other objects by setting their state `+0x45DE` to 0 (e.g. `0xDC7F`, `0xDC94`, `0xDCA7`).
+
+Object drawing happens in spawn and in the update loop (`lcall 0x28B5:0x191F` at `0xDC57` draws sprite using block `[di+0x45EC]`, shape from `[di+0x45FA]*0xA0`, plus `[0xA0B6]` scroll).
+
+Frame counter / anim: `[0x5134]` incremented in update-related code (`0xDCBF+`).
+
+Keyboard ISR @`0x727` reads port `0x60`, updates flags `[0x338B]..[0x3393]` (movement/fire).
