@@ -74,6 +74,15 @@ DRAW_SITES = (0x52B, 0x560)
 # Far segments whose routines we stub out entirely (video / sound / utility).
 SKIP_SEGS = {0x28B5, 0x26C5, 0x0FC5}
 
+# Boot-state seed written by the original startup path:
+#   0x0DE0: mov word ptr [0x2b72], 0xffff   ("no player-start override")
+# [0x2b74] is cleared to 0 at boot.  With these set, the Y-token player-start
+# path at 0x6c54 is taken and the player spawns at the map Y cell.
+BOOT_STATE = {
+    0x2b72: 0xffff,
+    0x2b74: 0x0000,
+}
+
 md = Cs(CS_ARCH_X86, CS_MODE_16)
 md.detail = True
 
@@ -169,7 +178,7 @@ def dump_cells(mu):
     return grid
 
 
-def run_level(level, verbose=False):
+def run_level(level, boot_seed=True, verbose=False):
     module = load_module()
     mu = Uc(UC_ARCH_X86, UC_MODE_16)
     mu.mem_map(0, 0x110000)
@@ -198,6 +207,15 @@ def run_level(level, verbose=False):
     sp -= 2
     w16(mu, STACK_SEG, sp, RET_SENTINEL)
     mu.reg_write(UC_X86_REG_SP, sp)
+
+    # Seed boot state: [0x2b72]=0xffff means "no player-start override" so the
+    # Y-token start path (0x6c54) is taken. [0x2b74]=0.  Verified against the
+    # real argument: the dump is identical whether [0xa0be] holds arg or 0;
+    # setting it to arg keeps caller fidelity.
+    if boot_seed:
+        for addr, val in BOOT_STATE.items():
+            w16(mu, DATA_SEG, addr, val)
+    w16(mu, DATA_SEG, 0xa0be, arg & 0xFFFF)
 
     stats = {"steps": 0, "skipped": {}, "ints": {}, "stopped": None}
     spawns = []
@@ -284,6 +302,9 @@ def run_level(level, verbose=False):
 
     return {
         "level": level,
+        "arg": arg & 0xFFFF,
+        "boot_seed": boot_seed,
+        "exe_sha256": sha256_file(EXE),
         "stats": stats,
         "spawns": spawns,
         "objects": dump_objects(mu),
@@ -292,15 +313,36 @@ def run_level(level, verbose=False):
     }
 
 
+def sha256_file(path):
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def main():
-    levels = [int(x) for x in sys.argv[1:]] or list(range(19))
-    path = os.path.join(NOTE, "oracle_objects.json")
+    import argparse
+    ap = argparse.ArgumentParser(description="Regenerate per-level oracle dumps")
+    ap.add_argument("levels", metavar="LVL", type=int, nargs="*",
+                    help="levels to regenerate (default: all 19)")
+    ap.add_argument("--out", default=os.path.join(NOTE, "oracle_objects.json"),
+                    help="output JSON path")
+    ap.add_argument("--only", action="store_true",
+                    help="only rewrite the requested levels, keep others")
+    args = ap.parse_args()
+
+    levels = args.levels if args.levels else list(range(19))
+
+    path = args.out
     out = {}
-    if os.path.exists(path):
+    if args.only and os.path.exists(path):
         try:
             out = json.load(open(path))
         except Exception:
             out = {}
+
     for lv in levels:
         r = run_level(lv)
         live = [o for o in r["objects"] if o["state"] not in (0x63, 0xFFFF)]
@@ -311,8 +353,13 @@ def main():
         if r["stats"]["stopped"] not in ("ret", "load_end"):
             print("   tail:", " ".join(r["stats"].get("tail", [])[-20:]))
             print("   skipped:", dict(list(r["stats"]["skipped"].items())[:10]))
-    json.dump(out, open(path, "w"), indent=1)
-    print("wrote", path)
+
+    # Atomic write: temp file then rename.
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(out, f, indent=1)
+    os.replace(tmp, path)
+    print("wrote", path, "levels:", len(out))
 
 
 if __name__ == "__main__":

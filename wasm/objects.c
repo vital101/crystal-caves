@@ -1,7 +1,5 @@
 /* Crystal Caves Episode 1 - objects / gameplay (clean-room original).
  *
- * C4: player, input, camera, physics, collision.
- *
  * Object model and update-loop semantics derived solely from CC1.EXE
  * (function 0xD72A and the per-object handlers at segment 0x1F9A).
  *
@@ -29,6 +27,11 @@
  *   [0x338E] left  [0x338F] right  [0x338D] up  [0x338C] down
  *   [0x4629] move_dir  (-1 left / 0 none / 1 right)
  *   [0x2BA]  player speed
+ *
+ * Player start comes from g_level_start (the Y-token cell at load time),
+ * NOT from kind-1 objects: kind 1 / slot 1 is the player (handler 0x1fb9,
+ * a noop retf 6).  Score / collectibles / lives are zero-stubs until the
+ * real cell-based rules are derived (no kind-1 collectible loop remains).
  */
 
 #include "objects_data.h"
@@ -52,7 +55,8 @@ static uint16_t g_obj_cursor = 4;   /* [0x5120]: next object slot to allocate */
 /* [0xa0f8]: pause/fade flag - nonzero skips the visible-object handler path. */
 static uint8_t g_a0f8 = 0;
 
-/* Player position ([0x4611], [0x4613]). */
+/* Player position ([0x4611], [0x4613]).  Initialised from g_level_start
+ * (the Y-token cell at load time), not hardcoded to (0,0). */
 static int32_t g_player_x = 0;
 static int32_t g_player_y = 0;
 
@@ -85,11 +89,15 @@ static uint16_t g_513a = 0;
  * would play a sound via 0x1F9A:0x21F. */
 static void (*g_sound_callback)(uint16_t id) = 0;
 
-/* C4: score / collectibles / lives. */
+/* C4/C5: score / collectibles / lives are NOT yet derived from the binary.
+ * The kind-1 object is the player (slot 1, handler 0x1fb9), not a collectible,
+ * so the old "collect kind-1 -> score" loop was removed.  These symbols are
+ * kept as explicit zero-stubs so existing hosts/linkers keep working until
+ * the real cell-based collectible and exit rules are reverse-engineered. */
 static uint32_t g_score = 0;
-static uint16_t g_collectibles_total = 0;   /* crystals needed to complete level */
-static uint16_t g_collectibles_left = 0;    /* crystals remaining */
-static uint16_t g_lives = 3;
+static uint16_t g_collectibles_total = 0;
+static uint16_t g_collectibles_left = 0;
+static uint16_t g_lives = 0;
 
 /* ---------------------------------------------------------------- helpers */
 
@@ -374,24 +382,6 @@ void cc_objects_step(void) {
             if (!o->ready && cull32(s, x_new, y_new)) o->ready = 1;
         }
     }
-
-    /* C4: collectible collision - kind 1 objects (crystals) disappear when
-     * the player touches them (box proximity mode 2, radius 16). */
-    for (i = 0; i < OBJ_MAX; i++) {
-        ObjectEntry *o = &g_obj[i];
-        if (o->kind != 1) continue;
-        if (o->state == 0x63 || o->state == 0xFFFF) continue;  /* already gone */
-        int16_t dx = (int16_t)o->x - g_player_x;
-        int16_t dy = (int16_t)o->y - g_player_y;
-        int16_t adx = dx < 0 ? -dx : dx;
-        int16_t ady = dy < 0 ? -dy : dy;
-        if (adx < 8 && ady < 16) {
-            o->state = 0x63;              /* free/inactive */
-            g_collectibles_left--;
-            g_score += 10;
-            play_sound(1);                /* collect crystal sound */
-        }
-    }
 }
 
 /* ---------------------------------------------------------------- collision
@@ -426,9 +416,12 @@ void cc_objects_init(int level) {
     g_obj_cursor = g_level_cursor[level];
     g_a0f8 = 0;
 
-    /* C4: initialise player and camera from level prologue defaults. */
-    g_player_x = 0;
-    g_player_y = 0;
+    /* Initialise player and camera from the level's Y-token start cell
+     * ([0x2b72]/[0x2b74] path at 0x6e05), converted cell -> pixels (x*16,
+     * y*16).  Previously hardcoded to (0,0) which was wrong for every level
+     * except a hypothetical level whose Y token sits at (0,0). */
+    g_player_x = (int32_t)g_level_start[level][1] * 16;
+    g_player_y = (int32_t)g_level_start[level][0] * 16;
     g_cam_x = 0;
     g_cam_y = 0;
     g_cam_dx = 0;
@@ -440,15 +433,7 @@ void cc_objects_init(int level) {
     g_512a = 0;
     g_513a = 0;
 
-    /* Count kind-1 collectibles (crystals) for this level. */
-    g_collectibles_total = 0;
-    g_collectibles_left = 0;
-    for (i = 0; i < OBJ_MAX; i++) {
-        if (g_obj[i].kind == 1) {
-            g_collectibles_total++;
-            g_collectibles_left++;
-        }
-    }
+    /* score / collectibles / lives remain zero-stubs (see declaration). */
 }
 
 void cc_sound_set_callback(void (*cb)(uint16_t id)) {
@@ -481,4 +466,7 @@ uint32_t cc_score(void)       { return g_score; }
 uint16_t cc_collectibles_total(void)  { return g_collectibles_total; }
 uint16_t cc_collectibles_left(void)   { return g_collectibles_left; }
 uint16_t cc_lives(void)             { return g_lives; }
-int      cc_level_complete(void)    { return g_collectibles_left == 0 ? 1 : 0; }
+/* level_complete is a zero-stub until the real exit/collectible rules are
+ * derived.  Do NOT derive it from collectibles_left (that was the invalid
+ * "collect the player at (0,0)" premise). */
+int      cc_level_complete(void)    { return 0; }

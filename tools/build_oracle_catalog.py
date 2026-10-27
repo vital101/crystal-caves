@@ -31,8 +31,14 @@ def main():
         recs = src[lv]["objects"]
         objects = []
         spawns = []
+        start = None
         for o in recs:
-            objects.append({f: o[f] for f in FIELDS})
+            entry = {f: o[f] for f in FIELDS}
+            entry["index"] = o["index"]
+            objects.append(entry)
+            # slot 1, kind 1 is the player; its pixel pos / 16 is the start cell
+            if o["index"] == 1 and o["kind"] == 1:
+                start = [o["y"] // 16, o["x"] // 16]
         # Map-spawned objects (ret-ip not in prologue range 0xBEB/0xC2F) get a
         # compact spawn summary.  Map position comes from the object record
         # (x=col*16, y=row*16), which is authoritative; stack reads at spawn
@@ -53,6 +59,7 @@ def main():
                 })
         catalog["levels"][lv] = {
             "cursor": src[lv]["cursor"],
+            "start": start,
             "spawns": spawns,
             "objects": objects,
         }
@@ -62,8 +69,8 @@ def main():
     print("levels:", len(catalog["levels"]), "map spawns total:", total)
     for lv in sorted(catalog["levels"], key=lambda k: int(k)):
         v = catalog["levels"][lv]
-        print("  L%02d cursor=%d map_spawns=%d active=%d"
-              % (int(lv), v["cursor"], len(v["spawns"]),
+        print("  L%02d cursor=%d start=%s map_spawns=%d active=%d"
+              % (int(lv), v["cursor"], v["start"], len(v["spawns"]),
                  sum(1 for o in v["objects"] if o["state"] != 2)))
 
 

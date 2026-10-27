@@ -45,6 +45,9 @@ emcc: assets
 test: clang
 	for l in 0 1 9 13 18; do node test_render.js $$l; done
 
+test-data:
+	cd .. && .venv/bin/python tools/check_oracle.py
+
 test-objects: clang
 	node test_objects.js
 
