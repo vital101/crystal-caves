@@ -3,12 +3,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]+word ptr [bp - 0x104]",
+    "col",
+    "row",
+    "?word ptr [0x5122]+word ptr [bp - 0x104]",
     0,
     0,
     0,
@@ -20,12 +20,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     0,
     0,
@@ -38,10 +38,10 @@
    "SetCell",
    [
     0,
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     0,
     33,
     0,
@@ -53,37 +53,348 @@
    "SetCell",
    [
     0,
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     0,
-    "word ptr [0x5122]+word ptr [bp - 0x104]",
+    "?word ptr [0x5122]+word ptr [bp - 0x104]",
     0,
     0,
     0
    ]
   ]
  ],
- "q": [],
- "a": [],
- "w": [],
- "s": [],
- "\u0081": [],
- "\u0082": [],
- "\u0083": [],
- "\u0084": [],
- "[": [],
- "r": [
+ "q": [
+  [
+   "Object",
+   [
+    "idx",
+    30,
+    12,
+    "col",
+    "row",
+    0,
+    "flag",
+    11,
+    11,
+    1,
+    "(flag)*2",
+    0,
+    25688,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    29,
+    14,
+    "col",
+    "row",
+    65535,
+    0,
+    23,
+    23,
+    2,
+    4,
+    0,
+    23486,
+    8090
+   ]
+  ]
+ ],
+ "a": [
+  [
+   "Object",
+   [
+    "idx",
+    30,
+    12,
+    "col",
+    "row",
+    0,
+    "flag",
+    11,
+    11,
+    1,
+    "(flag)*2",
+    0,
+    25688,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    29,
+    14,
+    "col",
+    "row",
+    65535,
+    0,
+    23,
+    23,
+    2,
+    4,
+    0,
+    23486,
+    8090
+   ]
+  ]
+ ],
+ "w": [
+  [
+   "Object",
+   [
+    "idx",
+    30,
+    12,
+    "col",
+    "row",
+    0,
+    "flag",
+    10,
+    10,
+    1,
+    "(flag)*2",
+    0,
+    25688,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    29,
+    14,
+    "col",
+    "row",
+    1,
+    0,
+    23,
+    23,
+    2,
+    4,
+    0,
+    23486,
+    8090
+   ]
+  ]
+ ],
+ "s": [
+  [
+   "Object",
+   [
+    "idx",
+    30,
+    12,
+    "col",
+    "row",
+    0,
+    "flag",
+    10,
+    10,
+    1,
+    "(flag)*2",
+    0,
+    25688,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    29,
+    14,
+    "col",
+    "row",
+    1,
+    0,
+    23,
+    23,
+    2,
+    4,
+    0,
+    23486,
+    8090
+   ]
+  ]
+ ],
+ "": [
+  [
+   "Object",
+   [
+    "idx",
+    40,
+    12,
+    "col",
+    "row",
+    0,
+    "flag",
+    11,
+    11,
+    1,
+    "(flag)*2",
+    0,
+    25688,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    29,
+    14,
+    "col",
+    "row",
+    65535,
+    0,
+    23,
+    23,
+    2,
+    4,
+    0,
+    23486,
+    8090
+   ]
+  ]
+ ],
+ "": [
+  [
+   "Object",
+   [
+    "idx",
+    40,
+    12,
+    "col",
+    "row",
+    0,
+    "flag",
+    11,
+    11,
+    1,
+    "(flag)*2",
+    0,
+    25688,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    29,
+    14,
+    "col",
+    "row",
+    65535,
+    0,
+    23,
+    23,
+    2,
+    4,
+    0,
+    23486,
+    8090
+   ]
+  ]
+ ],
+ "": [
+  [
+   "Object",
+   [
+    "idx",
+    40,
+    12,
+    "col",
+    "row",
+    0,
+    "flag",
+    10,
+    10,
+    1,
+    "(flag)*2",
+    0,
+    25688,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    29,
+    14,
+    "col",
+    "row",
+    1,
+    0,
+    23,
+    23,
+    2,
+    4,
+    0,
+    23486,
+    8090
+   ]
+  ]
+ ],
+ "": [
+  [
+   "Object",
+   [
+    "idx",
+    40,
+    12,
+    "col",
+    "row",
+    0,
+    "flag",
+    10,
+    10,
+    1,
+    "(flag)*2",
+    0,
+    25688,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    29,
+    14,
+    "col",
+    "row",
+    1,
+    0,
+    23,
+    23,
+    2,
+    4,
+    0,
+    23486,
+    8090
+   ]
+  ]
+ ],
+ "[": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     3,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     41,
     0,
     0,
@@ -93,67 +404,57 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     3,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     42,
     0,
     0,
     0
    ]
-  ]
- ],
- "^": [
-  [
-   "Object",
-   [
-    "word ptr [0x5120]",
-    55,
-    5,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    0,
-    1,
-    39,
-    39,
-    1,
-    6,
-    0,
-    "dx"
-   ]
   ],
-  [
-   "Object",
-   [
-    "word ptr [0x5120]",
-    11,
-    5,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    65535,
-    0,
-    2,
-    2,
-    10,
-    2,
-    0,
-    "dx"
-   ]
-  ]
- ],
- "1": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
+    0,
+    2,
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
+    0,
+    43,
+    43,
+    43
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    0,
+    2,
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
+    0,
+    44,
+    44,
+    44
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
     10,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     5,
     0,
     0,
@@ -163,29 +464,27 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     10,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     6,
     0,
     0,
     0
    ]
-  ]
- ],
- "2": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     10,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     7,
     0,
     0,
@@ -195,29 +494,27 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     10,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     8,
     0,
     0,
     0
    ]
-  ]
- ],
- "3": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     10,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     13,
     0,
     0,
@@ -227,29 +524,27 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     10,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     14,
     0,
     0,
     0
    ]
-  ]
- ],
- "4": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     10,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     1,
     0,
     0,
@@ -259,12 +554,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     10,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     2,
     0,
     0,
@@ -274,29 +569,27 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     10,
     0,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col+1",
+    "row",
+    "mem:word ptr [0x5122]",
     3,
     0,
     0,
     0
    ]
-  ]
- ],
- "5": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     11,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     25,
     0,
     0,
@@ -306,49 +599,57 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     11,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     26,
     0,
     0,
     0
    ]
-  ]
- ],
- "|": [
-  [
-   "Object",
-   [
-    "word ptr [0x5120]",
-    13,
-    4,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    0,
-    1,
-    35,
-    35,
-    1,
-    8,
-    0,
-    "dx"
-   ]
-  ]
- ],
- "-": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
+    0,
+    1,
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
+    0,
+    18,
+    18,
+    18
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    0,
+    1,
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
+    0,
+    19,
+    19,
+    19
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
     0,
     2,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     41,
     41,
@@ -358,28 +659,26 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     2,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     42,
     42,
     42
    ]
-  ]
- ],
- "d": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     10,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
+    "col-1",
+    "row",
     0,
     9,
     0,
@@ -390,28 +689,26 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     10,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     0,
     10,
     0,
     0,
     0
    ]
-  ]
- ],
- "f": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     3,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
+    "col-1",
+    "row",
     0,
     43,
     0,
@@ -422,29 +719,27 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     3,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     0,
     44,
     0,
     0,
     0
    ]
-  ]
- ],
- "]": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     3,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     45,
     0,
     0,
@@ -454,12 +749,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     3,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     46,
     0,
     0,
@@ -469,12 +764,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     3,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col-1",
+    "row+1",
+    "mem:word ptr [0x5122]",
     49,
     0,
     0,
@@ -484,149 +779,27 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     3,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     50,
     0,
     0,
     0
    ]
-  ]
- ],
- "T": [
-  [
-   "SetCell",
-   [
-    "word ptr [0x2b8]",
-    10,
-    0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
-    25,
-    0,
-    0,
-    0
-   ]
   ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
-    10,
-    0,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
-    26,
-    0,
-    0,
-    0
-   ]
-  ]
- ],
- "*": [
-  [
-   "Object",
-   [
-    "word ptr [0x5120]",
-    7,
-    3,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    1,
-    0,
-    "word ptr [0x2de]",
-    "word ptr [0x2dc]",
-    12,
-    2,
-    0,
-    "dx"
-   ]
-  ]
- ],
- "#": [
-  [
-   "Object",
-   [
-    "word ptr [0x5120]",
-    52,
-    3,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    0,
-    1,
-    47,
-    47,
-    1,
-    4,
-    0,
-    "dx"
-   ]
-  ],
-  [
-   "Object",
-   [
-    "word ptr [0x5120]",
+    "mem:word ptr [0x2b8]",
     8,
-    3,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
     0,
-    65535,
-    33,
-    25,
-    6,
-    2,
-    0,
-    "dx"
-   ]
-  ]
- ],
- "O": [
-  [
-   "SetCell",
-   [
-    "word ptr [0x2b8]",
-    9,
-    0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
-    35,
-    0,
-    0,
-    0
-   ]
-  ],
-  [
-   "SetCell",
-   [
-    "word ptr [0x2b8]",
-    9,
-    0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
-    36,
-    0,
-    0,
-    0
-   ]
-  ],
-  [
-   "SetCell",
-   [
-    "word ptr [0x2b8]",
-    9,
-    0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     39,
     0,
     0,
@@ -636,29 +809,177 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
-    9,
+    "mem:word ptr [0x2b8]",
+    8,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
+    38,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    8,
+    0,
+    "col+1",
+    "row",
+    "mem:word ptr [0x5122]",
     40,
     0,
     0,
     0
    ]
-  ]
- ],
- "Q": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
+    8,
+    0,
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
+    37,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
+    33,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    9,
+    0,
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
+    34,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    9,
+    0,
+    "col-1",
+    "row+1",
+    "mem:word ptr [0x5122]",
+    37,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    9,
+    0,
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
+    38,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    15,
+    0,
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
+    1,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    15,
+    0,
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
+    2,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    15,
+    0,
+    "col-1",
+    "row+1",
+    "mem:word ptr [0x5122]",
+    5,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    15,
+    0,
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
+    6,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    9,
+    0,
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     35,
     0,
     0,
@@ -668,12 +989,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     36,
     0,
     0,
@@ -683,12 +1004,72 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col-1",
+    "row+1",
+    "mem:word ptr [0x5122]",
+    39,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    9,
+    0,
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
+    40,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    9,
+    0,
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
+    35,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    9,
+    0,
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
+    36,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    9,
+    0,
+    "col-1",
+    "row+1",
+    "mem:word ptr [0x5122]",
     41,
     0,
     0,
@@ -698,12 +1079,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     42,
     0,
     0,
@@ -713,12 +1094,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]+2",
-    "word ptr [0x5122]",
+    "col-1",
+    "row+2",
+    "mem:word ptr [0x5122]",
     45,
     0,
     0,
@@ -728,12 +1109,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+2",
-    "word ptr [0x5122]",
+    "col",
+    "row+2",
+    "mem:word ptr [0x5122]",
     46,
     0,
     0,
@@ -743,12 +1124,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     10,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]+3",
-    "word ptr [0x5122]",
+    "col-1",
+    "row+3",
+    "mem:word ptr [0x5122]",
     45,
     50,
     50,
@@ -758,28 +1139,26 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     10,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+3",
-    "word ptr [0x5122]",
+    "col",
+    "row+3",
+    "mem:word ptr [0x5122]",
     46,
     49,
     49,
     49
    ]
-  ]
- ],
- "D": [
+  ],
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     18,
     10,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
+    "col-1",
+    "row",
     0,
     1,
     9,
@@ -787,17 +1166,18 @@
     1,
     4,
     0,
-    "dx"
+    12163,
+    8090
    ]
   ],
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     0,
     10,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     0,
     1,
     10,
@@ -805,20 +1185,19 @@
     1,
     4,
     0,
-    "dx"
+    8121,
+    8090
    ]
-  ]
- ],
- "x": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     4,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     37,
     0,
     0,
@@ -828,12 +1207,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     4,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     38,
     0,
     0,
@@ -843,12 +1222,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     4,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col-1",
+    "row+1",
+    "mem:word ptr [0x5122]",
     39,
     0,
     0,
@@ -858,29 +1237,27 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     4,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     40,
     0,
     0,
     0
    ]
-  ]
- ],
- "c": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     7,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     37,
     0,
     0,
@@ -890,12 +1267,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     7,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     38,
     0,
     0,
@@ -905,12 +1282,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     7,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col-1",
+    "row+1",
+    "mem:word ptr [0x5122]",
     41,
     0,
     0,
@@ -920,29 +1297,27 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     7,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     42,
     0,
     0,
     0
    ]
-  ]
- ],
- "y": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     1,
     0,
     0,
@@ -952,12 +1327,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     4,
     0,
     0,
@@ -967,12 +1342,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col-1",
+    "row+1",
+    "mem:word ptr [0x5122]",
     5,
     0,
     0,
@@ -982,29 +1357,27 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     8,
     0,
     0,
     0
    ]
-  ]
- ],
- "g": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     1,
     0,
     0,
@@ -1014,12 +1387,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     2,
     0,
     0,
@@ -1029,12 +1402,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col+1",
+    "row",
+    "mem:word ptr [0x5122]",
     4,
     0,
     0,
@@ -1044,12 +1417,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col-1",
+    "row+1",
+    "mem:word ptr [0x5122]",
     5,
     0,
     0,
@@ -1059,12 +1432,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     6,
     0,
     0,
@@ -1074,29 +1447,27 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col+1",
+    "row+1",
+    "mem:word ptr [0x5122]",
     8,
     0,
     0,
     0
    ]
-  ]
- ],
- "b": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     1,
     0,
     0,
@@ -1106,12 +1477,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     2,
     0,
     0,
@@ -1121,12 +1492,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col+1",
+    "row",
+    "mem:word ptr [0x5122]",
     3,
     0,
     0,
@@ -1136,12 +1507,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]+2",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col+2",
+    "row",
+    "mem:word ptr [0x5122]",
     4,
     0,
     0,
@@ -1151,12 +1522,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col-1",
+    "row+1",
+    "mem:word ptr [0x5122]",
     5,
     0,
     0,
@@ -1166,12 +1537,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     6,
     0,
     0,
@@ -1181,12 +1552,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col+1",
+    "row+1",
+    "mem:word ptr [0x5122]",
     7,
     0,
     0,
@@ -1196,49 +1567,147 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]+2",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col+2",
+    "row+1",
+    "mem:word ptr [0x5122]",
     8,
     0,
     0,
     0
    ]
-  ]
- ],
- "A": [
-  [
-   "Object",
-   [
-    "word ptr [0x5120]",
-    35,
-    18,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    0,
-    65535,
-    41,
-    45,
-    4,
-    4,
-    0,
-    "dx"
-   ]
-  ]
- ],
- "B": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     11,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
+    11,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    11,
+    0,
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
+    12,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    11,
+    0,
+    "col-1",
+    "row+1",
+    "mem:word ptr [0x5122]",
+    15,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    11,
+    0,
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
+    16,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    11,
+    0,
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
+    11,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    11,
+    0,
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
+    12,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    11,
+    0,
+    "col-1",
+    "row+1",
+    "mem:word ptr [0x5122]",
+    15,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    11,
+    0,
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
+    16,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    11,
+    0,
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     27,
     0,
     0,
@@ -1248,12 +1717,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     11,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     28,
     0,
     0,
@@ -1263,12 +1732,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     11,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col-1",
+    "row+1",
+    "mem:word ptr [0x5122]",
     15,
     0,
     0,
@@ -1278,29 +1747,27 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     11,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     16,
     0,
     0,
     0
    ]
-  ]
- ],
- ":": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     22,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     5,
     0,
     0,
@@ -1310,29 +1777,27 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     22,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     6,
     0,
     0,
     0
    ]
-  ]
- ],
- ";": [
+  ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     22,
     0,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     9,
     0,
     0,
@@ -1342,68 +1807,178 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     22,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     10,
     0,
     0,
     0
    ]
-  ]
- ],
- "=": [
+  ],
   [
    "Object",
    [
-    "word ptr [0x5120]",
-    28,
-    14,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    65535,
-    0,
-    37,
-    37,
-    9,
-    0,
-    0,
-    "dx"
-   ]
-  ]
- ],
- "E": [
-  [
-   "Object",
-   [
-    "word ptr [0x5120]",
-    28,
-    14,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "idx",
+    50,
+    17,
+    "col",
+    "row",
     1,
     0,
-    28,
-    28,
-    9,
+    49,
+    49,
+    2,
+    8,
     0,
-    0,
-    "dx"
+    23486,
+    8090
    ]
-  ]
- ],
- "P": [
+  ],
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
+    48,
+    17,
+    "col-1",
+    "row",
+    65535,
+    0,
+    25,
+    45,
+    4,
+    2,
+    0,
+    22613,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    0,
+    17,
+    "col",
+    "row",
+    65535,
+    0,
+    29,
+    41,
+    4,
+    2,
+    0,
+    8121,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    0,
+    17,
+    "col+1",
+    "row",
+    65535,
+    0,
+    33,
+    37,
+    4,
+    2,
+    0,
+    8121,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    54,
+    21,
+    "col",
+    "row",
+    1,
+    0,
+    29,
+    33,
+    4,
+    4,
+    0,
+    23486,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    999,
+    21,
+    "col-1",
+    "row",
+    65535,
+    0,
+    9,
+    9,
+    4,
+    2,
+    0,
+    8121,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    53,
+    21,
+    "col",
+    "row",
+    65535,
+    0,
+    1,
+    1,
+    4,
+    2,
+    0,
+    23695,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    999,
+    21,
+    "col+1",
+    "row",
+    65535,
+    0,
+    17,
+    17,
+    4,
+    2,
+    0,
+    8121,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
     51,
     15,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
+    "col-1",
+    "row",
     65535,
     0,
     37,
@@ -1411,17 +1986,18 @@
     2,
     2,
     0,
-    "dx"
+    25138,
+    8090
    ]
   ],
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     51,
     15,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     65535,
     0,
     39,
@@ -1429,17 +2005,18 @@
     2,
     2,
     0,
-    "dx"
+    25138,
+    8090
    ]
   ],
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     51,
     15,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]",
+    "col+1",
+    "row",
     65535,
     0,
     39,
@@ -1447,17 +2024,18 @@
     2,
     2,
     0,
-    "dx"
+    25138,
+    8090
    ]
   ],
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     51,
     15,
-    "word ptr [bp - 0x102]+2",
-    "word ptr [bp + 8]",
+    "col+2",
+    "row",
     65535,
     0,
     41,
@@ -1465,27 +2043,38 @@
     2,
     2,
     0,
-    "dx"
+    25138,
+    8090
    ]
-  ]
- ],
- "m": [
+  ],
   [
-   "Object",
+   "SetCell",
    [
-    "word ptr [0x5120]",
-    32,
-    13,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    65535,
+    "mem:word ptr [0x2b8]",
     0,
-    9,
-    9,
-    1,
-    1,
+    5,
+    "col-1",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
-    "dx"
+    44,
+    44,
+    44
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    0,
+    5,
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
+    0,
+    45,
+    45,
+    45
    ]
   ]
  ],
@@ -1493,12 +2082,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     14,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     25,
     25,
@@ -1508,12 +2097,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     14,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     0,
     26,
     26,
@@ -1525,12 +2114,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     12,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     13,
     0,
     0,
@@ -1540,12 +2129,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     12,
     0,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col+1",
+    "row",
+    "mem:word ptr [0x5122]",
     21,
     0,
     0,
@@ -1555,12 +2144,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     12,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     17,
     0,
     0,
@@ -1570,11 +2159,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     31,
     12,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]+1",
+    "col+1",
+    "row+1",
     0,
     0,
     25,
@@ -1582,7 +2171,8 @@
     4,
     0,
     0,
-    "dx"
+    19019,
+    8090
    ]
   ]
  ],
@@ -1590,12 +2180,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     10,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     4,
     0,
     0,
@@ -1603,33 +2193,16 @@
    ]
   ]
  ],
- "\u009a": [
+ "T": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
-    "word ptr [0x2d6]",
+    "mem:word ptr [0x2b8]",
+    10,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
-    "word ptr [0x2d4]+2",
-    0,
-    0,
-    0
-   ]
-  ]
- ],
- "\u009f": [
-  [
-   "SetCell",
-   [
-    "word ptr [0x2b8]",
-    18,
-    0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     25,
     0,
     0,
@@ -1639,12 +2212,61 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
+    10,
+    0,
+    "col+1",
+    "row",
+    "mem:word ptr [0x5122]",
+    26,
+    0,
+    0,
+    0
+   ]
+  ]
+ ],
+ "": [
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    "mem:word ptr [0x2d6]",
+    0,
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
+    "?word ptr [0x2d4]+2",
+    0,
+    0,
+    0
+   ]
+  ]
+ ],
+ "": [
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
     18,
     0,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
+    25,
+    0,
+    0,
+    0
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    18,
+    0,
+    "col+1",
+    "row",
+    "mem:word ptr [0x5122]",
     26,
     0,
     0,
@@ -1654,12 +2276,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     18,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     29,
     0,
     0,
@@ -1669,12 +2291,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     18,
     0,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col+1",
+    "row+1",
+    "mem:word ptr [0x5122]",
     30,
     0,
     0,
@@ -1682,16 +2304,16 @@
    ]
   ]
  ],
- "\u00a0": [
+ " ": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     17,
     0,
     0,
@@ -1699,16 +2321,16 @@
    ]
   ]
  ],
- "\u00a1": [
+ "¡": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     21,
     0,
     0,
@@ -1716,16 +2338,16 @@
    ]
   ]
  ],
- "\u00a2": [
+ "¢": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     19,
     0,
     0,
@@ -1733,16 +2355,16 @@
    ]
   ]
  ],
- "\u00a3": [
+ "£": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     25,
     0,
     0,
@@ -1752,12 +2374,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     29,
     0,
     0,
@@ -1765,16 +2387,16 @@
    ]
   ]
  ],
- "\u00a4": [
+ "¤": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     27,
     0,
     0,
@@ -1784,12 +2406,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     31,
     0,
     0,
@@ -1797,16 +2419,16 @@
    ]
   ]
  ],
- "\u00a5": [
+ "¥": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     26,
     0,
     0,
@@ -1816,12 +2438,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     30,
     0,
     0,
@@ -1829,16 +2451,16 @@
    ]
   ]
  ],
- "\u00a6": [
+ "¦": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     14,
     0,
     0,
@@ -1846,16 +2468,16 @@
    ]
   ]
  ],
- "\u00a7": [
+ "§": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     13,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     50,
     0,
     0,
@@ -1863,16 +2485,16 @@
    ]
   ]
  ],
- "\u00a8": [
+ "¨": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     13,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     44,
     44,
@@ -1880,15 +2502,15 @@
    ]
   ]
  ],
- "\u00a9": [
+ "©": [
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     44,
     13,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     0,
     0,
     47,
@@ -1896,20 +2518,21 @@
     1,
     0,
     0,
-    "dx"
+    19074,
+    8090
    ]
   ]
  ],
- "\u00aa": [
+ "ª": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     13,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     49,
     49,
@@ -1917,16 +2540,16 @@
    ]
   ]
  ],
- "\u00ab": [
+ "«": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     13,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     45,
     45,
@@ -1934,16 +2557,16 @@
    ]
   ]
  ],
- "\u00ac": [
+ "¬": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     13,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     46,
     46,
@@ -1951,16 +2574,16 @@
    ]
   ]
  ],
- "\u00b0": [
+ "°": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     0,
     0,
@@ -1968,16 +2591,16 @@
    ]
   ]
  ],
- "\u00b1": [
+ "±": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     12,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     49,
     0,
     0,
@@ -1985,16 +2608,16 @@
    ]
   ]
  ],
- "\u00b2": [
+ "²": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     12,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     37,
     0,
     0,
@@ -2002,16 +2625,16 @@
    ]
   ]
  ],
- "\u00b3": [
+ "³": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     18,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     7,
     7,
@@ -2021,12 +2644,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     18,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col+1",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     8,
     8,
@@ -2034,16 +2657,16 @@
    ]
   ]
  ],
- "\u00ba": [
+ "º": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     12,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     34,
     34,
@@ -2051,16 +2674,16 @@
    ]
   ]
  ],
- "\u00bb": [
+ "»": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     12,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     39,
     39,
@@ -2068,16 +2691,16 @@
    ]
   ]
  ],
- "\u00bc": [
+ "¼": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     12,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     40,
     40,
@@ -2085,16 +2708,16 @@
    ]
   ]
  ],
- "\u00bd": [
+ "½": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     12,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     30,
     0,
     0,
@@ -2102,16 +2725,16 @@
    ]
   ]
  ],
- "\u00be": [
+ "¾": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     12,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     29,
     0,
     0,
@@ -2119,16 +2742,16 @@
    ]
   ]
  ],
- "\u00bf": [
+ "¿": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     11,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     41,
     0,
     0,
@@ -2136,16 +2759,16 @@
    ]
   ]
  ],
- "\u00c0": [
+ "À": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     11,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     45,
     0,
     0,
@@ -2153,16 +2776,16 @@
    ]
   ]
  ],
- "\u00c1": [
+ "Á": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     11,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     47,
     0,
     0,
@@ -2170,16 +2793,16 @@
    ]
   ]
  ],
- "\u00c2": [
+ "Â": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     11,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     48,
     0,
     0,
@@ -2187,16 +2810,16 @@
    ]
   ]
  ],
- "\u00c3": [
+ "Ã": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     22,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     8,
     8,
@@ -2206,12 +2829,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     22,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     0,
     12,
     12,
@@ -2219,16 +2842,16 @@
    ]
   ]
  ],
- "\u00c4": [
+ "Ä": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     22,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     12,
     12,
@@ -2238,12 +2861,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     22,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     0,
     16,
     16,
@@ -2251,16 +2874,16 @@
    ]
   ]
  ],
- "\u00c5": [
+ "Å": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     11,
     11,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     37,
     40,
     40,
@@ -2268,16 +2891,16 @@
    ]
   ]
  ],
- "\u00c6": [
+ "Æ": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     43,
     0,
     0,
@@ -2285,16 +2908,16 @@
    ]
   ]
  ],
- "\u00c7": [
+ "Ç": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     44,
     0,
     0,
@@ -2302,16 +2925,16 @@
    ]
   ]
  ],
- "\u00c8": [
+ "È": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     0,
     0,
@@ -2319,16 +2942,16 @@
    ]
   ]
  ],
- "\u00ca": [
+ "Ê": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     12,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     35,
     35,
@@ -2336,16 +2959,16 @@
    ]
   ]
  ],
- "\u00cb": [
+ "Ë": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     12,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     33,
     33,
@@ -2353,16 +2976,16 @@
    ]
   ]
  ],
- "\u00cc": [
+ "Ì": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     9,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     16,
     0,
     0,
@@ -2370,15 +2993,15 @@
    ]
   ]
  ],
- "\u00cd": [
+ "Í": [
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     38,
     12,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     65535,
     0,
     41,
@@ -2386,20 +3009,21 @@
     4,
     2,
     0,
-    "dx"
+    27386,
+    8090
    ]
   ]
  ],
- "\u00ce": [
+ "Î": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     22,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     7,
     7,
@@ -2407,16 +3031,16 @@
    ]
   ]
  ],
- "\u00cf": [
+ "Ï": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     11,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     44,
     44,
@@ -2424,16 +3048,16 @@
    ]
   ]
  ],
- "\u00d0": [
+ "Ð": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     12,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     8,
     0,
     0,
@@ -2441,16 +3065,16 @@
    ]
   ]
  ],
- "\u00d1": [
+ "Ñ": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     11,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     43,
     43,
@@ -2458,15 +3082,15 @@
    ]
   ]
  ],
- "\u00d5": [
+ "Õ": [
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     60,
     13,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     0,
     0,
     40,
@@ -2474,19 +3098,20 @@
     4,
     0,
     0,
-    "dx"
+    16147,
+    8090
    ]
   ]
  ],
- "\u00d6": [
+ "Ö": [
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     59,
     12,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     0,
     1,
     45,
@@ -2494,19 +3119,20 @@
     4,
     2,
     0,
-    "dx"
+    27953,
+    8090
    ]
   ]
  ],
- "\u00d7": [
+ "×": [
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     39,
     12,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     0,
     1,
     45,
@@ -2514,20 +3140,21 @@
     4,
     2,
     0,
-    "dx"
+    27953,
+    8090
    ]
   ]
  ],
- "\u00d8": [
+ "Ø": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     12,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     32,
     0,
     0,
@@ -2535,16 +3162,16 @@
    ]
   ]
  ],
- "\u00d9": [
+ "Ù": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     11,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     46,
     0,
     0,
@@ -2552,16 +3179,16 @@
    ]
   ]
  ],
- "\u00da": [
+ "Ú": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     11,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     42,
     0,
     0,
@@ -2569,15 +3196,15 @@
    ]
   ]
  ],
- "\u00db": [
+ "Û": [
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     32,
     13,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     65535,
     0,
     9,
@@ -2585,19 +3212,20 @@
     1,
     0,
     0,
-    "dx"
+    28662,
+    8090
    ]
   ]
  ],
- "\u00dc": [
+ "Ü": [
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     33,
     13,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     65535,
     0,
     10,
@@ -2605,20 +3233,21 @@
     1,
     1,
     0,
-    "dx"
+    28900,
+    8090
    ]
   ]
  ],
- "\u00e0": [
+ "à": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     18,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     1,
     1,
@@ -2628,12 +3257,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     18,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col+1",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     2,
     2,
@@ -2643,12 +3272,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     18,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     0,
     5,
     5,
@@ -2658,12 +3287,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     18,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col+1",
+    "row+1",
+    "mem:word ptr [0x5122]",
     0,
     6,
     6,
@@ -2671,16 +3300,16 @@
    ]
   ]
  ],
- "\u00e7": [
+ "ç": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     11,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     49,
     49,
@@ -2688,16 +3317,16 @@
    ]
   ]
  ],
- "\u00e8": [
+ "è": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     8,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     45,
     0,
     0,
@@ -2705,16 +3334,16 @@
    ]
   ]
  ],
- "\u00e9": [
+ "é": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     8,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     46,
     0,
     0,
@@ -2722,16 +3351,16 @@
    ]
   ]
  ],
- "\u00ea": [
+ "ê": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     8,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     47,
     0,
     0,
@@ -2739,16 +3368,16 @@
    ]
   ]
  ],
- "\u00eb": [
+ "ë": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     8,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     48,
     0,
     0,
@@ -2756,16 +3385,16 @@
    ]
   ]
  ],
- "\u00ec": [
+ "ì": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     8,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     49,
     0,
     0,
@@ -2773,16 +3402,16 @@
    ]
   ]
  ],
- "\u00ed": [
+ "í": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     8,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     50,
     0,
     0,
@@ -2790,16 +3419,16 @@
    ]
   ]
  ],
- "\u00f0": [
+ "ð": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     18,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     3,
     3,
@@ -2809,12 +3438,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     18,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col+1",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     4,
     4,
@@ -2822,15 +3451,15 @@
    ]
   ]
  ],
- "\u00f2": [
+ "ò": [
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     47,
     20,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     1,
     0,
     45,
@@ -2838,17 +3467,18 @@
     4,
     2,
     0,
-    "dx"
+    21996,
+    8090
    ]
   ],
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     47,
     20,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]-1",
+    "col",
+    "row-1",
     1,
     0,
     41,
@@ -2856,19 +3486,20 @@
     4,
     2,
     0,
-    "dx"
+    8121,
+    8090
    ]
   ]
  ],
- "\u00f3": [
+ "ó": [
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     0,
     21,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     0,
     0,
     46,
@@ -2876,17 +3507,18 @@
     4,
     0,
     0,
-    "dx"
+    8121,
+    8090
    ]
   ],
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     58,
     21,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     1,
     0,
     50,
@@ -2894,17 +3526,18 @@
     1,
     6,
     0,
-    "dx"
+    23486,
+    8090
    ]
   ],
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     57,
     21,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     1,
     0,
     41,
@@ -2912,20 +3545,21 @@
     4,
     4,
     0,
-    "dx"
+    20436,
+    8090
    ]
   ]
  ],
- "\u00f4": [
+ "ô": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     1,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     9,
     9,
@@ -2933,16 +3567,16 @@
    ]
   ]
  ],
- "\u00f5": [
+ "õ": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     1,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     11,
     11,
@@ -2950,16 +3584,16 @@
    ]
   ]
  ],
- "\u00f6": [
+ "ö": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     4,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     33,
     0,
     0,
@@ -2967,16 +3601,16 @@
    ]
   ]
  ],
- "\u00f7": [
+ "÷": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     4,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     34,
     0,
     0,
@@ -2984,16 +3618,16 @@
    ]
   ]
  ],
- "\u00f8": [
+ "ø": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     18,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     17,
     17,
@@ -3003,12 +3637,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     18,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col+1",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     18,
     18,
@@ -3018,12 +3652,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     18,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     0,
     21,
     21,
@@ -3033,12 +3667,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     18,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col+1",
+    "row+1",
+    "mem:word ptr [0x5122]",
     0,
     22,
     22,
@@ -3046,16 +3680,16 @@
    ]
   ]
  ],
- "\u00f9": [
+ "ù": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     12,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     4,
     0,
     0,
@@ -3063,16 +3697,16 @@
    ]
   ]
  ],
- "\u00fa": [
+ "ú": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     12,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     12,
     0,
     0,
@@ -3080,16 +3714,16 @@
    ]
   ]
  ],
- "\u00fb": [
+ "û": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     12,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     36,
     0,
     0,
@@ -3097,16 +3731,16 @@
    ]
   ]
  ],
- "\u00fc": [
+ "ü": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     10,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     49,
     49,
@@ -3114,16 +3748,16 @@
    ]
   ]
  ],
- "\u00fd": [
+ "ý": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     10,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     50,
     50,
@@ -3131,16 +3765,16 @@
    ]
   ]
  ],
- "\u00fe": [
+ "þ": [
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     10,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     27,
     27,
@@ -3152,8 +3786,9 @@
   [
    "Object",
    [
-    "50+0x32",
-    "dx"
+    100,
+    10634,
+    8090
    ]
   ]
  ],
@@ -3161,11 +3796,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     23,
     10,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     1,
     0,
     29,
@@ -3173,7 +3808,8 @@
     19,
     8,
     0,
-    "dx"
+    19155,
+    8090
    ]
   ]
  ],
@@ -3181,11 +3817,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     24,
     14,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     0,
     0,
     1,
@@ -3193,13 +3829,14 @@
     6,
     0,
     0,
-    "dx"
+    12860,
+    8090
    ]
   ],
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     25,
     14,
     0,
@@ -3211,7 +3848,8 @@
     2,
     6,
     0,
-    "dx"
+    13046,
+    8090
    ]
   ]
  ],
@@ -3219,11 +3857,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     26,
     14,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     65535,
     0,
     17,
@@ -3231,13 +3869,14 @@
     4,
     4,
     0,
-    "dx"
+    13334,
+    8090
    ]
   ],
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     27,
     14,
     0,
@@ -3249,7 +3888,8 @@
     2,
     0,
     0,
-    "dx"
+    8121,
+    8090
    ]
   ]
  ],
@@ -3257,11 +3897,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     6,
     2,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     1,
     0,
     47,
@@ -3269,7 +3909,29 @@
     4,
     4,
     0,
-    "dx"
+    10959,
+    8090
+   ]
+  ]
+ ],
+ "A": [
+  [
+   "Object",
+   [
+    "idx",
+    35,
+    18,
+    "col",
+    "row",
+    0,
+    65535,
+    41,
+    45,
+    4,
+    4,
+    0,
+    16709,
+    8090
    ]
   ]
  ],
@@ -3280,8 +3942,8 @@
     0,
     36,
     18,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     1,
     0,
     11,
@@ -3289,22 +3951,65 @@
     2,
     0,
     0,
-    "dx"
+    15984,
+    8090
    ]
   ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     18,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     15,
     0,
     0,
     0
+   ]
+  ]
+ ],
+ "*": [
+  [
+   "Object",
+   [
+    "idx",
+    7,
+    3,
+    "col",
+    "row",
+    1,
+    0,
+    "mem:word ptr [0x2de]",
+    "mem:word ptr [0x2dc]",
+    12,
+    2,
+    0,
+    11220,
+    8090
+   ]
+  ]
+ ],
+ "|": [
+  [
+   "Object",
+   [
+    "idx",
+    13,
+    4,
+    "col",
+    "row",
+    0,
+    1,
+    35,
+    35,
+    1,
+    8,
+    0,
+    11575,
+    8090
    ]
   ]
  ],
@@ -3312,12 +4017,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     10,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     25,
     0,
     0,
@@ -3327,11 +4032,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     22,
     10,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     0,
     1,
     11,
@@ -3339,18 +4044,19 @@
     1,
     8,
     0,
-    "dx"
+    14000,
+    8090
    ]
   ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     10,
     0,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col+1",
+    "row",
+    "mem:word ptr [0x5122]",
     26,
     0,
     0,
@@ -3360,11 +4066,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     0,
     10,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]",
+    "col+1",
+    "row",
     0,
     1,
     12,
@@ -3372,18 +4078,19 @@
     1,
     8,
     0,
-    "dx"
+    8121,
+    8090
    ]
   ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     10,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col",
+    "row+1",
+    "mem:word ptr [0x5122]",
     25,
     0,
     0,
@@ -3393,11 +4100,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     0,
     10,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]+1",
+    "col",
+    "row+1",
     0,
     1,
     15,
@@ -3405,18 +4112,19 @@
     1,
     8,
     0,
-    "dx"
+    8121,
+    8090
    ]
   ],
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     10,
     0,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]+1",
-    "word ptr [0x5122]",
+    "col+1",
+    "row+1",
+    "mem:word ptr [0x5122]",
     26,
     0,
     0,
@@ -3426,11 +4134,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     0,
     10,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]+1",
+    "col+1",
+    "row+1",
     0,
     1,
     16,
@@ -3438,7 +4146,8 @@
     1,
     8,
     0,
-    "dx"
+    8121,
+    8090
    ]
   ]
  ],
@@ -3446,12 +4155,12 @@
   [
    "SetCell",
    [
-    "word ptr [0x2b8]",
+    "mem:word ptr [0x2b8]",
     0,
     0,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
-    "word ptr [0x5122]",
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
     0,
     0,
     0,
@@ -3461,11 +4170,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     15,
     5,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     0,
     0,
     34,
@@ -3473,7 +4182,50 @@
     5,
     0,
     0,
-    "dx"
+    14596,
+    8090
+   ]
+  ]
+ ],
+ "E": [
+  [
+   "Object",
+   [
+    "idx",
+    28,
+    14,
+    "col",
+    "row",
+    1,
+    0,
+    28,
+    28,
+    9,
+    0,
+    0,
+    14894,
+    8090
+   ]
+  ]
+ ],
+ "=": [
+  [
+   "Object",
+   [
+    "idx",
+    28,
+    14,
+    "col",
+    "row",
+    65535,
+    0,
+    37,
+    37,
+    9,
+    0,
+    0,
+    14894,
+    8090
    ]
   ]
  ],
@@ -3481,11 +4233,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     21,
     10,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     1,
     0,
     17,
@@ -3493,7 +4245,8 @@
     8,
     0,
     0,
-    "dx"
+    15336,
+    8090
    ]
   ]
  ],
@@ -3501,11 +4254,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     34,
     15,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     1,
     0,
     25,
@@ -3513,17 +4266,18 @@
     4,
     0,
     0,
-    "dx"
+    15651,
+    8090
    ]
   ],
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     0,
     15,
-    "word ptr [bp - 0x102]+1",
-    "word ptr [bp + 8]",
+    "col+1",
+    "row",
     1,
     0,
     21,
@@ -3531,7 +4285,69 @@
     4,
     0,
     0,
-    "dx"
+    8121,
+    8090
+   ]
+  ]
+ ],
+ "#": [
+  [
+   "Object",
+   [
+    "idx",
+    52,
+    3,
+    "col",
+    "row",
+    0,
+    1,
+    47,
+    47,
+    1,
+    4,
+    0,
+    8566,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    8,
+    3,
+    "col",
+    "row",
+    0,
+    65535,
+    33,
+    25,
+    6,
+    2,
+    0,
+    8130,
+    8090
+   ]
+  ]
+ ],
+ "m": [
+  [
+   "Object",
+   [
+    "idx",
+    32,
+    13,
+    "col",
+    "row",
+    65535,
+    0,
+    9,
+    9,
+    1,
+    1,
+    0,
+    28662,
+    8090
    ]
   ]
  ],
@@ -3539,11 +4355,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     33,
     13,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     65535,
     0,
     10,
@@ -3551,7 +4367,8 @@
     1,
     1,
     0,
-    "dx"
+    28900,
+    8090
    ]
   ]
  ],
@@ -3559,11 +4376,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     19,
     12,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     65535,
     0,
     41,
@@ -3571,7 +4388,8 @@
     4,
     2,
     0,
-    "dx"
+    27386,
+    8090
    ]
   ]
  ],
@@ -3579,11 +4397,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     20,
     12,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     0,
     1,
     45,
@@ -3591,7 +4409,8 @@
     4,
     2,
     0,
-    "dx"
+    27953,
+    8090
    ]
   ]
  ],
@@ -3599,8 +4418,9 @@
   [
    "Object",
    [
-    "50+0x32",
-    "dx"
+    100,
+    18361,
+    8090
    ]
   ]
  ],
@@ -3608,11 +4428,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     10,
     5,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     65535,
     0,
     13,
@@ -3620,7 +4440,48 @@
     10,
     2,
     0,
-    "dx"
+    18686,
+    8090
+   ]
+  ]
+ ],
+ "^": [
+  [
+   "Object",
+   [
+    "idx",
+    55,
+    5,
+    "col",
+    "row",
+    0,
+    1,
+    39,
+    39,
+    1,
+    6,
+    0,
+    21223,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    11,
+    5,
+    "col",
+    "row",
+    65535,
+    0,
+    2,
+    2,
+    10,
+    2,
+    0,
+    19602,
+    8090
    ]
   ]
  ],
@@ -3628,11 +4489,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     49,
     7,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     1,
     0,
     34,
@@ -3640,17 +4501,18 @@
     1,
     8,
     0,
-    "dx"
+    23486,
+    8090
    ]
   ],
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     12,
     7,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     1,
     0,
     1,
@@ -3658,7 +4520,8 @@
     12,
     2,
     0,
-    "dx"
+    25330,
+    8090
    ]
   ]
  ],
@@ -3666,11 +4529,11 @@
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     14,
     4,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     0,
     0,
     41,
@@ -3678,20 +4541,20 @@
     4,
     0,
     0,
-    "dx"
+    16236,
+    8090
    ]
   ]
  ],
- "W": [],
- "R": [
+ "W": [
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     16,
     4,
-    "word ptr [bp - 0x102]-1",
-    "word ptr [bp + 8]",
+    "col-1",
+    "row",
     1,
     0,
     1,
@@ -3699,17 +4562,18 @@
     2,
     0,
     0,
-    "dx"
+    16442,
+    8090
    ]
   ],
   [
    "Object",
    [
-    "word ptr [0x5120]",
+    "idx",
     0,
     4,
-    "word ptr [bp - 0x102]",
-    "word ptr [bp + 8]",
+    "col",
+    "row",
     0,
     0,
     45,
@@ -3717,7 +4581,101 @@
     3,
     0,
     0,
-    "dx"
+    8121,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    16,
+    4,
+    "col",
+    "row",
+    65535,
+    0,
+    3,
+    1,
+    2,
+    0,
+    0,
+    16442,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    "idx",
+    0,
+    4,
+    "col-1",
+    "row",
+    65535,
+    0,
+    30,
+    30,
+    3,
+    0,
+    0,
+    8121,
+    8090
+   ]
+  ]
+ ],
+ "Y": [
+  [
+   "Object",
+   [
+    1,
+    1,
+    11,
+    "col",
+    "row",
+    1,
+    0,
+    17,
+    17,
+    4,
+    4,
+    0,
+    8121,
+    8090
+   ]
+  ],
+  [
+   "Object",
+   [
+    1,
+    1,
+    "flag",
+    "col",
+    "row",
+    1,
+    0,
+    13,
+    1,
+    12,
+    2,
+    0,
+    8121,
+    8090
+   ]
+  ],
+  [
+   "SetCell",
+   [
+    "mem:word ptr [0x2b8]",
+    0,
+    0,
+    "col",
+    "row",
+    "mem:word ptr [0x5122]",
+    0,
+    0,
+    0,
+    0
    ]
   ]
  ]

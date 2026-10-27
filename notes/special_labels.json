@@ -1,0 +1,5257 @@
+{
+ "' '": {
+  "label": " ",
+  "handler": "0x2674",
+  "end": "0x26CE",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     0,
+     "col",
+     "row",
+     "?word ptr [0x5122]+word ptr [bp - 0x104]",
+     0,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'z'": {
+  "label": "z",
+  "handler": "0x26E0",
+  "end": "0x2708",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'Z'": {
+  "label": "Z",
+  "handler": "0x271A",
+  "end": "0x278D",
+  "calls": [
+   [
+    "SetCell",
+    [
+     0,
+     "mem:word ptr [0x2b8]",
+     0,
+     "col",
+     "row",
+     0,
+     33,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     0,
+     "mem:word ptr [0x2b8]",
+     0,
+     "col",
+     "row",
+     0,
+     "?word ptr [0x5122]+word ptr [bp - 0x104]",
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'q'": {
+  "label": "q",
+  "handler": "0x27B4",
+  "end": "0x28A8",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     30,
+     12,
+     "col",
+     "row",
+     0,
+     "flag",
+     11,
+     11,
+     1,
+     "(flag)*2",
+     0,
+     25688,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     29,
+     14,
+     "col",
+     "row",
+     65535,
+     0,
+     23,
+     23,
+     2,
+     4,
+     0,
+     23486,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'a'": {
+  "label": "a",
+  "handler": "0x27B4",
+  "end": "0x28A8",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     30,
+     12,
+     "col",
+     "row",
+     0,
+     "flag",
+     11,
+     11,
+     1,
+     "(flag)*2",
+     0,
+     25688,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     29,
+     14,
+     "col",
+     "row",
+     65535,
+     0,
+     23,
+     23,
+     2,
+     4,
+     0,
+     23486,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'w'": {
+  "label": "w",
+  "handler": "0x28CF",
+  "end": "0x29C3",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     30,
+     12,
+     "col",
+     "row",
+     0,
+     "flag",
+     10,
+     10,
+     1,
+     "(flag)*2",
+     0,
+     25688,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     29,
+     14,
+     "col",
+     "row",
+     1,
+     0,
+     23,
+     23,
+     2,
+     4,
+     0,
+     23486,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'s'": {
+  "label": "s",
+  "handler": "0x28CF",
+  "end": "0x29C3",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     30,
+     12,
+     "col",
+     "row",
+     0,
+     "flag",
+     10,
+     10,
+     1,
+     "(flag)*2",
+     0,
+     25688,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     29,
+     14,
+     "col",
+     "row",
+     1,
+     0,
+     23,
+     23,
+     2,
+     4,
+     0,
+     23486,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'\\x81'": {
+  "label": "",
+  "handler": "0x29EA",
+  "end": "0x2ADE",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     40,
+     12,
+     "col",
+     "row",
+     0,
+     "flag",
+     11,
+     11,
+     1,
+     "(flag)*2",
+     0,
+     25688,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     29,
+     14,
+     "col",
+     "row",
+     65535,
+     0,
+     23,
+     23,
+     2,
+     4,
+     0,
+     23486,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'\\x82'": {
+  "label": "",
+  "handler": "0x29EA",
+  "end": "0x2ADE",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     40,
+     12,
+     "col",
+     "row",
+     0,
+     "flag",
+     11,
+     11,
+     1,
+     "(flag)*2",
+     0,
+     25688,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     29,
+     14,
+     "col",
+     "row",
+     65535,
+     0,
+     23,
+     23,
+     2,
+     4,
+     0,
+     23486,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'\\x83'": {
+  "label": "",
+  "handler": "0x2B05",
+  "end": "0x2BF9",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     40,
+     12,
+     "col",
+     "row",
+     0,
+     "flag",
+     10,
+     10,
+     1,
+     "(flag)*2",
+     0,
+     25688,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     29,
+     14,
+     "col",
+     "row",
+     1,
+     0,
+     23,
+     23,
+     2,
+     4,
+     0,
+     23486,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'\\x84'": {
+  "label": "",
+  "handler": "0x2B05",
+  "end": "0x2BF9",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     40,
+     12,
+     "col",
+     "row",
+     0,
+     "flag",
+     10,
+     10,
+     1,
+     "(flag)*2",
+     0,
+     25688,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     29,
+     14,
+     "col",
+     "row",
+     1,
+     0,
+     23,
+     23,
+     2,
+     4,
+     0,
+     23486,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'['": {
+  "label": "[",
+  "handler": "0x2C0E",
+  "end": "0x4342",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     3,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     41,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     3,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     42,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     2,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     43,
+     43,
+     43
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     2,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     44,
+     44,
+     44
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     5,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     6,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     7,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     8,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     13,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     14,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     1,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     2,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col+1",
+     "row",
+     "mem:word ptr [0x5122]",
+     3,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     25,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     26,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     1,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     18,
+     18,
+     18
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     1,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     19,
+     19,
+     19
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     2,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     41,
+     41,
+     41
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     2,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     42,
+     42,
+     42
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col-1",
+     "row",
+     0,
+     9,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col",
+     "row",
+     0,
+     10,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     3,
+     0,
+     "col-1",
+     "row",
+     0,
+     43,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     3,
+     0,
+     "col",
+     "row",
+     0,
+     44,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     3,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     45,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     3,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     46,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     3,
+     0,
+     "col-1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     49,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     3,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     50,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     8,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     39,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     8,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     38,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     8,
+     0,
+     "col+1",
+     "row",
+     "mem:word ptr [0x5122]",
+     40,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     8,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     37,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     33,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     34,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col-1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     37,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     38,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     15,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     1,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     15,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     2,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     15,
+     0,
+     "col-1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     5,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     15,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     6,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     35,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     36,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col-1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     39,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     40,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     35,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     36,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col-1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     41,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     42,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col-1",
+     "row+2",
+     "mem:word ptr [0x5122]",
+     45,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row+2",
+     "mem:word ptr [0x5122]",
+     46,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     10,
+     "col-1",
+     "row+3",
+     "mem:word ptr [0x5122]",
+     45,
+     50,
+     50,
+     50
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     10,
+     "col",
+     "row+3",
+     "mem:word ptr [0x5122]",
+     46,
+     49,
+     49,
+     49
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     18,
+     10,
+     "col-1",
+     "row",
+     0,
+     1,
+     9,
+     9,
+     1,
+     4,
+     0,
+     12163,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     0,
+     10,
+     "col",
+     "row",
+     0,
+     1,
+     10,
+     10,
+     1,
+     4,
+     0,
+     8121,
+     8090
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     4,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     37,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     4,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     38,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     4,
+     0,
+     "col-1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     39,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     4,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     40,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     7,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     37,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     7,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     38,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     7,
+     0,
+     "col-1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     41,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     7,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     42,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     1,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     4,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col-1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     5,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     8,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     1,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     2,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col+1",
+     "row",
+     "mem:word ptr [0x5122]",
+     4,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col-1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     5,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     6,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col+1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     8,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     1,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     2,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col+1",
+     "row",
+     "mem:word ptr [0x5122]",
+     3,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col+2",
+     "row",
+     "mem:word ptr [0x5122]",
+     4,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col-1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     5,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     6,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col+1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     7,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col+2",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     8,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     11,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     12,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col-1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     15,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     16,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     11,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     12,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col-1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     15,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     16,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     27,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     28,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col-1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     15,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     16,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     22,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     5,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     22,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     6,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     22,
+     0,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     9,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     22,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     10,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     50,
+     17,
+     "col",
+     "row",
+     1,
+     0,
+     49,
+     49,
+     2,
+     8,
+     0,
+     23486,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     48,
+     17,
+     "col-1",
+     "row",
+     65535,
+     0,
+     25,
+     45,
+     4,
+     2,
+     0,
+     22613,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     0,
+     17,
+     "col",
+     "row",
+     65535,
+     0,
+     29,
+     41,
+     4,
+     2,
+     0,
+     8121,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     0,
+     17,
+     "col+1",
+     "row",
+     65535,
+     0,
+     33,
+     37,
+     4,
+     2,
+     0,
+     8121,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     54,
+     21,
+     "col",
+     "row",
+     1,
+     0,
+     29,
+     33,
+     4,
+     4,
+     0,
+     23486,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     999,
+     21,
+     "col-1",
+     "row",
+     65535,
+     0,
+     9,
+     9,
+     4,
+     2,
+     0,
+     8121,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     53,
+     21,
+     "col",
+     "row",
+     65535,
+     0,
+     1,
+     1,
+     4,
+     2,
+     0,
+     23695,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     999,
+     21,
+     "col+1",
+     "row",
+     65535,
+     0,
+     17,
+     17,
+     4,
+     2,
+     0,
+     8121,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     51,
+     15,
+     "col-1",
+     "row",
+     65535,
+     0,
+     37,
+     47,
+     2,
+     2,
+     0,
+     25138,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     51,
+     15,
+     "col",
+     "row",
+     65535,
+     0,
+     39,
+     45,
+     2,
+     2,
+     0,
+     25138,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     51,
+     15,
+     "col+1",
+     "row",
+     65535,
+     0,
+     39,
+     45,
+     2,
+     2,
+     0,
+     25138,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     51,
+     15,
+     "col+2",
+     "row",
+     65535,
+     0,
+     41,
+     43,
+     2,
+     2,
+     0,
+     25138,
+     8090
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     5,
+     "col-1",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     44,
+     44,
+     44
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     5,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     45,
+     45,
+     45
+    ]
+   ]
+  ]
+ },
+ "'i'": {
+  "label": "i",
+  "handler": "0x4354",
+  "end": "0x43A7",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     14,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     25,
+     25,
+     25
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     14,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     0,
+     26,
+     26,
+     26
+    ]
+   ]
+  ]
+ },
+ "'X'": {
+  "label": "X",
+  "handler": "0x43BC",
+  "end": "0x4484",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     12,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     13,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     12,
+     0,
+     "col+1",
+     "row",
+     "mem:word ptr [0x5122]",
+     21,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     12,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     17,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     31,
+     12,
+     "col+1",
+     "row+1",
+     0,
+     0,
+     25,
+     25,
+     4,
+     0,
+     0,
+     19019,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'J'": {
+  "label": "J",
+  "handler": "0x4496",
+  "end": "0x44C0",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     4,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'T'": {
+  "label": "T",
+  "handler": "0x44D2",
+  "end": "0x4525",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     25,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col+1",
+     "row",
+     "mem:word ptr [0x5122]",
+     26,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'\\x9a'": {
+  "label": "",
+  "handler": "0x4537",
+  "end": "0x4596",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     "mem:word ptr [0x2d6]",
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     "?word ptr [0x2d4]+2",
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'\\x9f'": {
+  "label": "",
+  "handler": "0x45AB",
+  "end": "0x4652",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     18,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     25,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     18,
+     0,
+     "col+1",
+     "row",
+     "mem:word ptr [0x5122]",
+     26,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     18,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     29,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     18,
+     0,
+     "col+1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     30,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'\\xa0'": {
+  "label": " ",
+  "handler": "0x4664",
+  "end": "0x468E",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     17,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'¡'": {
+  "label": "¡",
+  "handler": "0x46A0",
+  "end": "0x46CA",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     21,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'¢'": {
+  "label": "¢",
+  "handler": "0x46DC",
+  "end": "0x4706",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     19,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'£'": {
+  "label": "£",
+  "handler": "0x4718",
+  "end": "0x477A",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     25,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     29,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'¤'": {
+  "label": "¤",
+  "handler": "0x478C",
+  "end": "0x47EE",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     27,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     31,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'¥'": {
+  "label": "¥",
+  "handler": "0x4800",
+  "end": "0x4862",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     26,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     30,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'¦'": {
+  "label": "¦",
+  "handler": "0x4874",
+  "end": "0x48A3",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     14,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'§'": {
+  "label": "§",
+  "handler": "0x48B5",
+  "end": "0x48DF",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     13,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     50,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'¨'": {
+  "label": "¨",
+  "handler": "0x48F1",
+  "end": "0x491B",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     13,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     44,
+     44,
+     44
+    ]
+   ]
+  ]
+ },
+ "'©'": {
+  "label": "©",
+  "handler": "0x492D",
+  "end": "0x496B",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     44,
+     13,
+     "col",
+     "row",
+     0,
+     0,
+     47,
+     47,
+     1,
+     0,
+     0,
+     19074,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'ª'": {
+  "label": "ª",
+  "handler": "0x497D",
+  "end": "0x49A7",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     13,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     49,
+     49,
+     49
+    ]
+   ]
+  ]
+ },
+ "'«'": {
+  "label": "«",
+  "handler": "0x49B9",
+  "end": "0x49E3",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     13,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     45,
+     45,
+     45
+    ]
+   ]
+  ]
+ },
+ "'¬'": {
+  "label": "¬",
+  "handler": "0x49F5",
+  "end": "0x4A1F",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     13,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     46,
+     46,
+     46
+    ]
+   ]
+  ]
+ },
+ "'°'": {
+  "label": "°",
+  "handler": "0x4A31",
+  "end": "0x4A8B",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'±'": {
+  "label": "±",
+  "handler": "0x4A9D",
+  "end": "0x4AC7",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     12,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     49,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'²'": {
+  "label": "²",
+  "handler": "0x4AD9",
+  "end": "0x4B03",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     12,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     37,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'³'": {
+  "label": "³",
+  "handler": "0x4B15",
+  "end": "0x4B68",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     18,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     7,
+     7,
+     7
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     18,
+     "col+1",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     8,
+     8,
+     8
+    ]
+   ]
+  ]
+ },
+ "'º'": {
+  "label": "º",
+  "handler": "0x4B7A",
+  "end": "0x4BA4",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     12,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     34,
+     34,
+     34
+    ]
+   ]
+  ]
+ },
+ "'»'": {
+  "label": "»",
+  "handler": "0x4BB6",
+  "end": "0x4BE0",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     12,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     39,
+     39,
+     39
+    ]
+   ]
+  ]
+ },
+ "'¼'": {
+  "label": "¼",
+  "handler": "0x4BF2",
+  "end": "0x4C1C",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     12,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     40,
+     40,
+     40
+    ]
+   ]
+  ]
+ },
+ "'½'": {
+  "label": "½",
+  "handler": "0x4C2E",
+  "end": "0x4C58",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     12,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     30,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'¾'": {
+  "label": "¾",
+  "handler": "0x4C6A",
+  "end": "0x4C94",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     12,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     29,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'¿'": {
+  "label": "¿",
+  "handler": "0x4CA6",
+  "end": "0x4CD0",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     41,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'À'": {
+  "label": "À",
+  "handler": "0x4CE2",
+  "end": "0x4D0C",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     45,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'Á'": {
+  "label": "Á",
+  "handler": "0x4D1E",
+  "end": "0x4D48",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     47,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'Â'": {
+  "label": "Â",
+  "handler": "0x4D5A",
+  "end": "0x4D84",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     48,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'Ã'": {
+  "label": "Ã",
+  "handler": "0x4D96",
+  "end": "0x4DE9",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     22,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     8,
+     8,
+     8
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     22,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     0,
+     12,
+     12,
+     12
+    ]
+   ]
+  ]
+ },
+ "'Ä'": {
+  "label": "Ä",
+  "handler": "0x4DFB",
+  "end": "0x4E4E",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     22,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     12,
+     12,
+     12
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     22,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     0,
+     16,
+     16,
+     16
+    ]
+   ]
+  ]
+ },
+ "'Å'": {
+  "label": "Å",
+  "handler": "0x4E60",
+  "end": "0x4E8C",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     11,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     37,
+     40,
+     40,
+     40
+    ]
+   ]
+  ]
+ },
+ "'Æ'": {
+  "label": "Æ",
+  "handler": "0x4E9E",
+  "end": "0x4EC8",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     43,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'Ç'": {
+  "label": "Ç",
+  "handler": "0x4EDA",
+  "end": "0x4F04",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     44,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'È'": {
+  "label": "È",
+  "handler": "0x4F16",
+  "end": "0x4F70",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'Ê'": {
+  "label": "Ê",
+  "handler": "0x4F82",
+  "end": "0x4FAC",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     12,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     35,
+     35,
+     35
+    ]
+   ]
+  ]
+ },
+ "'Ë'": {
+  "label": "Ë",
+  "handler": "0x4FBE",
+  "end": "0x4FE8",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     12,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     33,
+     33,
+     33
+    ]
+   ]
+  ]
+ },
+ "'Ì'": {
+  "label": "Ì",
+  "handler": "0x4FFA",
+  "end": "0x5024",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     9,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     16,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'Í'": {
+  "label": "Í",
+  "handler": "0x5036",
+  "end": "0x5096",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     38,
+     12,
+     "col",
+     "row",
+     65535,
+     0,
+     41,
+     41,
+     4,
+     2,
+     0,
+     27386,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'Î'": {
+  "label": "Î",
+  "handler": "0x50A8",
+  "end": "0x50D2",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     22,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     7,
+     7,
+     7
+    ]
+   ]
+  ]
+ },
+ "'Ï'": {
+  "label": "Ï",
+  "handler": "0x50E4",
+  "end": "0x510E",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     11,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     44,
+     44,
+     44
+    ]
+   ]
+  ]
+ },
+ "'Ð'": {
+  "label": "Ð",
+  "handler": "0x5120",
+  "end": "0x514A",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     12,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     8,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'Ñ'": {
+  "label": "Ñ",
+  "handler": "0x515C",
+  "end": "0x5186",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     11,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     43,
+     43,
+     43
+    ]
+   ]
+  ]
+ },
+ "'Õ'": {
+  "label": "Õ",
+  "handler": "0x5198",
+  "end": "0x51D6",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     60,
+     13,
+     "col",
+     "row",
+     0,
+     0,
+     40,
+     40,
+     4,
+     0,
+     0,
+     16147,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'Ö'": {
+  "label": "Ö",
+  "handler": "0x51E8",
+  "end": "0x5248",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     59,
+     12,
+     "col",
+     "row",
+     0,
+     1,
+     45,
+     45,
+     4,
+     2,
+     0,
+     27953,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'×'": {
+  "label": "×",
+  "handler": "0x525A",
+  "end": "0x52BA",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     39,
+     12,
+     "col",
+     "row",
+     0,
+     1,
+     45,
+     45,
+     4,
+     2,
+     0,
+     27953,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'Ø'": {
+  "label": "Ø",
+  "handler": "0x52CC",
+  "end": "0x5335",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     12,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     32,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'Ù'": {
+  "label": "Ù",
+  "handler": "0x5347",
+  "end": "0x5371",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     46,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'Ú'": {
+  "label": "Ú",
+  "handler": "0x5383",
+  "end": "0x53AD",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     11,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     42,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'Û'": {
+  "label": "Û",
+  "handler": "0x53BF",
+  "end": "0x540E",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     32,
+     13,
+     "col",
+     "row",
+     65535,
+     0,
+     9,
+     9,
+     1,
+     0,
+     0,
+     28662,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'Ü'": {
+  "label": "Ü",
+  "handler": "0x5420",
+  "end": "0x5470",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     33,
+     13,
+     "col",
+     "row",
+     65535,
+     0,
+     10,
+     10,
+     1,
+     1,
+     0,
+     28900,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'à'": {
+  "label": "à",
+  "handler": "0x5485",
+  "end": "0x552C",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     18,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     1,
+     1,
+     1
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     18,
+     "col+1",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     2,
+     2,
+     2
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     18,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     0,
+     5,
+     5,
+     5
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     18,
+     "col+1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     0,
+     6,
+     6,
+     6
+    ]
+   ]
+  ]
+ },
+ "'ç'": {
+  "label": "ç",
+  "handler": "0x553E",
+  "end": "0x5568",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     11,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     49,
+     49,
+     49
+    ]
+   ]
+  ]
+ },
+ "'è'": {
+  "label": "è",
+  "handler": "0x557A",
+  "end": "0x55A4",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     8,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     45,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'é'": {
+  "label": "é",
+  "handler": "0x55B6",
+  "end": "0x55E0",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     8,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     46,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'ê'": {
+  "label": "ê",
+  "handler": "0x55F2",
+  "end": "0x561C",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     8,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     47,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'ë'": {
+  "label": "ë",
+  "handler": "0x562E",
+  "end": "0x5658",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     8,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     48,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'ì'": {
+  "label": "ì",
+  "handler": "0x566A",
+  "end": "0x5694",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     8,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     49,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'í'": {
+  "label": "í",
+  "handler": "0x56A6",
+  "end": "0x56D0",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     8,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     50,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'ð'": {
+  "label": "ð",
+  "handler": "0x56E2",
+  "end": "0x5735",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     18,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     3,
+     3,
+     3
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     18,
+     "col+1",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     4,
+     4,
+     4
+    ]
+   ]
+  ]
+ },
+ "'ò'": {
+  "label": "ò",
+  "handler": "0x574A",
+  "end": "0x57E9",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     47,
+     20,
+     "col",
+     "row",
+     1,
+     0,
+     45,
+     37,
+     4,
+     2,
+     0,
+     21996,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     47,
+     20,
+     "col",
+     "row-1",
+     1,
+     0,
+     41,
+     33,
+     4,
+     2,
+     0,
+     8121,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'ó'": {
+  "label": "ó",
+  "handler": "0x57FE",
+  "end": "0x5903",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     0,
+     21,
+     "col",
+     "row",
+     0,
+     0,
+     46,
+     46,
+     4,
+     0,
+     0,
+     8121,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     58,
+     21,
+     "col",
+     "row",
+     1,
+     0,
+     50,
+     50,
+     1,
+     6,
+     0,
+     23486,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     57,
+     21,
+     "col",
+     "row",
+     1,
+     0,
+     41,
+     37,
+     4,
+     4,
+     0,
+     20436,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'ô'": {
+  "label": "ô",
+  "handler": "0x5915",
+  "end": "0x593F",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     1,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     9,
+     9,
+     9
+    ]
+   ]
+  ]
+ },
+ "'õ'": {
+  "label": "õ",
+  "handler": "0x5951",
+  "end": "0x597B",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     1,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     11,
+     11,
+     11
+    ]
+   ]
+  ]
+ },
+ "'ö'": {
+  "label": "ö",
+  "handler": "0x598D",
+  "end": "0x59E8",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     4,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     33,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'÷'": {
+  "label": "÷",
+  "handler": "0x59FA",
+  "end": "0x5A55",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     4,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     34,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'ø'": {
+  "label": "ø",
+  "handler": "0x5A6A",
+  "end": "0x5B11",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     18,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     17,
+     17,
+     17
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     18,
+     "col+1",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     18,
+     18,
+     18
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     18,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     0,
+     21,
+     21,
+     21
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     18,
+     "col+1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     0,
+     22,
+     22,
+     22
+    ]
+   ]
+  ]
+ },
+ "'ù'": {
+  "label": "ù",
+  "handler": "0x5B23",
+  "end": "0x5B4D",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     12,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     4,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'ú'": {
+  "label": "ú",
+  "handler": "0x5B5F",
+  "end": "0x5B89",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     12,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     12,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'û'": {
+  "label": "û",
+  "handler": "0x5B9B",
+  "end": "0x5BC5",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     12,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     36,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'ü'": {
+  "label": "ü",
+  "handler": "0x5BD7",
+  "end": "0x5C32",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     10,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     49,
+     49,
+     49
+    ]
+   ]
+  ]
+ },
+ "'ý'": {
+  "label": "ý",
+  "handler": "0x5C44",
+  "end": "0x5C9F",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     10,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     50,
+     50,
+     50
+    ]
+   ]
+  ]
+ },
+ "'þ'": {
+  "label": "þ",
+  "handler": "0x5CB1",
+  "end": "0x5D0C",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     10,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     27,
+     27,
+     27
+    ]
+   ]
+  ]
+ },
+ "'?'": {
+  "label": "?",
+  "handler": "0x5D1E",
+  "end": "0x5D78",
+  "calls": [
+   [
+    "Object",
+    [
+     100,
+     10634,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'/'": {
+  "label": "/",
+  "handler": "0x5D8A",
+  "end": "0x5DCA",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     23,
+     10,
+     "col",
+     "row",
+     1,
+     0,
+     29,
+     29,
+     19,
+     8,
+     0,
+     19155,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'!'": {
+  "label": "!",
+  "handler": "0x5DDF",
+  "end": "0x5E9D",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     24,
+     14,
+     "col",
+     "row",
+     0,
+     0,
+     1,
+     1,
+     6,
+     0,
+     0,
+     12860,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     25,
+     14,
+     0,
+     0,
+     0,
+     1,
+     9,
+     9,
+     2,
+     6,
+     0,
+     13046,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'&'": {
+  "label": "&",
+  "handler": "0x5EB2",
+  "end": "0x5F81",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     26,
+     14,
+     "col",
+     "row",
+     65535,
+     0,
+     17,
+     13,
+     4,
+     4,
+     0,
+     13334,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     27,
+     14,
+     0,
+     0,
+     1,
+     0,
+     23,
+     23,
+     2,
+     0,
+     0,
+     8121,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'9'": {
+  "label": "9",
+  "handler": "0x5F93",
+  "end": "0x5FE3",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     6,
+     2,
+     "col",
+     "row",
+     1,
+     0,
+     47,
+     47,
+     4,
+     4,
+     0,
+     10959,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'A'": {
+  "label": "A",
+  "handler": "0x5FF5",
+  "end": "0x6035",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     35,
+     18,
+     "col",
+     "row",
+     0,
+     65535,
+     41,
+     45,
+     4,
+     4,
+     0,
+     16709,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'$'": {
+  "label": "$",
+  "handler": "0x6047",
+  "end": "0x60B0",
+  "calls": [
+   [
+    "Object",
+    [
+     0,
+     36,
+     18,
+     "col",
+     "row",
+     1,
+     0,
+     11,
+     11,
+     2,
+     0,
+     0,
+     15984,
+     8090
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     18,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     15,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ },
+ "'*'": {
+  "label": "*",
+  "handler": "0x60C2",
+  "end": "0x6122",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     7,
+     3,
+     "col",
+     "row",
+     1,
+     0,
+     "mem:word ptr [0x2de]",
+     "mem:word ptr [0x2dc]",
+     12,
+     2,
+     0,
+     11220,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'|'": {
+  "label": "|",
+  "handler": "0x6134",
+  "end": "0x6194",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     13,
+     4,
+     "col",
+     "row",
+     0,
+     1,
+     35,
+     35,
+     1,
+     8,
+     0,
+     11575,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'U'": {
+  "label": "U",
+  "handler": "0x61A9",
+  "end": "0x638E",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     25,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     22,
+     10,
+     "col",
+     "row",
+     0,
+     1,
+     11,
+     11,
+     1,
+     8,
+     0,
+     14000,
+     8090
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col+1",
+     "row",
+     "mem:word ptr [0x5122]",
+     26,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     0,
+     10,
+     "col+1",
+     "row",
+     0,
+     1,
+     12,
+     12,
+     1,
+     8,
+     0,
+     8121,
+     8090
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     25,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     0,
+     10,
+     "col",
+     "row+1",
+     0,
+     1,
+     15,
+     15,
+     1,
+     8,
+     0,
+     8121,
+     8090
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     10,
+     0,
+     "col+1",
+     "row+1",
+     "mem:word ptr [0x5122]",
+     26,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     0,
+     10,
+     "col+1",
+     "row+1",
+     0,
+     1,
+     16,
+     16,
+     1,
+     8,
+     0,
+     8121,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'I'": {
+  "label": "I",
+  "handler": "0x63A3",
+  "end": "0x6426",
+  "calls": [
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     0,
+     0,
+     0
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     15,
+     5,
+     "col",
+     "row",
+     0,
+     0,
+     34,
+     34,
+     5,
+     0,
+     0,
+     14596,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'E'": {
+  "label": "E",
+  "handler": "0x6438",
+  "end": "0x6497",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     28,
+     14,
+     "col",
+     "row",
+     1,
+     0,
+     28,
+     28,
+     9,
+     0,
+     0,
+     14894,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'='": {
+  "label": "=",
+  "handler": "0x64A9",
+  "end": "0x6508",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     28,
+     14,
+     "col",
+     "row",
+     65535,
+     0,
+     37,
+     37,
+     9,
+     0,
+     0,
+     14894,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'F'": {
+  "label": "F",
+  "handler": "0x651A",
+  "end": "0x6569",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     21,
+     10,
+     "col",
+     "row",
+     1,
+     0,
+     17,
+     17,
+     8,
+     0,
+     0,
+     15336,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'u'": {
+  "label": "u",
+  "handler": "0x657E",
+  "end": "0x661A",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     34,
+     15,
+     "col",
+     "row",
+     1,
+     0,
+     25,
+     25,
+     4,
+     0,
+     0,
+     15651,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     0,
+     15,
+     "col+1",
+     "row",
+     1,
+     0,
+     21,
+     21,
+     4,
+     0,
+     0,
+     8121,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'#'": {
+  "label": "#",
+  "handler": "0x662F",
+  "end": "0x66CB",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     52,
+     3,
+     "col",
+     "row",
+     0,
+     1,
+     47,
+     47,
+     1,
+     4,
+     0,
+     8566,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     8,
+     3,
+     "col",
+     "row",
+     0,
+     65535,
+     33,
+     25,
+     6,
+     2,
+     0,
+     8130,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'m'": {
+  "label": "m",
+  "handler": "0x66DD",
+  "end": "0x672D",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     32,
+     13,
+     "col",
+     "row",
+     65535,
+     0,
+     9,
+     9,
+     1,
+     1,
+     0,
+     28662,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'N'": {
+  "label": "N",
+  "handler": "0x673F",
+  "end": "0x678F",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     33,
+     13,
+     "col",
+     "row",
+     65535,
+     0,
+     10,
+     10,
+     1,
+     1,
+     0,
+     28900,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'H'": {
+  "label": "H",
+  "handler": "0x67A1",
+  "end": "0x67F1",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     19,
+     12,
+     "col",
+     "row",
+     65535,
+     0,
+     41,
+     41,
+     4,
+     2,
+     0,
+     27386,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'V'": {
+  "label": "V",
+  "handler": "0x6803",
+  "end": "0x6853",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     20,
+     12,
+     "col",
+     "row",
+     0,
+     1,
+     45,
+     45,
+     4,
+     2,
+     0,
+     27953,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'S'": {
+  "label": "S",
+  "handler": "0x6865",
+  "end": "0x68BF",
+  "calls": [
+   [
+    "Object",
+    [
+     100,
+     18361,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'~'": {
+  "label": "~",
+  "handler": "0x68D1",
+  "end": "0x6911",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     10,
+     5,
+     "col",
+     "row",
+     65535,
+     0,
+     13,
+     13,
+     10,
+     2,
+     0,
+     18686,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'^'": {
+  "label": "^",
+  "handler": "0x6926",
+  "end": "0x69C2",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     55,
+     5,
+     "col",
+     "row",
+     0,
+     1,
+     39,
+     39,
+     1,
+     6,
+     0,
+     21223,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     11,
+     5,
+     "col",
+     "row",
+     65535,
+     0,
+     2,
+     2,
+     10,
+     2,
+     0,
+     19602,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'M'": {
+  "label": "M",
+  "handler": "0x69D7",
+  "end": "0x6A73",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     49,
+     7,
+     "col",
+     "row",
+     1,
+     0,
+     34,
+     34,
+     1,
+     8,
+     0,
+     23486,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     12,
+     7,
+     "col",
+     "row",
+     1,
+     0,
+     1,
+     13,
+     12,
+     2,
+     0,
+     25330,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'@'": {
+  "label": "@",
+  "handler": "0x6A85",
+  "end": "0x6AD3",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     14,
+     4,
+     "col",
+     "row",
+     0,
+     0,
+     41,
+     41,
+     4,
+     0,
+     0,
+     16236,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'W'": {
+  "label": "W",
+  "handler": "0x6AE8",
+  "end": "0x6C3F",
+  "calls": [
+   [
+    "Object",
+    [
+     "idx",
+     16,
+     4,
+     "col-1",
+     "row",
+     1,
+     0,
+     1,
+     1,
+     2,
+     0,
+     0,
+     16442,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     0,
+     4,
+     "col",
+     "row",
+     0,
+     0,
+     45,
+     45,
+     3,
+     0,
+     0,
+     8121,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     16,
+     4,
+     "col",
+     "row",
+     65535,
+     0,
+     3,
+     1,
+     2,
+     0,
+     0,
+     16442,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     "idx",
+     0,
+     4,
+     "col-1",
+     "row",
+     65535,
+     0,
+     30,
+     30,
+     3,
+     0,
+     0,
+     8121,
+     8090
+    ]
+   ]
+  ]
+ },
+ "'Y'": {
+  "label": "Y",
+  "handler": "0x6C54",
+  "end": "0x6E05",
+  "calls": [
+   [
+    "Object",
+    [
+     1,
+     1,
+     11,
+     "col",
+     "row",
+     1,
+     0,
+     17,
+     17,
+     4,
+     4,
+     0,
+     8121,
+     8090
+    ]
+   ],
+   [
+    "Object",
+    [
+     1,
+     1,
+     "flag",
+     "col",
+     "row",
+     1,
+     0,
+     13,
+     1,
+     12,
+     2,
+     0,
+     8121,
+     8090
+    ]
+   ],
+   [
+    "SetCell",
+    [
+     "mem:word ptr [0x2b8]",
+     0,
+     0,
+     "col",
+     "row",
+     "mem:word ptr [0x5122]",
+     0,
+     0,
+     0,
+     0
+    ]
+   ]
+  ]
+ }
+}

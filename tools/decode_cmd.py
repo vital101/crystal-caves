@@ -52,11 +52,26 @@ def find_compares(mod, a, b, table_lo, table_hi, stride=2):
 
 
 def branch_calls(mod, start, end, terms):
-    """Linear scan [start,end); collect pushes; emit on SetCell/object call."""
+    """Linear scan [start,end); collect pushes; emit on SetCell/object call.
+
+    Object spawns use the pattern::
+
+        push obj_index
+        push param1 .. paramN
+        mov ax, handler_off
+        mov dx, 0x1f9a
+        push dx
+        push ax
+        push cs
+        call 0x47d
+
+    so the last three pushes are (handler_seg, handler_off, cs).
+    """
     ins = disasm(mod, start, min(end, start + 0x500))
     calls = []
     pushes = []
     ax = None
+    dx = None
     for x in ins:
         o = x.op_str
         if x.mnemonic == "mov" and o.startswith("ax, "):
@@ -65,19 +80,37 @@ def branch_calls(mod, start, end, terms):
                 ax = int(v, 16)
             except ValueError:
                 ax = v
+        elif x.mnemonic == "mov" and o.startswith("dx, "):
+            v = o.split(", ", 1)[1]
+            try:
+                dx = int(v, 16)
+            except ValueError:
+                dx = v
         elif x.mnemonic == "xor" and o in ("ax, ax", "eax, eax"):
             ax = 0
+        elif x.mnemonic == "xor" and o in ("dx, dx", "edx, edx"):
+            dx = 0
         elif x.mnemonic == "add" and o.startswith("ax, "):
             ax = "%s+%s" % (ax, o.split(", ", 1)[1])
         elif x.mnemonic == "sub" and o.startswith("ax, "):
             ax = "%s-%s" % (ax, o.split(", ", 1)[1])
+        elif x.mnemonic == "add" and o.startswith("dx, "):
+            dx = "%s+%s" % (dx, o.split(", ", 1)[1])
+        elif x.mnemonic == "sub" and o.startswith("dx, "):
+            dx = "%s-%s" % (dx, o.split(", ", 1)[1])
         elif x.mnemonic == "dec" and o == "ax":
             ax = "%s-1" % ax
         elif x.mnemonic == "inc" and o == "ax":
             ax = "%s+1" % ax
+        elif x.mnemonic == "dec" and o == "dx":
+            dx = "%s-1" % dx
+        elif x.mnemonic == "inc" and o == "dx":
+            dx = "%s+1" % dx
         elif x.mnemonic == "push":
             if o == "ax":
                 pushes.append(("ax", ax))
+            elif o == "dx":
+                pushes.append(("dx", dx))
             elif o.startswith("word ptr"):
                 pushes.append(("mem", o))
             else:
@@ -89,8 +122,15 @@ def branch_calls(mod, start, end, terms):
                 p = pushes[:-1] if pushes and pushes[-1][1] == "cs" else pushes
                 calls.append(("SetCell", [q[1] for q in p]))
             elif o == "0x47d":
-                p = pushes[:-2] if len(pushes) >= 2 else pushes
-                calls.append(("Object", [q[1] for q in p]))
+                if len(pushes) >= 3 and pushes[-1][1] == "cs":
+                    p = pushes[:-3]
+                    seg = pushes[-3][1]
+                    off = pushes[-2][1]
+                else:
+                    p = pushes[:-2]
+                    seg = pushes[-2][1] if len(pushes) >= 2 else dx
+                    off = pushes[-1][1] if pushes else ax
+                calls.append(("Object", [q[1] for q in p] + [off, seg]))
             pushes = []
         elif x.mnemonic in ("ret", "retf") or (x.mnemonic == "jmp" and o in terms):
             break

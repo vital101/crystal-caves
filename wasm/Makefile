@@ -11,15 +11,17 @@ LLVM   ?= /opt/homebrew/opt/llvm/bin
 EMCC   ?= emcc
 OUT    ?= render.wasm
 
-EXPORTS = cc_alloc cc_set_assets cc_set_palette cc_render_level cc_framebuffer cc_tex_width cc_tex_height
+EXPORTS = cc_alloc cc_set_assets cc_set_palette cc_render_level cc_framebuffer cc_tex_width cc_tex_height \
+	  cc_objects_init cc_objects_step cc_obj_count cc_obj_state cc_obj_x cc_obj_y \
+	  cc_obj_kind cc_obj_shape cc_obj_tile cc_obj_p10 cc_obj_p18 cc_obj_ready cc_obj_vx cc_obj_cursor
 
 clang: assets $(OUT)
 
-$(OUT): render.c
+$(OUT): render.c objects.c objects.h
 	$(LLVM)/clang --target=wasm32 -O2 -nostdlib -ffreestanding -fno-builtin \
 	  -Wl,--no-entry -Wl,--no-gc-sections -Wl,--stack-first -Wl,-z,stack-size=65536 \
-	  -Wl,--export-memory -Wl,--initial-memory=16777216 -Wl,--max-memory=67108864 \
-	  $(foreach s,$(EXPORTS),-Wl,--export=$(s)) -o $(OUT) render.c
+	  -Wl,--export-memory -Wl,--initial-memory=16777216 -Wl,-z,stack-size=65536 \
+	  $(foreach s,$(EXPORTS),-Wl,--export=$(s)) -o $(OUT) render.c objects.c
 
 assets: assets/gfx.bin assets/levels.bin assets/palette.json
 
@@ -32,7 +34,7 @@ assets/palette.json: ../out/portable/palette.json
 
 # Emscripten path (produces app.js + app.wasm)
 emcc: assets
-	$(EMCC) render.c -O2 -o app.js -s WASM=1 \
+	$(EMCC) render.c objects.c -O2 -o app.js -s WASM=1 \
 	  -s EXPORTED_FUNCTIONS='[$(foreach s,$(EXPORTS),_$(s)),_malloc,_free]' \
 	  -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","HEAPU8"]' \
 	  -s ALLOW_MEMORY_GROWTH=1
@@ -40,7 +42,10 @@ emcc: assets
 test: clang
 	for l in 0 1 9 13 18; do node test_render.js $$l; done
 
+test-objects: clang
+	node test_objects.js
+
 clean:
 	rm -f $(OUT) app.js app.wasm
 
-.PHONY: clang emcc assets test clean
+.PHONY: clang emcc assets test test-objects clean
