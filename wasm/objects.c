@@ -634,6 +634,30 @@ uint16_t cc_obj_p18(int i)    { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].p18  
 uint16_t cc_obj_ready(int i)  { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].ready  : 0; }
 int32_t  cc_obj_vx(int i)     { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].vx     : 0; }
 uint16_t cc_obj_cursor(void)  { return S->obj_cursor; }
+/* Handler offset (behaviour ID, segment 0x1F9A) for slot i. */
+uint16_t cc_obj_handler(int i)  { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].handler : 0; }
+
+/* Coverage metric: fraction of active (non-empty, non-inert-state) object
+ * slots whose handler has a real implementation rather than the inert
+ * fallback.  Used to track handler porting progress (Phase 5). */
+static int is_real_handler(uint16_t off) {
+    switch (off) {
+        case 0x1fb9: case 0x2850: case 0x2877:
+        case 0x6ff6: case 0x70e4:
+            return 1;
+        default: return 0;
+    }
+}
+int cc_handler_coverage_num(void) {
+    int n = 0, d = 0;
+    for (int i = 0; i < OBJ_MAX; i++) {
+        if (S->obj[i].kind == 0) continue;
+        if (S->obj[i].state == 2) continue;
+        d++;
+        if (is_real_handler(S->obj[i].handler)) n++;
+    }
+    return d ? (n * 100) / d : 100;
+}
 
 /* C4 exports. */
 int32_t  cc_player_x(void) { return S->player_x; }
