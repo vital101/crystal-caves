@@ -93,6 +93,13 @@ static void blit(const unsigned char *shape, int px, int py) {
     }
 }
 
+/* Draw one object sprite (block/shape are 1-based) at screen position (px,py).
+ * Palette index 0 is painted opaquely, matching the original. */
+void cc_draw_object(int block, int shape, int px, int py) {
+    const unsigned char *s = shape_ptr(block, shape);
+    if (s) blit(s, px, py);
+}
+
 /* Render a baked level: layer B, then A, then C (matching the original). */
 void cc_render_level(int level, unsigned char *out_rgba) {
     memset(g_rgba, 0, sizeof(g_rgba));
