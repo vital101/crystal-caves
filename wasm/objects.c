@@ -1,5 +1,7 @@
 /* Crystal Caves Episode 1 - objects / gameplay (clean-room original).
  *
+ * C4: player, input, camera, physics, collision.
+ *
  * Object model and update-loop semantics derived solely from CC1.EXE
  * (function 0xD72A and the per-object handlers at segment 0x1F9A).
  *
@@ -20,6 +22,13 @@
  * that image (from objects_data.h, produced by the Unicorn golden oracle)
  * and runs the original update loop: one call to cc_objects_step() advances
  * every slot once (slots 2..59, then 0, then 1).
+ *
+ * Player / camera / input globals (from the binary):
+ *   [0x4611] player_x   [0x4613] player_y
+ *   [0x512E] cam_x      [0x5130] cam_y
+ *   [0x338E] left  [0x338F] right  [0x338D] up  [0x338C] down
+ *   [0x4629] move_dir  (-1 left / 0 none / 1 right)
+ *   [0x2BA]  player speed
  */
 
 #include "objects_data.h"
@@ -33,6 +42,8 @@ static void *memcpy_(void *d, const void *s, unsigned n) {
 }
 
 #define OBJ_MAX 60
+#define SCREEN_W 320
+#define SCREEN_H 200
 
 /* ---------------------------------------------------------------- state */
 static ObjectEntry g_obj[OBJ_MAX];
@@ -41,11 +52,32 @@ static uint16_t g_obj_cursor = 4;   /* [0x5120]: next object slot to allocate */
 /* [0xa0f8]: pause/fade flag - nonzero skips the visible-object handler path. */
 static uint8_t g_a0f8 = 0;
 
-/* Camera (stubbed for C3; level-0 active kinds bypass cull anyway). */
+/* Player position ([0x4611], [0x4613]). */
+static int32_t g_player_x = 0;
+static int32_t g_player_y = 0;
+
+/* Camera ([0x512E], [0x5130]). */
 static int32_t g_cam_x = 0;
 static int32_t g_cam_y = 0;
 
-/* [0x512a]/[0x513a]: handler cross-reference used by the kind-33 object. */
+/* Camera scroll deltas ([0x5118], [0x5128]). */
+static int16_t g_cam_dx = 0;
+static int16_t g_cam_dy = 0;
+
+/* Input flags ([0x338E]..[0x3393]). */
+static uint16_t g_input_left  = 0;   /* [0x338E] */
+static uint16_t g_input_right = 0;   /* [0x338F] */
+static uint16_t g_input_up    = 0;   /* [0x338D] */
+static uint16_t g_input_down  = 0;   /* [0x338C] */
+static uint16_t g_input_fire  = 0;   /* [0x338A] */
+
+/* Movement direction ([0x4629]: -1 left / 0 none / 1 right). */
+static int16_t g_move_dir = 0;
+
+/* Player speed ([0x2BA]). */
+static uint16_t g_player_speed = 7;
+
+/* [0x512A]/[0x513A]: handler cross-reference used by kind-33 objects. */
 static uint16_t g_512a = 0;
 static uint16_t g_513a = 0;
 
@@ -66,6 +98,90 @@ static int cull32(int index, int32_t x, int32_t y) {
     int32_t top    = g_cam_y - index;
     int32_t bottom = g_cam_y + 0x00C8 + index;
     return (x >= left && x <= right && y >= top && y <= bottom) ? 1 : 0;
+}
+
+/* 0x1F9A:0x177B proximity helper.
+ * mode=1: same x as player, |y - player_y| < radius -> returns direction
+ * mode=2: |x - player_x| < 8 and |y - player_y| < radius -> returns direction
+ * Returns: -1 (above/left), 0 (none), 1 (below/right). */
+static int16_t proximity_test(int mode, int16_t radius,
+                              int16_t obj_x, int16_t obj_y) {
+    int16_t dx, dy, adx, ady;
+
+    if (mode == 1) {
+        dx = obj_x - g_player_x;
+        adx = dx < 0 ? -dx : dx;
+        if (adx != 0) return 0;
+        dy = obj_y - g_player_y;
+        ady = dy < 0 ? -dy : dy;
+        if (ady >= radius) return 0;
+        return (dy > 0) ? 1 : (dy < 0 ? -1 : 0);
+    } else if (mode == 2) {
+        dx = obj_x - g_player_x;
+        adx = dx < 0 ? -dx : dx;
+        if (adx >= 8) return 0;
+        dy = obj_y - g_player_y;
+        ady = dy < 0 ? -dy : dy;
+        if (ady >= radius) return 0;
+        return (dy > 0) ? 1 : (dy < 0 ? -1 : 0);
+    }
+    return 0;
+}
+
+/* ---------------------------------------------------------------- input
+ * cc_input_set(flag, pressed) - set a directional input flag.
+ * Callers map physical keys to [0x338E]=left, [0x338F]=right,
+ * [0x338D]=up, [0x338C]=down, [0x338A]=fire. */
+void cc_input_set(uint16_t flag, int pressed) {
+    switch (flag) {
+        case 0x338E: g_input_left  = (uint16_t)(pressed ? 1 : 0); break;
+        case 0x338F: g_input_right = (uint16_t)(pressed ? 1 : 0); break;
+        case 0x338D: g_input_up    = (uint16_t)(pressed ? 1 : 0); break;
+        case 0x338C: g_input_down  = (uint16_t)(pressed ? 1 : 0); break;
+        case 0x338A: g_input_fire  = (uint16_t)(pressed ? 1 : 0); break;
+        default: break;
+    }
+}
+
+/* Process one frame of input: update player position and move direction.
+ * Mirrors the binary's input handling at 0xCF6C-0xD13C and 0xE1D3-0xE2FD. */
+static void process_input(void) {
+    int16_t speed = (int16_t)g_player_speed;
+
+    /* Horizontal movement. */
+    if (g_input_left && !g_input_right) {
+        g_move_dir = -1;
+        g_player_x -= speed;
+    } else if (g_input_right && !g_input_left) {
+        g_move_dir = 1;
+        g_player_x += speed;
+    } else {
+        g_move_dir = 0;
+    }
+
+    /* Vertical movement (up/down). */
+    if (g_input_up && !g_input_down) {
+        g_player_y -= speed;
+    } else if (g_input_down && !g_input_up) {
+        g_player_y += speed;
+    }
+}
+
+/* ---------------------------------------------------------------- camera
+ * Camera follow logic (from 0xDCB9-0xE010 and 0xE1D3-0xE2FD).
+ * The camera scrolls when the player approaches screen edges, with
+ * cell-boundary clamping. */
+static void update_camera(void) {
+    /* Horizontal: if player moved, scroll camera in same direction. */
+    if (g_move_dir != 0) {
+        g_cam_x += g_move_dir * 2;   /* scroll speed */
+    }
+
+    /* Clamp camera to level bounds (0..1280-320 horizontally, 0..400-200 vertically). */
+    if (g_cam_x < 0) g_cam_x = 0;
+    if (g_cam_x > 1280 - SCREEN_W) g_cam_x = 1280 - SCREEN_W;
+    if (g_cam_y < 0) g_cam_y = 0;
+    if (g_cam_y > 400 - SCREEN_H) g_cam_y = 400 - SCREEN_H;
 }
 
 /* ---------------------------------------------------------------- handlers
@@ -168,9 +284,16 @@ static handler_fn handler_for(uint16_t off) {
 /* ---------------------------------------------------------------- update loop
  * Function 0xD72A.  One call advances every slot once:
  * slots 2..59, then 0, then 1 (the [0x2c4] counter is reset to 2 on entry).
- */
+ *
+ * C4 additions: input is processed first, then the camera is updated,
+ * then every object slot is advanced. */
 void cc_objects_step(void) {
     int i;
+
+    /* C4: process input and update camera before objects. */
+    process_input();
+    update_camera();
+
     for (i = 0; i < OBJ_MAX; i++) {
         int s = (2 + i) % OBJ_MAX;          /* 2..59, 0, 1 */
         ObjectEntry *o = &g_obj[s];
@@ -235,14 +358,48 @@ void cc_objects_step(void) {
     }
 }
 
+/* ---------------------------------------------------------------- collision
+ * Check if any object is in proximity to the player (using helper 0x1F9A:0x177B).
+ * Returns the object index, or -1 if none.  `radius` is the proximity
+ * threshold in pixels; `mode` selects the test (1 = same-x, 2 = box). */
+int cc_collide_player(int mode, int16_t radius) {
+    int i;
+    for (i = 0; i < OBJ_MAX; i++) {
+        ObjectEntry *o = &g_obj[i];
+        if (o->kind == 0) continue;
+        int16_t dx = (int16_t)o->x - g_player_x;
+        int16_t dy = (int16_t)o->y - g_player_y;
+        int16_t adx = dx < 0 ? -dx : dx;
+        int16_t ady = dy < 0 ? -dy : dy;
+        int close;
+        if (mode == 1) {
+            close = (adx == 0 && ady < radius);
+        } else { /* mode == 2 */
+            close = (adx < 8 && ady < radius);
+        }
+        if (close) return i;
+    }
+    return -1;
+}
+
 /* ---------------------------------------------------------------- exports */
 void cc_objects_init(int level) {
     if (level < 0 || level >= OBJ_LEVELS) level = 0;
     memcpy_(g_obj, g_obj_levels[level], sizeof(g_obj));
     g_obj_cursor = g_level_cursor[level];
     g_a0f8 = 0;
+
+    /* C4: initialise player and camera from level prologue defaults. */
+    g_player_x = 0;
+    g_player_y = 0;
     g_cam_x = 0;
     g_cam_y = 0;
+    g_cam_dx = 0;
+    g_cam_dy = 0;
+    g_move_dir = 0;
+    g_player_speed = 7;
+
+    g_input_left = g_input_right = g_input_up = g_input_down = g_input_fire = 0;
     g_512a = 0;
     g_513a = 0;
 }
@@ -259,3 +416,11 @@ uint16_t cc_obj_p18(int i)    { return (i >= 0 && i < OBJ_MAX) ? g_obj[i].p18   
 uint16_t cc_obj_ready(int i)  { return (i >= 0 && i < OBJ_MAX) ? g_obj[i].ready  : 0; }
 int32_t  cc_obj_vx(int i)     { return (i >= 0 && i < OBJ_MAX) ? g_obj[i].vx     : 0; }
 uint16_t cc_obj_cursor(void)  { return g_obj_cursor; }
+
+/* C4 exports. */
+int32_t  cc_player_x(void) { return g_player_x; }
+int32_t  cc_player_y(void) { return g_player_y; }
+int32_t  cc_cam_x(void)    { return g_cam_x; }
+int32_t  cc_cam_y(void)    { return g_cam_y; }
+int16_t  cc_move_dir(void) { return g_move_dir; }
+int      cc_collide_player(int mode, int16_t radius);
