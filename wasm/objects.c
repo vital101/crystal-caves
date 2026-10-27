@@ -35,6 +35,7 @@
  */
 
 #include "objects_data.h"
+#include "cells_data.h"
 
 /* freestanding: no libc */
 static void *memcpy_(void *d, const void *s, unsigned n) {
@@ -66,6 +67,23 @@ typedef struct {
      * cell at load time), never hardcoded to (0,0). */
     int32_t player_x;
     int32_t player_y;
+
+    /* Player velocity / physics ([0x461f]/[0x4621] vy, [0x306] grounded). */
+    int16_t vy;                  /* [0x461f] vertical velocity */
+    uint8_t grounded;            /* [0x306] on-floor flag */
+    uint8_t jumping;             /* [0x30a] jump in progress */
+
+    /* Current level (for cell collision lookups). */
+    int16_t cur_level;
+
+    /* Exit / level-transition state ([0xA0E0]/[0xA0E2] exit cell,
+     * [0xA0E6] exit step counter, [0x2B72]/[0x2B74] spawn override). */
+    int16_t exit_col;            /* [0xA0E0] */
+    int16_t exit_row;            /* [0xA0E2] */
+    uint16_t exit_step;          /* [0xA0E6] */
+    uint16_t spawn_col_override; /* [0x2B72]: 0xffff = none, use Y-token start */
+    uint16_t spawn_row_override; /* [0x2B74] */
+    int16_t next_level;          /* [0xA0BE] pending level to load */
 
     /* Camera ([0x512E]/[0x5130]) and scroll deltas ([0x5118]/[0x5128]). */
     int32_t cam_x;
@@ -176,45 +194,158 @@ void cc_input_set(uint16_t flag, int pressed) {
     }
 }
 
-/* Process one frame of input: update player position and move direction.
- * Mirrors the binary's input handling at 0xCF6C-0xD13C and 0xE1D3-0xE2FD. */
-static void process_input(void) {
-    int16_t speed = (int16_t)S->player_speed;
+/* ---------------------------------------------------------------- cell collision
+ * 0x1F9A:0x43 collision helper (load 0x1F9E3).
+ * Tests 9 player-hitbox corners against cell byte 0x11 (solid flag):
+ *   (x+3/8/12 + xoff) x (y+0/8/15 + yoff)
+ * Returns 1 if ANY corner is solid (blocked), 0 if all clear.
+ * Cell layout is column-major: cell = (col+1)*500 + (row+1)*20, cell size 16px.
+ */
+static int cc_cell_collide(int level, int32_t px, int32_t py,
+                           int16_t xoff, int16_t yoff) {
+    static const int8_t dx[3] = { 3, 8, 12 };
+    static const int8_t dy[3] = { 0, 8, 15 };
+    int ci, cj;
+    for (ci = 0; ci < 3; ci++) {
+        int32_t cx = (px + dx[ci] + xoff) / 16;
+        for (cj = 0; cj < 3; cj++) {
+            int32_t cy = (py + dy[cj] + yoff) / 16;
+            if (cc_cell_solid(level, (int)cx, (int)cy)) return 1;
+        }
+    }
+    return 0;
+}
 
-    /* Horizontal movement. */
-    if (S->input_left && !S->input_right) {
-        S->move_dir = -1;
-        S->player_x -= speed;
-    } else if (S->input_right && !S->input_left) {
-        S->move_dir = 1;
-        S->player_x += speed;
-    } else {
-        S->move_dir = 0;
+/* Foot-corner x offsets used by both floor and wall checks. */
+static const int8_t kFootX[3] = { 3, 8, 12 };
+
+/* Player physics constants (derived from the original movement tables). */
+#define PLAYER_GRAVITY  1   /* vertical velocity added per frame while airborne */
+#define PLAYER_JUMP     -24 /* initial vy when jumping */
+#define EXIT_FRAMES     4   /* frames standing on an exit cell before transition */
+
+#define PLAYER_W  10   /* hitbox x+3 .. x+12 */
+#define PLAYER_H  16   /* hitbox y   .. y+15 */
+
+/* Forward declaration: defined after the update loop. */
+void cc_level_exit(int next_level);
+
+/* Process one frame of player physics.
+ * Mirrors the binary's input handling (0xCF6C-0xD13C), vertical movement /
+ * gravity (0xDCB9-0xDE56) and horizontal movement / camera-x (0xE011-0xE2FD).
+ */
+static void cc_player_physics(void) {
+    int16_t speed = (int16_t)S->player_speed;
+    int32_t nx, ny;
+
+    /* --- input -> move_dir ------------------------------------------ */
+    if (S->input_left && !S->input_right)      S->move_dir = -1;
+    else if (S->input_right && !S->input_left) S->move_dir =  1;
+    else                                        S->move_dir =  0;
+
+    /* --- horizontal movement with wall collision -------------------- */
+    if (S->move_dir != 0) {
+        nx = S->player_x + (int32_t)S->move_dir * speed;
+        /* test leading-edge corners at the destination x, player height */
+        if (!cc_cell_collide(S->cur_level, S->player_x, S->player_y,
+                             (int16_t)(nx - S->player_x), 0)) {
+            S->player_x = nx;
+        }
     }
 
-    /* Vertical movement (up/down). */
-    if (S->input_up && !S->input_down) {
-        S->player_y -= speed;
-    } else if (S->input_down && !S->input_up) {
-        S->player_y += speed;
+    /* --- vertical movement: gravity --------------------------------- */
+    if (!S->grounded) {
+        S->vy = (int16_t)(S->vy + PLAYER_GRAVITY);
+        ny = S->player_y + S->vy;
+        /* floor check: is the cell row containing the bottom edge (y+16)
+         * solid at any of the three foot corners (x+3/8/12)? */
+        int32_t brow = (ny + PLAYER_H) / 16;   /* row of bottom edge */
+        int blocked = 0;
+        if (brow >= CELL_ROWS) {
+            blocked = 1;                       /* fell past the level */
+            brow = CELL_ROWS - 1;
+        } else {
+            int ci;
+            for (ci = 0; ci < 3; ci++) {
+                int32_t cx = (S->player_x + kFootX[ci]) / 16;
+                if (cc_cell_solid(S->cur_level, (int)cx, (int)brow)) {
+                    blocked = 1;
+                    break;
+                }
+            }
+        }
+        if (blocked) {
+            /* snap: player bottom to top of blocking cell (round player top
+             * down to its cell boundary). */
+            S->player_y = (ny / 16) * 16;
+            if (S->player_y < 0) S->player_y = 0;
+            S->vy = 0;
+            S->grounded = 1;
+            S->jumping = 0;
+        } else {
+            S->player_y = ny;
+        }
+    }
+
+    /* --- exit cell detection -----------------------------------------
+     * Original gameplay check (0x1CCB0 / 0x1CD1C): when the player stands on
+     * a cell whose byte 0x13 is nonzero (exit/trigger cell), start the exit
+     * sequence ([0xA0E6] step counter) and transition to the next level.
+     * Only triggered while grounded so falling past an exit cell does not
+     * end the level. */
+    if (S->grounded) {
+        int32_t ecx = (S->player_x + 8) / 16;   /* player center col */
+        int32_t ecrow = S->player_y / 16;       /* row the player stands on */
+        if (ecx >= 0 && ecx < CELL_COLS && ecrow >= 0 && ecrow < CELL_ROWS
+            && cc_cell_exit(S->cur_level, (int)ecx, (int)ecrow)) {
+            S->exit_col = (int16_t)ecx;
+            S->exit_row = (int16_t)ecrow;
+            if (S->exit_step < EXIT_FRAMES) {
+                S->exit_step = (uint16_t)(S->exit_step + 1);
+            }
+            if (S->exit_step >= EXIT_FRAMES) {
+                cc_level_exit(S->cur_level + 1);
+            }
+        } else {
+            S->exit_step = 0;
+        }
+    }
+
+    /* --- jump ------------------------------------------------------- */
+    if (S->input_up && S->grounded && !S->jumping) {
+        S->vy = PLAYER_JUMP;
+        S->grounded = 0;
+        S->jumping = 1;
+    }
+    if (!S->input_up) S->jumping = 0;
+
+    /* --- head bump -------------------------------------------------- */
+    if (S->vy < 0) {
+        if (cc_cell_collide(S->cur_level, S->player_x, S->player_y, 0, -1)) {
+            S->vy = 0;
+        }
     }
 }
 
 /* ---------------------------------------------------------------- camera
- * Camera follow logic (from 0xDCB9-0xE010 and 0xE1D3-0xE2FD).
- * The camera scrolls when the player approaches screen edges, with
- * cell-boundary clamping. */
-static void update_camera(void) {
-    /* Horizontal: if player moved, scroll camera in same direction. */
-    if (S->move_dir != 0) {
-        S->cam_x += S->move_dir * 2;   /* scroll speed */
-    }
+ * Camera follow (from 0xE1D3-0xE2FD / 0xDCB9-0xE010).
+ * The camera scrolls to keep the player near screen centre, clamped to
+ * level bounds (0..1280-320 horizontally, 0..400-200 vertically). */
+static void cc_update_camera(void) {
+    int32_t target_x, target_y;
 
-    /* Clamp camera to level bounds (0..1280-320 horizontally, 0..400-200 vertically). */
-    if (S->cam_x < 0) S->cam_x = 0;
-    if (S->cam_x > 1280 - SCREEN_W) S->cam_x = 1280 - SCREEN_W;
-    if (S->cam_y < 0) S->cam_y = 0;
-    if (S->cam_y > 400 - SCREEN_H) S->cam_y = 400 - SCREEN_H;
+    /* Horizontal follow: camera centre tracks player. */
+    target_x = S->player_x - SCREEN_W / 2;
+    if (target_x < 0) target_x = 0;
+    if (target_x > 1280 - SCREEN_W) target_x = 1280 - SCREEN_W;
+
+    /* Vertical follow, clamped [0x10, 0xc8] per loader start logic. */
+    target_y = S->player_y - SCREEN_H / 2;
+    if (target_y < 0x10) target_y = 0x10;
+    if (target_y > 0xc8) target_y = 0xc8;
+
+    S->cam_x = target_x;
+    S->cam_y = target_y;
 }
 
 /* ---------------------------------------------------------------- handlers
@@ -323,9 +454,9 @@ static handler_fn handler_for(uint16_t off) {
 void cc_objects_step(void) {
     int i;
 
-    /* C4: process input and update camera before objects. */
-    process_input();
-    update_camera();
+    /* Per-frame order: player physics, then camera, then object slots. */
+    cc_player_physics();
+    cc_update_camera();
 
     for (i = 0; i < OBJ_MAX; i++) {
         int s = (2 + i) % OBJ_MAX;          /* 2..59, 0, 1 */
@@ -416,31 +547,75 @@ int cc_collide_player(int mode, int16_t radius) {
 }
 
 /* ---------------------------------------------------------------- exports */
-void cc_objects_init(int level) {
-    int i;
+/* ---------------------------------------------------------------- level loading
+ * Mirrors the loader (0xB1A9) and the player-start paths:
+ *   * initial load  -> player spawns at the level's Y-token cell
+ *   * transition    -> player spawns at [0x2B72]/[0x2B74] if set (spawn
+ *     override written by the exit code), otherwise at the Y-token cell.
+ *
+ * The spawn override ([0x2B72]/[0x2B74]; 0xffff = none) is consulted here so
+ * that the exit transition can place the player at a specific cell on the
+ * next level (original: 0x6E05 / 0xD572-0xD578). */
+static void load_level(int level) {
     if (level < 0 || level >= OBJ_LEVELS) level = 0;
     memcpy_(S->obj, g_obj_levels[level], sizeof(S->obj));
     S->obj_cursor = g_level_cursor[level];
     S->a0f8 = 0;
 
-    /* Initialise player and camera from the level's Y-token start cell
-     * ([0x2b72]/[0x2b74] path at 0x6e05), converted cell -> pixels (x*16,
-     * y*16).  Previously hardcoded to (0,0) which was wrong for every level
-     * except a hypothetical level whose Y token sits at (0,0). */
-    S->player_x = (int32_t)g_level_start[level][1] * 16;
-    S->player_y = (int32_t)g_level_start[level][0] * 16;
+    /* Player start: spawn override takes precedence over the Y-token cell. */
+    if (S->spawn_col_override != 0xffff) {
+        S->player_x = (int32_t)S->spawn_col_override * 16;
+        S->player_y = (int32_t)S->spawn_row_override * 16;
+        /* Consume the one-shot override. */
+        S->spawn_col_override = 0xffff;
+        S->spawn_row_override = 0;
+    } else {
+        S->player_x = (int32_t)g_level_start[level][1] * 16;
+        S->player_y = (int32_t)g_level_start[level][0] * 16;
+    }
     S->cam_x = 0;
     S->cam_y = 0;
     S->cam_dx = 0;
     S->cam_dy = 0;
     S->move_dir = 0;
     S->player_speed = 7;
+    S->vy = 0;
+    S->grounded = 0;
+    S->jumping = 0;
+    S->cur_level = (int16_t)level;
+
+    /* Exit state ([0xA0E0]/[0xA0E2] exit cell, [0xA0E6] step counter). */
+    S->exit_col = 0;
+    S->exit_row = 0;
+    S->exit_step = 0;
 
     S->input_left = S->input_right = S->input_up = S->input_down = S->input_fire = 0;
     S->g_512a = 0;
     S->g_513a = 0;
 
     /* score / collectibles / lives remain zero-stubs (see declaration). */
+}
+
+void cc_objects_init(int level) {
+    S->spawn_col_override = 0xffff;   /* no override on a fresh load */
+    S->spawn_row_override = 0;
+    load_level(level);
+}
+
+/* Request a level transition from an exit cell.
+ * Original exit state machine (0xD412-0xD5B4):
+ *   * [0x2B72]/[0x2B74] = spawn cell on the next level
+ *   * [0xA0BE] = next level argument
+ *   * reload via the 0xB1A9 equivalent.
+ *
+ * Here `next_level` is current_level + 1 (linear progression).  The exact
+ * "next level from exit cell byte 0" rule (original 0xD5A6) is deferred:
+ * cell byte 0 does not hold a level index in the oracle data. */
+void cc_level_exit(int next_level) {
+    S->spawn_col_override = S->exit_col;
+    S->spawn_row_override = S->exit_row;
+    S->next_level = (int16_t)next_level;
+    load_level(next_level);
 }
 
 void cc_sound_set_callback(void (*cb)(uint16_t id)) {
