@@ -1,8 +1,27 @@
+# macOS
 .DS_Store
+
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
+.venv/
 
-# generated build/test outputs
+# Generated build/test outputs
 wasm/render.wasm
 wasm/assets/
 wasm/out_wasm_level*.png
+
+# Debug artifacts
+out/block20_strip.png
+out/oracle_L*_nosub.png
+notes/level3_h69_*.png
+notes/sheet_*.png
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
