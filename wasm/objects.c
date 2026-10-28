@@ -325,6 +325,13 @@ static void cc_player_physics(void) {
             S->vy = 0;
         }
     }
+
+    /* --- sync object record position to physics state -----------------
+     * The player object record (slot 1) is not updated by any handler
+     * (handler 0x1fb9 is a noop), so mirror the physics position into the
+     * record for rendering/collision. */
+    S->obj[1].x = (int16_t)S->player_x;
+    S->obj[1].y = (int16_t)S->player_y;
 }
 
 /* ---------------------------------------------------------------- camera
@@ -634,6 +641,8 @@ uint16_t cc_obj_p18(int i)    { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].p18  
 uint16_t cc_obj_ready(int i)  { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].ready  : 0; }
 int32_t  cc_obj_vx(int i)     { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].vx     : 0; }
 uint16_t cc_obj_cursor(void)  { return S->obj_cursor; }
+/* Current level index (updated by cc_level_exit / cc_objects_init). */
+int32_t  cc_cur_level(void)    { return S->cur_level; }
 /* Handler offset (behaviour ID, segment 0x1F9A) for slot i. */
 uint16_t cc_obj_handler(int i)  { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].handler : 0; }
 

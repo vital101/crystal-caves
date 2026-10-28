@@ -84,5 +84,5 @@
     28662,
     28900
   ],
-  "note": "handler behaviour + update loop traced in Phase C3"
+  "note": "handler behaviour + update loop traced in Phase C3; per-level spawns come from notes/oracle_objects.json"
 }

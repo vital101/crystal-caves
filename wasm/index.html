@@ -53,8 +53,8 @@ async function readFile(p) {
     };
     e.cc_set_assets(copyIn(gfx), copyIn(levels));
 
-    const palP = e.cc_alloc(128);
-    const palU32 = new Uint32Array(e.memory.buffer, palP, 32);
+    const palP = e.cc_alloc(64);
+    const palU32 = new Uint32Array(e.memory.buffer, palP, 16);
     pal.colors.forEach(([r, g, b], i) => { palU32[i] = (r << 16) | (g << 8) | b; });
     e.cc_set_palette(palP);
 

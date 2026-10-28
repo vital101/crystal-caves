@@ -1,0 +1,143 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Crystal Caves Ep.1 — WASM Playable</title>
+<style>
+  body { background:#111; color:#eee; font-family:monospace; margin:20px; text-align:center; }
+  canvas { image-rendering:pixelated; background:#000; border:2px solid #444; display:block; margin:0 auto; }
+  #hud { margin-top:10px; font-size:16px; }
+  #msg { margin-top:6px; color:#ff6; font-weight:bold; }
+  #diag { margin-top:6px; color:#0f0; font-family:monospace; font-size:11px; word-break:break-all; }
+  button { font:inherit; margin:0 4px; }
+  .hint { color:#888; font-size:13px; margin-top:6px; }
+</style>
+</head>
+<body>
+<h2>Crystal Caves Ep.1 — WASM Playable</h2>
+<canvas id="game" width="640" height="400"></canvas>
+<div id="hud">Level: <span id="lvl">0</span></div>
+<div id="msg"></div>
+<div id="diag">initializing...</div>
+<button id="render">Render Level</button>
+<button id="step">Step Frame</button>
+<button id="saveFrame">Save Frame (PNG)</button>
+<div class="hint">Arrows: move / jump &nbsp;•&nbsp; Z or Space: fire</div>
+<script>
+(async () => {
+  const W = 640, H = 400;
+  const cv = document.getElementById('game');
+  const ctx = cv.getContext('2d');
+  const msg = document.getElementById('msg');
+  const lvlEl = document.getElementById('lvl');
+  const diag = document.getElementById('diag');
+
+  const wasm = await fetch('render.wasm?v=' + Date.now()).then(r => r.arrayBuffer());
+  const gfx = await fetch('assets/gfx.bin?v=' + Date.now()).then(r => r.arrayBuffer());
+  const levels = await fetch('assets/levels.bin?v=' + Date.now()).then(r => r.arrayBuffer());
+  const pal = await fetch('assets/palette.json?v=' + Date.now()).then(r => r.json());
+
+  const { instance } = await WebAssembly.instantiate(wasm, {});
+  const e = instance.exports;
+  const mem = () => new Uint8Array(e.memory.buffer);
+
+  const copyIn = (buf) => {
+    const p = e.cc_alloc(buf.length);
+    mem().set(new Uint8Array(buf), p);
+    return p;
+  };
+  const gfxP = copyIn(gfx);
+  const levelsP = copyIn(levels);
+  const palP = e.cc_alloc(64);
+  const palU32 = new Uint32Array(e.memory.buffer, palP, 16);
+  pal.colors.forEach(([r, g, b], i) => { palU32[i] = (r << 16) | (g << 8) | b; });
+  e.cc_set_assets(gfxP, levelsP);
+  e.cc_set_palette(palP);
+
+  const KEY_MAP = {
+    'ArrowLeft': 0x338E, 'ArrowRight': 0x338F,
+    'ArrowUp': 0x338D, 'ArrowDown': 0x338C,
+    ' ': 0x338A, 'z': 0x338A, 'Z': 0x338A,
+  };
+  window.addEventListener('keydown', (ev) => {
+    const id = KEY_MAP[ev.key];
+    if (id !== undefined) { ev.preventDefault(); e.cc_input_set(id, 1); }
+  });
+  window.addEventListener('keyup', (ev) => {
+    const id = KEY_MAP[ev.key];
+    if (id !== undefined) { ev.preventDefault(); e.cc_input_set(id, 0); }
+  });
+
+  document.getElementById('saveFrame').addEventListener('click', () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const cctx = canvas.getContext('2d');
+    const fb = e.cc_framebuffer();
+    const img = cctx.createImageData(W, H);
+    img.data.set(new Uint8ClampedArray(e.memory.buffer, fb, W * H * 4));
+    cctx.putImageData(img, 0, 0);
+    const link = document.createElement('a');
+    link.download = `frame_level${level}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+  });
+
+  let level = 0;
+  e.cc_objects_init(level);
+  lvlEl.textContent = level;
+
+  function renderFrame() {
+    e.cc_render_level(level, e.cc_framebuffer());
+
+    /* Draw active objects on top. */
+    const camX = e.cc_cam_x(), camY = e.cc_cam_y();
+    for (let s = 0; s < e.cc_obj_count(); s++) {
+      if (e.cc_obj_state(s) === 2 || e.cc_obj_kind(s) === 0) continue;
+      const blk = e.cc_obj_tile(s), sh = e.cc_obj_shape(s);
+      if (!blk || !sh) continue;
+      const ox = e.cc_obj_x(s) - camX;
+      const oy = e.cc_obj_y(s) - camY;
+      e.cc_draw_object(blk, sh, ox, oy);
+    }
+
+    const fb = e.cc_framebuffer();
+    const img = new ImageData(new Uint8ClampedArray(e.memory.buffer, fb, W * H * 4), W, H);
+    ctx.putImageData(img, 0, 0);
+
+    /* Diagnostics. */
+    const u8 = new Uint8Array(e.memory.buffer, fb, W * H * 4);
+    let row0black = true;
+    for (let x = 0; x < W; x++) {
+      const i = x * 4;
+      if (u8[i] || u8[i+1] || u8[i+2]) { row0black = false; break; }
+    }
+    let row16nonblack = 0;
+    for (let x = 0; x < W; x++) {
+      const i = 16 * W * 4 + x * 4;
+      if (u8[i] || u8[i+1] || u8[i+2]) row16nonblack++;
+    }
+    const r16 = [];
+    for (let x = 0; x < W; x += 80) {
+      const i = 16 * W * 4 + x * 4;
+      r16.push(`x${x}=(${u8[i]},${u8[i+1]},${u8[i+2]})`);
+    }
+    diag.textContent = `fb=0x${fb.toString(16)} row0black=${row0black} row16nonblack=${row16nonblack}/640`;
+    console.log('DIAG:', diag.textContent, 'row16:', r16.join(' '));
+  }
+
+  document.getElementById('render').addEventListener('click', () => {
+    e.cc_objects_init(level);
+    renderFrame();
+  });
+
+  document.getElementById('step').addEventListener('click', () => {
+    e.cc_objects_step();
+    renderFrame();
+  });
+
+  // Initial render
+  renderFrame();
+})();
+</script>
+</body>
+</html>

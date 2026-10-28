@@ -14,8 +14,8 @@ import sys
 
 LEVEL_OFFSET = 0x8CE0
 LEVEL_WIDTH = 40
-TILE16_BYTES = 5 * 16 * 2      # 5 planes * 16 rows * 2 bytes
-TILE8_BYTES = 5 * 8 * 2        # 5 planes * 8 rows  * 2 bytes
+TILE16_BYTES = 160             # 16 rows x 2 groups x 5 bytes [mask][p0..p3]
+TILE8_BYTES = 80               # MNI glyph: 5 planes x 8 rows x 2 bytes (unverified)
 
 
 def describe_pcx(path, data):

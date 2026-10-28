@@ -8,8 +8,8 @@
     "shape_size": 160,
     "shape_w": 16,
     "shape_h": 16,
-    "planes": 5,
-    "index_base": 1
+    "index_base": 1,
+    "format": "16 rows x 2 groups x 5 bytes [mask][plane0..plane3]; mask bit set = opaque; colour = p0 + 2*p1 + 4*p2 + 8*p3; MSB = leftmost"
   },
   "fonts": {
     "f1": "mni_f1.bin",
@@ -17,7 +17,6 @@
     "glyph_size": 40,
     "glyph_w": 8,
     "glyph_h": 8,
-    "planes": 5,
     "f1_range": [
       23,
       72
@@ -34,10 +33,11 @@
     "width": 40,
     "height": 25,
     "bin_cell_bytes": 6,
-    "cell": "[blockA,shapeA,blockB,shapeB,blockC,shapeC]"
+    "cell": "[block1,shape1,block2,shape2,block3,shape3] (draw order 1,2,3; block 0 already substituted with 20)"
   },
   "palette": {
-    "file": "palette.json"
+    "file": "palette.json",
+    "entries": 16
   },
   "commands": {
     "file": "commands.json"

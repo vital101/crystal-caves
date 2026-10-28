@@ -1,0 +1,8 @@
+.DS_Store
+__pycache__/
+*.pyc
+
+# generated build/test outputs
+wasm/render.wasm
+wasm/assets/
+wasm/out_wasm_level*.png

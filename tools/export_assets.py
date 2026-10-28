@@ -3,24 +3,35 @@
 
 Produces out/portable/:
   manifest.json   format metadata (sizes, counts, palette model)
-  palette.json    32 RGB entries (5-plane EGA + bright half)
+  palette.json    16 RGB entries (standard BIOS EGA palette, as on hardware)
   gfx.bin         raw CC1.GFX (23 blocks x 8003 B; 1-based block/shape)
-  mni_f1.bin      50 glyphs x 40 B (8x8 5-plane), chars 23..72
+  mni_f1.bin      50 glyphs x 40 B (8x8), chars 23..72
   mni_f2.bin      50 glyphs x 40 B, chars 73..122
-  levels.json     baked per-level tile maps (40x25 cells of [bB,sB,bA,sA,bC,sC])
+  levels.json     baked per-level tile maps (40x25 cells of [b1,s1,b2,s2,b3,s3])
+  levels.bin      same maps, 6 B/cell binary (layer1, layer2, layer3 order)
   commands.json   decoded regular + special command tables (for faithful replay)
   objects.json    object-record template + index (from setup_level init)
+
+Cell source: the golden-oracle emulator dumps (notes/oracle_objects.json,
+produced by tools/emulate_load.py) via tools/build_cells.py.  Block 0 is
+substituted with block 20 at export time (see build_cells.py for why).
+
+Shape format (confirmed against blitter 0x28B5:0x39B and validated bit-exact
+by tools/emulate_render.py): 160 bytes = 16 rows x 2 groups x 5 bytes
+[mask][plane0..plane3]; mask bit set = opaque pixel, colour index =
+p0 + 2*p1 + 4*p2 + 8*p3 (p0=blue .. p3=intensity), MSB = leftmost.
 
 All multi-byte integers are little-endian to match the DOS original.
 """
 import json
 import os
-import sys
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys_path = os.path.join(HERE, "tools")
+if sys_path not in os.sys.path:
+    os.sys.path.insert(0, sys_path)
 import build_cells  # noqa: E402
-import render_png   # noqa: E402
+from render_oracle import EGA  # noqa: E402
 
 OUT = os.path.join(HERE, "out", "portable")
 EXTRACT = os.path.join(HERE, "extracted")
@@ -31,9 +42,11 @@ W, H = 40, 25
 def main():
     os.makedirs(OUT, exist_ok=True)
 
-    # palette
-    json.dump({"colors": [list(c) for c in render_png.palette32()],
-               "model": "5-bitplane (bit i = plane i); low 16 = EGA, high 16 = bright"},
+    # palette: the standard BIOS EGA 16-colour palette.  The game never
+    # reprograms it (verified: the loader path only touches the sequencer
+    # map mask and the graphics bitmask).
+    json.dump({"colors": [list(c) for c in EGA],
+               "model": "4-plane EGA; colour index = p0 + 2*p1 + 4*p2 + 8*p3"},
               open(os.path.join(OUT, "palette.json"), "w"), indent=0)
 
     # gfx
@@ -45,23 +58,21 @@ def main():
         raw = open(os.path.join(EXTRACT, src), "rb").read()
         open(os.path.join(OUT, dst), "wb").write(raw[3:])  # strip 3-byte header
 
-    # levels: bake tile maps
+    # levels: bake tile maps from the oracle cell dumps
     levels = []
     for lvl in range(19):
-        cells, unknown = build_cells.build_cells(lvl)
+        cells = build_cells.build_cells(lvl)
         grid = []
         for r in range(H):
             row = []
             for c in range(W):
                 row.append(list(cells.get((r, c), [0, 0, 0, 0, 0, 0])))
             grid.append(row)
-        levels.append({"index": lvl, "width": W, "height": H,
-                       "cells": grid,
-                       "unknown_chars": sorted(unknown)})
+        levels.append({"index": lvl, "width": W, "height": H, "cells": grid})
     json.dump(levels, open(os.path.join(OUT, "levels.json"), "w"))
 
     # compact binary level maps for the C/WASM side:
-    # per level: H*W cells x 6 bytes [bB,sB,bA,sA,bC,sC]
+    # per level: H*W cells x 6 bytes [b1,s1,b2,s2,b3,s3] (layer 1,2,3 order)
     binmaps = bytearray()
     for L in levels:
         for row in L["cells"]:
@@ -100,7 +111,8 @@ def main():
             0x55EC, 0x5855, 0x5BBE, 0x5C8F, 0x6232, 0x62F2, 0x6458, 0x6681,
             0x672B, 0x69D3, 0x6AFA, 0x6D31, 0x6FF6, 0x70E4,
         ],
-        "note": "handler behaviour + update loop traced in Phase C3",
+        "note": "handler behaviour + update loop traced in Phase C3; "
+                "per-level spawns come from notes/oracle_objects.json",
     }
     json.dump(template, open(os.path.join(OUT, "objects.json"), "w"), indent=2)
 
@@ -109,14 +121,18 @@ def main():
         "game": "Crystal Caves v1.0a shareware (Episode 1)",
         "gfx": {"file": "gfx.bin", "block_size": 8003, "block_count": 23,
                 "shapes_per_block": 50, "shape_size": 160, "shape_w": 16,
-                "shape_h": 16, "planes": 5, "index_base": 1},
+                "shape_h": 16, "index_base": 1,
+                "format": "16 rows x 2 groups x 5 bytes [mask][plane0..plane3]; "
+                          "mask bit set = opaque; colour = p0 + 2*p1 + 4*p2 + 8*p3; "
+                          "MSB = leftmost"},
         "fonts": {"f1": "mni_f1.bin", "f2": "mni_f2.bin", "glyph_size": 40,
-                  "glyph_w": 8, "glyph_h": 8, "planes": 5,
+                  "glyph_w": 8, "glyph_h": 8,
                   "f1_range": [23, 72], "f2_range": [73, 122]},
         "levels": {"file": "levels.json", "bin": "levels.bin", "count": 19,
                    "width": W, "height": H, "bin_cell_bytes": 6,
-                   "cell": "[blockA,shapeA,blockB,shapeB,blockC,shapeC]"},
-        "palette": {"file": "palette.json"},
+                   "cell": "[block1,shape1,block2,shape2,block3,shape3] "
+                           "(draw order 1,2,3; block 0 already substituted with 20)"},
+        "palette": {"file": "palette.json", "entries": 16},
         "commands": {"file": "commands.json"},
         "tile_space": "640x400 (40x25 cells of 16x16)",
     }, open(os.path.join(OUT, "manifest.json"), "w"), indent=2)

@@ -28,9 +28,9 @@ const W = 640, H = 400;
     return p;
   };
   const gfxP = copyIn(gfx), lvP = copyIn(levels);
-  const palP = e.cc_alloc(128);
-  const palU32 = new Uint32Array(e.memory.buffer, palP, 32);
-  for (let i = 0; i < 32; i++) {
+  const palP = e.cc_alloc(64);
+  const palU32 = new Uint32Array(e.memory.buffer, palP, 16);
+  for (let i = 0; i < 16 && i < pal.colors.length; i++) {
     const [r, g, b] = pal.colors[i];
     palU32[i] = (r << 16) | (g << 8) | b;
   }

@@ -49,8 +49,15 @@ Tooling written & working: `pkware.py` (DCL decompressor), `extract_shr.py`
 
 - **PCX** (`.APG/.CDT/.END/.TTL`): v5, RLE (enc=1), 1 bpp, **planes=4**, 320x200,
   bytes-per-line = 40, **16 colours**. ✓
-- **`CC1.GFX`**: ProGraphx tileset, **1150 tiles** of **160 bytes** (5 planes x 16
-  rows x 2 bytes) + **69-byte** header = 184069. ✓
+- **`CC1.GFX`**: ProGraphx tileset, **1150 tiles** of **160 bytes** + **69-byte**
+  header = 184069. ✓
+  *(Layout corrected in Phase C4: not "5 planes × 16 rows × 2 bytes" — that
+  arithmetic only coincidentally sums to 160. Confirmed format, validated
+  bit-exact against the emulated EGA framebuffer: **16 rows × 2 groups ×
+  5 bytes `[mask][plane0..plane3]`**; a set mask bit = opaque pixel, colour
+  index = p0 + 2·p1 + 4·p2 + 8·p3 (p0=blue … p3=intensity), MSB = leftmost.
+  See blitter 0x28B5:0x39B (transparent) / 0x29C5 (opaque) and
+  notes/rendering.md.)*
 - **`*.MNI`**: ProGraphx 8x8 sprite chunk — **25 sprites** of 80 bytes
   (5 planes x 8 rows x 2 bytes) + 48-byte header, then 48 bytes trailing junk. ✓
 - **`*.SND`**: Crystal Caves Sound (modified Inverse-Frequency, PC speaker).
