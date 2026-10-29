@@ -75,10 +75,15 @@ FIELDS = [
 ]
 
 
+_LEVEL_CACHE = {}
+
+
 class PhysicsOracle:
     def __init__(self, level):
         self.level = level
-        r = S.run_level(level, include_ds=True)
+        if level not in _LEVEL_CACHE:
+            _LEVEL_CACHE[level] = S.run_level(level, include_ds=True)
+        r = _LEVEL_CACHE[level]
         self.level_data = r
         self.ds = r["ds"]
         self.objects = r["objects"]

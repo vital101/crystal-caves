@@ -725,9 +725,26 @@ static void h_2850(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     if (o->ready == 0) h_251d(o, idx, x, y);
 }
 
-/* 0x1F9A:0x2877 (kind 3): inert in the update loop. */
+/* 0x1F9A:0x2877 (kind 3): transformed-object dissolve animation. */
 static void h_2877(ObjectEntry *o, int idx, int16_t x, int16_t y) {
-    (void)o; (void)idx; (void)x; (void)y;
+    (void)idx; (void)x; (void)y;
+    o->p18 = (uint16_t)(o->p18 + 1u);
+    if (o->tile == 0x0D) {
+        if (o->p18 > 0x10) o->shape = 0x19;
+        if (o->p18 > 0x14) {
+            o->p18 = 0;
+            o->ready = 1;
+            o->shape = 0x11;
+        }
+    } else {
+        if (o->p18 > 8) {
+            o->ready = 1;
+            o->p18 = 0;
+        }
+    }
+    if (o->x > 2 && o->x < 0x26C)
+        o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+    anim_next(o);
 }
 
 /* 0x1F9A:0x6FF6 (kind 32): moving hazard/platform.
@@ -989,61 +1006,95 @@ static int rect_overlap(int32_t ax0, int32_t ax1, int32_t bx0, int32_t bx1) {
     return ax0 <= bx1 && ax1 >= bx0;
 }
 
-/* 0x20406: player/object interaction.
- * First block: touch damage + kind-specific pickups.
- * Second block (g_513c == 0): transform enemy/collectible into kind 3.
- * The projectile/second-hit matrix after 0x20707 is not ported yet. */
+/* 0x20406 slash matrices (ported in P2.4/P2.5). */
+static void slash_state1(ObjectEntry *o, int16_t x, int16_t y) {
+    (void)o; (void)x; (void)y;
+}
+static void slash_state2(ObjectEntry *o, int16_t x, int16_t y) {
+    (void)o; (void)x; (void)y;
+}
+
+/* 0x2059A: transform an object into the kind-3 dissolve state. */
+static void transform_object(ObjectEntry *o) {
+    switch (o->kind) {
+        case 9: case 7: case 0x0A: case 0x39: case 0x1A:
+        case 5: case 0x35: case 0x30: case 0x17: case 0x23:
+        case 0x1C: case 8: case 0x0B: case 0x0C:
+            o->x = (int16_t)((o->x / 16) * 16);
+            o->vx = 0;
+            o->vy = 0;
+            o->p18 = 0;
+            o->p1a = 0;
+            o->shape = 0x19;
+            o->p16 = 9;
+            o->tile = 7;
+            o->p10 = 1;
+            o->kind = 3;
+            o->ready = 0;
+            o->state = 0;
+            o->handler = 0x2877;
+            o->handler_seg = 0x1F9A;
+            play_sound(6);
+            break;
+        default:
+            break;
+    }
+}
+
+/* 0x20707..0x2081A: slash-vs-object gate. */
+static void slash_gate(ObjectEntry *o, int16_t x, int16_t y) {
+    ObjectEntry *a = &S->obj[2];
+    int kind;
+
+    if (!rect_overlap(a->x + 3, a->x + 12, x + 3, x + 12)) return;
+    if (!rect_overlap(a->y, a->y + 15, y, y + 15)) return;
+    if (a->ready != 0) return;
+
+    if (S->g_5140 == 0 && S->g_513c != 0 && o->kind == 0x24) {
+        o->p10 = 1;
+        o->p16 = 1;
+        S->g_5124 = 2;
+    }
+
+    o->p04 = (uint16_t)(o->p04 - 1u);
+    a->ready = 1;
+    kind = o->kind;
+    if (kind == 0x15 || kind == 0x1D || kind == 0x12 ||
+        kind == 0x37 || kind == 0x19)
+        a->ready = 0;
+
+    if (a->p1a == 1) slash_state1(o, x, y);
+    else slash_state2(o, x, y);
+}
+
+/* 0x20406: player/object interaction. */
 static void player_interact(ObjectEntry *o, int16_t x, int16_t y) {
     int kind;
 
-    if (!rect_overlap(S->player_x + 3, S->player_x + 12, x + 3, x + 12))
-        return;
-    if (!rect_overlap(S->player_y, S->player_y + 15, y, y + 15))
-        return;
+    if (!rect_overlap(S->player_x + 3, S->player_x + 12, x + 3, x + 12) ||
+        !rect_overlap(S->player_y, S->player_y + 15, y, y + 15))
+        goto slash_gate;
 
-    if (S->g_5140 != 0 || S->g_513c == 0) {
-        if (S->g_513c == 0) {
-            switch (o->kind) {
-                case 9: case 7: case 0x0a: case 0x39: case 0x1a:
-                case 5: case 0x35: case 0x30: case 0x17: case 0x23:
-                case 0x1c: case 8: case 0x0b: case 0x0c:
-                    o->x = (int16_t)((o->x / 16) * 16);
-                    o->vx = 0;
-                    o->vy = 0;
-                    o->p18 = 0;
-                    o->p1a = 0;
-                    o->shape = 0x19;
-                    o->p16 = 9;
-                    o->tile = 7;
-                    o->p10 = 1;
-                    o->kind = 3;
-                    o->ready = 0;
-                    o->state = 0;
-                    o->handler = 0x2877;
-                    play_sound(6);
-                    break;
-                default:
-                    break;
-            }
-        }
-        return;
+    if (S->g_513c == 0) {
+        transform_object(o);
+        goto slash_gate;
     }
-
-    if (S->g_5124 != 0) return;
-    if (S->g_a0ea != 0xffff) return;
-    if (S->g_a0f6 != 0) return;
+    if (S->g_5140 != 0) goto slash_gate;
+    if (S->g_5124 != 0) goto slash_gate;
+    if (S->g_a0ea != 0xFFFF) goto slash_gate;
+    if (S->g_a0f6 != 0) goto slash_gate;
 
     damage_life();
     kind = o->kind;
     switch (kind) {
-        case 0x10: case 0x0e:
-            S->g_a0ea = 0xffff;
+        case 0x10: case 0x0E:
+            S->g_a0ea = 0xFFFF;
             S->g_5124 = 1;
             S->obj[1].p02 = 0;
             break;
         case 0x24:
             S->g_5124 = 0;
-            S->g_a0ea = 0xffff;
+            S->g_a0ea = 0xFFFF;
             S->g_509e++;
             S->obj[1].p02 = 0;
             break;
@@ -1051,9 +1102,9 @@ static void player_interact(ObjectEntry *o, int16_t x, int16_t y) {
             if (S->g_5124 == 1)
                 S->g_5124 = (S->gravity_scale == 1) ? 3 : 1;
             break;
-        case 0x2c:
+        case 0x2C:
             S->g_5124 = 0;
-            S->g_a0ea = 0xffff;
+            S->g_a0ea = 0xFFFF;
             S->g_509e++;
             S->obj[1].p02 = 0;
             o->ready = 1;
@@ -1065,6 +1116,9 @@ static void player_interact(ObjectEntry *o, int16_t x, int16_t y) {
             break;
     }
     if ((int16_t)S->g_5124 > 0) play_sound(5);
+
+slash_gate:
+    slash_gate(o, x, y);
 }
 
 /* 0x1F9A:0x3E70 (kind 36): two-frame ambient animation. */
