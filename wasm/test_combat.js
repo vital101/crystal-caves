@@ -236,6 +236,16 @@ function applySeed(want, seed) {
     const want = cloneBaseline(fixture.levels[String(sc.level)]);
     applySeed(want, sc.seed);
     compareSnap(want, `${sc.name} seeded`);
+    if (sc.calls) {
+      e.cc_sound_log_clear();
+      for (const call of sc.calls) {
+        if (call.name === "spawn2002d") e.cc_test_spawn_2002d(call.mode);
+        else if (call.name === "spawn47d") e.cc_test_spawn_47d.apply(null, call.args);
+        else throw new Error(`unknown call ${call.name}`);
+      }
+      compareSnap(sc.state, `${sc.name} calls`);
+      continue;
+    }
     for (let f = 0; f < sc.frames.length; f++) {
       const fr = sc.frames[f];
       for (const [name, flag] of INPUT_FLAGS) {

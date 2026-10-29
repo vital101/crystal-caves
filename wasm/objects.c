@@ -148,6 +148,11 @@ typedef struct {
     uint16_t cooldown;           /* [0x02e0] frames since fire */
     uint16_t fire_impulse;       /* [0x02da] per-level firing impulse */
     uint16_t g_2f2;              /* [0x02f2] status object index */
+    uint16_t g_2b8;              /* [0x02b8] base cell block */
+    uint16_t g_511e;             /* [0x511e] level tile family */
+    uint16_t g_5122;             /* [0x5122] dominant cell shape */
+    uint8_t  g_30d;              /* [0x030d] disable cell cache stamp */
+    uint16_t g_2f6;              /* [0x02f6] last cell cache stamp */
     uint8_t  g_a100;             /* [0xa100] pending timer event */
     uint8_t  power_shot;         /* [0xa0ff] power-shot active */
     uint16_t power_timer;        /* [0xa0c4] power-shot expiry */
@@ -959,6 +964,130 @@ static void h_831(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
 }
 
+/* 0x59 SetCell state side: stamp the base cell at (xcell,ycell). */
+static void base_cell_stamp(int xcell, int ycell) {
+    int shape = S->g_5122;
+    int cache = (shape == S->g_5122) ? 0 : 0xFFFF;
+    if (shape == S->g_5122) {
+        if (S->g_511e == 4) {
+            if (ycell & 1) { shape += 4; cache += 2; }
+            if (xcell & 1) { shape += 1; cache += 1; }
+        } else if (S->g_511e == 6) {
+            if (ycell & 1) { shape += 4; cache += 3; }
+            if ((xcell % 3) == 0) { shape += 2; cache += 2; }
+            else if ((xcell % 3) == 2) { shape += 1; cache += 1; }
+        } else if (S->g_511e == 8) {
+            if (ycell & 1) { shape += 4; cache += 4; }
+            if ((xcell % 4) == 0) { shape += 3; cache += 3; }
+            else if ((xcell % 4) == 3) { shape += 2; cache += 2; }
+            else if ((xcell % 4) == 2) { shape += 1; cache += 1; }
+        }
+    }
+    if (S->g_30d) cache = 0xFFFF;
+    S->g_2f6 = (uint16_t)cache;
+    cell_put(xcell, ycell, 0x00, 0);
+    cell_put(xcell, ycell, 0x01, 0);
+    cell_put(xcell, ycell, 0x02, cache & 0xFF);
+    cell_put(xcell, ycell, 0x03, (cache >> 8) & 0xFF);
+    cell_put(xcell, ycell, 0x04, shape & 0xFF);
+    cell_put(xcell, ycell, 0x05, (shape >> 8) & 0xFF);
+    cell_put(xcell, ycell, 0x06, 0);
+    cell_put(xcell, ycell, 0x07, 0);
+    cell_put(xcell, ycell, 0x08, S->g_2b8 & 0xFF);
+    cell_put(xcell, ycell, 0x09, (S->g_2b8 >> 8) & 0xFF);
+    cell_put(xcell, ycell, 0x0A, 0);
+    cell_put(xcell, ycell, 0x0B, 0);
+    cell_put(xcell, ycell, 0x0C, 0);
+    cell_put(xcell, ycell, 0x0D, 0);
+    cell_put(xcell, ycell, 0x0E, 0);
+    cell_put(xcell, ycell, 0x0F, 0);
+    cell_put(xcell, ycell, 0x10, 0);
+    cell_put(xcell, ycell, 0x11, 0);
+    cell_put(xcell, ycell, 0x12, 0);
+    cell_put(xcell, ycell, 0x13, 0);
+}
+
+/* 0x1FFC8: walk the cursor back over reusable free slots. */
+static void reuse_free_slot(void) {
+    while (S->obj_cursor > 0) {
+        ObjectEntry *o = &S->obj[S->obj_cursor];
+        if (o->state != 2) break;
+        if (!(o->kind == 3 || o->kind == 0x2A ||
+              o->kind == 0x2D || o->kind == 0x2E)) break;
+        S->obj_cursor--;
+    }
+}
+
+/* 0x2002D: update the slot-3 template and copy it to the next slot. */
+static void spawn_template_2002d(int mode) {
+    ObjectEntry *t;
+    reuse_free_slot();
+    if (S->obj[3].state != 2 && S->obj_cursor + 1 < OBJ_MAX) {
+        S->obj_cursor++;
+        S->obj[S->obj_cursor] = S->obj[3];
+    }
+    t = &S->obj[3];
+    t->x = S->obj[2].x;
+    t->y = S->obj[2].y;
+    t->x_prev = S->obj[2].x;
+    t->y_prev = S->obj[2].y;
+    t->vx = S->obj[2].vx;
+    t->vy = -1;
+    if (mode == 1) {
+        t->shape = 0x11;
+        t->p16 = 8;
+        t->tile = 0x0D;
+    } else {
+        t->shape = 0x19;
+        t->p16 = 9;
+        t->tile = 7;
+    }
+    t->p10 = 1;
+    t->p18 = 0;
+    t->kind = 3;
+    t->ready = 0;
+    t->state = 0;
+}
+
+/* 0x47D: general object spawn (state side; drawing is renderer-only). */
+typedef struct {
+    uint16_t handler, handler_seg;
+    uint16_t p18, speed, p16, p14, p12, vy, vx;
+    uint16_t ycell, xcell, tile, kind;
+    int slot;
+} SpawnArgs;
+
+static void spawn_object_47d(const SpawnArgs *a) {
+    ObjectEntry *o;
+    int16_t px = (int16_t)(a->xcell << 4);
+    int16_t py = (int16_t)(a->ycell << 4);
+    if (a->slot < 0 || a->slot >= OBJ_MAX) return;
+    o = &S->obj[a->slot];
+    o->shape = (a->vx == 1) ? a->p14 : a->p12;
+    base_cell_stamp(a->xcell, a->ycell);
+    o->tile = a->tile;
+    o->p14 = a->p14;
+    o->p12 = a->p12;
+    o->x = px;
+    o->y = py;
+    o->x_prev = px;
+    o->y_prev = py;
+    o->vx = (int16_t)a->vx;
+    o->vy = (int16_t)a->vy;
+    o->p10 = 1;
+    o->p16 = a->p16;
+    o->speed = a->speed;
+    o->p18 = a->p18;
+    o->p1a = 0;
+    o->p02 = 0;
+    o->p04 = 1;
+    o->kind = a->kind;
+    o->ready = 0;
+    o->state = 0;
+    o->handler = a->handler;
+    o->handler_seg = a->handler_seg;
+}
+
 /* 0x20247: spawn the 0x831 effect object at cell (xcell,ycell). */
 static void spawn_effect(int16_t shape, int16_t xcell, int16_t ycell) {
     int s;
@@ -1204,6 +1333,40 @@ static void h_2176(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     player_interact(o, o->x, o->y);
 }
 
+/* 0x1FD4B: is this cell part of the level's collectible/base tile set? */
+static int cell_type_collectible(int col, int row) {
+    int shape = cell_byte_cur(col, row, 0x04) |
+                (cell_byte_cur(col, row, 0x05) << 8);
+    int base = S->g_5122;
+    switch (S->g_511e) {
+        case 4:
+            if (cell_byte_cur(col, row, 0x11) != 0) return 0;
+            return shape == base || shape == base + 1 ||
+                   shape == base + 4 || shape == base + 5;
+        case 1:
+            return shape == base;
+        case 6:
+            if (cell_byte_cur(col, row, 0x11) != 0) return 0;
+            return shape == base || shape == base + 1 || shape == base + 2 ||
+                   shape == base + 4 || shape == base + 5 || shape == base + 6;
+        case 8:
+            if (cell_byte_cur(col, row, 0x11) != 0) return 0;
+            return shape >= base && shape <= base + 7;
+        default:
+            return 0;
+    }
+}
+
+/* 0x200FE: terrain/cell test used by movers and slash paths. */
+static int cell_test_200fe(int x, int y) {
+    if (cell_byte_cur((x + 3) / 16, (y + 8) / 16, 0x11) != 0) return 1;
+    if (cell_byte_cur((x + 0xC) / 16, (y + 8) / 16, 0x11) != 0) return 1;
+    if (cell_type_collectible((x + 4) / 16, (y + 0x12) / 16) &&
+        cell_byte_cur((x + 8) / 16, (y + 0x12) / 16, 0x12) == 0)
+        return 1;
+    return 0;
+}
+
 /* 0x1F9A:0x1E74 helper: proximity test against the player using the object
  * record's current x/y.  mode 1: |dy| < r1 and |dx| < r2; mode 2:
  * |dx| < 8 and |dy| < r1.  Returns -1/1 for direction, 0 for no match. */
@@ -1267,9 +1430,9 @@ static void h_5855(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     }
 
     if (o->vx == -1) {
-        if (cell_solid_at(x + 3, y + 8) || cell_solid_at(x + 12, y + 8)) flip = 1;
+        if (cell_test_200fe(x, y)) flip = 1;
     } else if (o->vx == 1) {
-        if (cell_solid_at(x2 + 3, y2 + 8) || cell_solid_at(x2 + 12, y2 + 8)) flip = 1;
+        if (cell_test_200fe(x2, y2)) flip = 1;
     }
     if (flip) {
         o->vx = (int16_t)-o->vx;
@@ -1672,6 +1835,20 @@ void cc_objects_step_objects(void) {
     step_objects();
 }
 
+void cc_test_spawn_2002d(int mode) { spawn_template_2002d(mode); }
+void cc_test_spawn_47d(int handler, int handler_seg, int p18, int speed,
+                       int p16, int p14, int p12, int vy, int vx,
+                       int ycell, int xcell, int tile, int kind, int slot) {
+    SpawnArgs a;
+    a.handler = (uint16_t)handler; a.handler_seg = (uint16_t)handler_seg;
+    a.p18 = (uint16_t)p18; a.speed = (uint16_t)speed;
+    a.p16 = (uint16_t)p16; a.p14 = (uint16_t)p14; a.p12 = (uint16_t)p12;
+    a.vy = (uint16_t)vy; a.vx = (uint16_t)vx;
+    a.ycell = (uint16_t)ycell; a.xcell = (uint16_t)xcell;
+    a.tile = (uint16_t)tile; a.kind = (uint16_t)kind; a.slot = slot;
+    spawn_object_47d(&a);
+}
+
 void cc_objects_step_physics(void) {
     /* Normal-state physics subset: 0xE011 (horizontal + camera) then 0xE36B
      * (jump/vertical).  Cross-frame interactions/fire/exit are Phase 2/3. */
@@ -1829,6 +2006,10 @@ static void apply_level_state(int level, int use_start) {
      * fresh game load; transitions preserve the live LCG state. */
     S->fire_impulse = st->f_2da;
     S->g_2f2 = st->f_2f2;
+    S->g_2b8 = st->f_2b8;
+    S->g_511e = st->f_511e;
+    S->g_5122 = st->f_5122;
+    S->g_30d = st->f_30d;
     S->status_30b = st->f_30b;
     S->checkpoint_50a0 = st->f_50a0;
     if (use_start) {
@@ -2052,6 +2233,9 @@ int32_t cc_global_get(int off) {
         case 0x02A8: return S->rng_hi;
         case 0x02DA: return S->fire_impulse;
         case 0x02F2: return S->g_2f2;
+        case 0x02B8: return S->g_2b8;
+        case 0x511E: return S->g_511e;
+        case 0x5122: return S->g_5122;
         case 0x50A5: return S->score_lo;
         case 0x50A7: return S->score_hi;
         case 0x50A0: return S->checkpoint_50a0;
@@ -2113,6 +2297,9 @@ void cc_global_set(int off, int32_t v) {
         case 0x02A8: S->rng_hi = (uint16_t)v; break;
         case 0x02DA: S->fire_impulse = (uint16_t)v; break;
         case 0x02F2: S->g_2f2 = (uint16_t)v; break;
+        case 0x02B8: S->g_2b8 = (uint16_t)v; break;
+        case 0x511E: S->g_511e = (uint16_t)v; break;
+        case 0x5122: S->g_5122 = (uint16_t)v; break;
         case 0x50A5: S->score_lo = (uint16_t)v; break;
         case 0x50A7: S->score_hi = (uint16_t)v; break;
         case 0x50A0: S->checkpoint_50a0 = (uint16_t)v; break;

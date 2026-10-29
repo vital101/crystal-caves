@@ -13,7 +13,7 @@ PYTHON ?= $(if $(wildcard ../.venv/bin/python),../.venv/bin/python,python3)
 OUT    ?= render.wasm
 
 EXPORTS = cc_alloc cc_set_assets cc_set_palette cc_render_level cc_render_view cc_set_cells cc_cell_byte cc_cell_set cc_framebuffer cc_view_framebuffer cc_view_width cc_view_height cc_tex_width cc_tex_height \
-	  cc_objects_init cc_objects_step cc_objects_step_full cc_objects_step_physics cc_objects_step_objects cc_obj_count cc_obj_get cc_obj_set cc_obj_state cc_obj_x cc_obj_y \
+	  cc_objects_init cc_objects_step cc_objects_step_full cc_objects_step_physics cc_objects_step_objects cc_test_spawn_2002d cc_test_spawn_47d cc_obj_count cc_obj_get cc_obj_set cc_obj_state cc_obj_x cc_obj_y \
 	  cc_obj_kind cc_obj_shape cc_obj_tile cc_obj_p10 cc_obj_p12 cc_obj_p14 cc_obj_p16 cc_obj_p18 cc_obj_p1a cc_obj_ready cc_obj_vx cc_obj_vy cc_obj_speed cc_obj_p24 cc_obj_cursor cc_obj_set_cursor cc_obj_handler cc_cur_level \
 	  cc_input_set cc_set_player cc_player_x cc_player_y cc_cam_x cc_cam_y cc_move_dir cc_collide_player \
 	  cc_draw_object cc_draw_object_view cc_sound_set_callback cc_sound_log_clear cc_sound_log_count cc_sound_log_total cc_sound_log_at \

@@ -245,8 +245,12 @@ class PhysicsOracle:
         sp -= 2
         w16(mu, E.STACK_SEG, sp, RET_SENTINEL)
         mu.reg_write(UC_X86_REG_SP, sp)
-        mu.reg_write(UC_X86_REG_CS, 0)
-        mu.reg_write(UC_X86_REG_IP, entry)
+        if 0x1F9A0 <= entry < 0x209A0:
+            mu.reg_write(UC_X86_REG_CS, 0x1F9A)
+            mu.reg_write(UC_X86_REG_IP, entry - 0x1F9A0)
+        else:
+            mu.reg_write(UC_X86_REG_CS, 0)
+            mu.reg_write(UC_X86_REG_IP, entry & 0xFFFF)
         self.stopped = None
         try:
             mu.emu_start(entry, 0x110000, count=1_000_000)
@@ -254,6 +258,40 @@ class PhysicsOracle:
             self.stopped = "error: %s" % exc
         if self.stopped not in (None, "ret"):
             raise RuntimeError("routine %04X stopped: %s" % (entry, self.stopped))
+
+    def call_far(self, entry, args):
+        """Call a retf routine with natural-order word args; stop at return."""
+        mu = self.mu
+        sp = E.STACK_PTR
+        for val in reversed(args):
+            sp = (sp - 2) & 0xFFFF
+            w16(mu, E.STACK_SEG, sp, val & 0xFFFF)
+        sp = (sp - 2) & 0xFFFF
+        w16(mu, E.STACK_SEG, sp, 0)  # return CS
+        sp = (sp - 2) & 0xFFFF
+        w16(mu, E.STACK_SEG, sp, RET_SENTINEL)
+        mu.reg_write(UC_X86_REG_SP, sp)
+        if 0x1F9A0 <= entry < 0x209A0:
+            mu.reg_write(UC_X86_REG_CS, 0x1F9A)
+            mu.reg_write(UC_X86_REG_IP, entry - 0x1F9A0)
+        else:
+            mu.reg_write(UC_X86_REG_CS, 0)
+            mu.reg_write(UC_X86_REG_IP, entry & 0xFFFF)
+        self.stopped = None
+        try:
+            mu.emu_start(entry, 0x110000, count=1_000_000)
+        except Exception as exc:  # pragma: no cover
+            self.stopped = "error: %s" % exc
+        if self.stopped not in (None, "ret"):
+            raise RuntimeError("routine %04X stopped: %s" % (entry, self.stopped))
+
+    def spawn_2002d(self, mode):
+        self.sound_events = []
+        self.call_far(0x2002D, [mode])
+
+    def spawn_47d(self, args):
+        self.sound_events = []
+        self.call_far(0x47D, args)
 
     def step(self, with_objects=True):
         self.sound_events = []

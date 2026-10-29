@@ -109,6 +109,19 @@ def run_scenario(sc, baselines):
     o.reset()
     apply_seed(o, sc.get("seed", {}))
     prev = dump_state(o)
+    if sc.get("calls"):
+        for call in sc["calls"]:
+            if call["name"] == "spawn2002d":
+                o.spawn_2002d(call["mode"])
+            elif call["name"] == "spawn47d":
+                o.spawn_47d(call["args"])
+            else:
+                raise KeyError(call["name"])
+        return {
+            "name": sc["name"], "level": level, "mode": sc["mode"],
+            "seed": sc.get("seed", {}), "calls": sc["calls"],
+            "state": dump_state(o), "frames": [],
+        }
     frames = []
     for inp in sc["frames"]:
         o.set_inputs(**inp)
@@ -389,6 +402,20 @@ SCENARIOS = [
                               "handler_seg": 0x1F9A}},
         },
         "frames": inputs(3),
+    },
+    {
+        "name": "spawn2002d_l2", "level": 2, "mode": "call",
+        "seed": {"player": {"x": 144, "y": 80},
+                 "globals": {"512e": 0, "5130": 16}},
+        "calls": [{"name": "spawn2002d", "mode": 1},
+                  {"name": "spawn2002d", "mode": 1},
+                  {"name": "spawn2002d", "mode": 2}],
+    },
+    {
+        "name": "spawn47d_l2", "level": 2, "mode": "call",
+        "calls": [{"name": "spawn47d", "args": [0x3E70, 0x1F9A, 0, 2, 4,
+                                                 0x10, 0x11, 0, 1, 5, 10,
+                                                 3, 0x30, 40]}],
     },
     {
         "name": "r5855_hit_l3", "level": 3, "mode": "objects",

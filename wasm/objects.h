@@ -25,6 +25,12 @@ void cc_objects_step(void);
  * deterministic oracle fixtures. */
 void cc_objects_step_objects(void);
 
+/* Combat test hook: invoke the 0x2002D slot-3 effect spawn. */
+void cc_test_spawn_2002d(int mode);
+void cc_test_spawn_47d(int handler, int handler_seg, int p18, int speed,
+                       int p16, int p14, int p12, int vy, int vx,
+                       int ycell, int xcell, int tile, int kind, int slot);
+
 /* Advance only exact player physics (0xE011 + 0xE36B); no object loop. */
 void cc_objects_step_physics(void);
 
