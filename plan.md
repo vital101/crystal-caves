@@ -19,11 +19,10 @@ Verified today:
 - Level-3 object state matches the Unicorn oracle for 120 frames.
 - Full mutable 20-byte cells are exported as `out/portable/cells.bin` and
   verified byte-for-byte against the oracle.
-- 18/46 object handlers are implemented; 28 remain. Some handlers counted as
-  done are still stubs on combat paths (`0x251D`, `0x2850`, `0x2877`).
-- `0x20406` first interaction block (touch damage, pickups, kind-`0x2C`
-  score/effect) and the `0x20247`/`0x831` effect object are ported.
-  The slash gate and both slash state matrices are not.
+- 21/46 object handlers are implemented; 25 remain.
+- The full `0x20406` interaction (touch, transform, slash gate, normal and
+  power slash matrices) and the `0x20247`/`0x831` effect object are ported and
+  covered by `notes/combat_fixtures.json`.
 - Player fire is `0xCF6C` (called from `0xEBF2`), not `0xD17D`/`0xD236`;
   the attack is object slot 2 (`0x4638`) driven by `0x251D`.
 - Exact startup DS (`0xC3E`) is recovered. The vertical displacement table is
@@ -35,20 +34,22 @@ Verified today:
   level-2 hub door IDs; static oracle renders were regenerated to match.
 - Phase 2 is complete: `make test-all`, `make test-oracle-objects`,
   `make test-oracle-physics`, and `make test-oracle-combat` pass.
+- Phase 3 is complete for cell events, contact, crystals, exit unlock and the
+  exit/door state machines. `notes/cell_fixtures.json` (17 scenarios) covers
+  direct cell branches plus full-frame contact/exit runs; `make test-cells`
+  and `make test-oracle-cells` pass.
+- Dynamic cell rendering is implemented (`cc_render_cells`,
+  `cc_render_view_cells`); collected crystals and opened doors redraw.
+- Known transition limitation: the original loader overlays cells/objects on
+  the source level's memory. The port now loads the destination level's fresh
+  image, so *unused* leftover bytes can differ after a transition. The loader
+  map-command occupancy rules remain to be ported.
 
 Important remaining unknowns:
 
-- Crystal collection and cave exit/airlock logic are not decoded/ported.
-- Hub door-to-cave mapping and door entry are not decoded.
-- `0x20406` second-hit/projectile state matrices after `0x20707` are not
-  ported; the transform and slash control-flow gates are also incomplete.
-- Player fire (`0xCF6C`), the slot-2 slash update (`0x251D`), and the
-  transform/dissolve handler (`0x2877`) are not ported.
-- `0x5855` random companion-spawn branch is still TODO.
-- General dynamic spawn (`0x47D`) is not ported; only the pickup effect spawn
-  (`0x20247`) exists.
-- Hazard/contact (`0xE5D3`), items/fire/exit (`0xEBF2`) and timers (`0xEAEA`)
-  are outside the Phase 1 physics subset.
+- Exact loader cell/object overlay for transitions (map-command occupancy).
+- 23 object handlers remain (see Phase 4 list).
+- HUD, menus, story/finale transitions, sound and save/high scores.
 
 ## Critical path
 
@@ -337,41 +338,50 @@ P2.6 -> P2.8. P2.7 must land before P2.4 because the slash matrices call
 the general spawn path. Commit after P2.0/P2.2/P2.3/P2.5/P2.8 so each step has
 a working oracle fixture.
 
-## Phase 3 — Cells, crystals, exits, hub doors
+## Phase 3 — Cells, crystals, exits, hub doors (COMPLETE, one known transition caveat)
 
-Tasks:
+Status: COMPLETE for the active gameplay path.
 
-- Decode cell-based collectibles, especially the green crystal tiles.
-  - Determine the cell fields that mark a collectible and the clear/redraw
-    behavior.
-  - Identify the crystal counter and HUD relationship.
-- Port cell collection/exit routines around `0x1CCB0`/`0x1CD1C`.
-- Port exit state machine `0xD412–0xD5B4` exactly:
-  - cell `w0` next-level argument,
-  - spawn override `[0x2B72]/[0x2B74]`,
-  - airlock entry/exit animation.
-- Decode hub door entry:
-  - how a kind-60 door (`0x3F13`) maps to a cave,
-  - how the 16 doors are ordered/selected,
-  - return-to-hub spawn position and completion state.
-- Implement mutable cell redraw/dirty-cell updates so collected crystals and
-  opened doors visibly change.
-- Add fixtures for crystal pickup, exit, hub door entry, and hub return.
+Implemented:
 
-Acceptance:
+- `0xE5D3` player contact: five-point `0xFC5:BB26` calls, `0xFF9F`/`0xFF9D`
+  hazards, crystal pickup spawns (`0x672B`/`0x69D3`) and player pose changes.
+- `0x0FC5:0xBB26` cell-event handler: crystal cells (`w6=0xD`, `w7=1..4`),
+  ammo/power-up/score cells, switches/levers, hazard cells, hub doors and cave
+  exits.  Crystal pickup decrements `0xA0CC`, increments `0x50A2`, adds score
+  and plays sounds 8/0x20.
+- `0xEBF2` collectible spawn/expiry (`0xA0CE`/`0xA10B`/`0xA0D0`/`0xA0D2`) and
+  all-crystals exit unlock (`0xA0CC==0` -> `0xA0F5=1`, clear exit solid).
+- `0xD4E5` hub-door entry and `0xD360`/`0xD412` cave exit: door/exit cell
+  animation, spawn override `[0x2B72]/[0x2B74]`, cave-completion flags
+  `[0x50A9..0x50B8]`, all-caves check, hub load.
+- Level-argument mapping: `0`=hub, `1..16`=caves, `0xFFFF`=intro,
+  `0xFFFE`=finale (`cc_load_arg`, `cc_level_exit`).
+- Dynamic cell rendering from the mutable 20-byte records:
+  `cc_render_cells` / `cc_render_view_cells`; layer mapping `(w4,w2)`,
+  `(w5,w3)`, `(w6,w7)`.
+- New tests: `notes/cell_fixtures.json`, `make test-cells`,
+  `make test-oracle-cells`, functional `test_levels.js`, and
+  `test_cells_render.js`.
+- Handlers `0x6681`, `0x672B`, `0x69D3` moved from Phase 4 into Phase 3 and
+  implemented.
 
-- Level 3 can be completed start-to-exit, returns to the hub, and marks progress.
-- Hub doors load the correct caves.
-- Cell/crystal state matches the oracle frame-for-frame.
+Known caveat:
+
+- The original loader overlays cells/objects onto the source level's memory.
+  The port currently uses the destination level's fresh image on transitions,
+  so unused leftover cell/object bytes can differ after hub->cave or
+  cave->hub.  Contact, crystal, exit-animation and direct cell-event state are
+  oracle-exact.  Exact transition-state replay needs the loader map-command
+  occupancy rules; this is the first Phase 4 item.
 
 ## Phase 4 — Remaining handlers and all 16 caves
 
-Remaining handlers (28; `0x6681` moves to Phase 2 as the death effect):
+Remaining handlers (25; `0x6681`, `0x672B`, `0x69D3` are now ported):
 
 ```text
 298A 2ACF 2BD4 2D37 2E25 2F83 32F6 3416 36B0 3904 3A2E 3F6C 403A
-4145 47B9 48FE 4AD3 4C92 4FD4 52E7 55EC 5C8F 6232 62F2 6458 6681
-672B 69D3
+4145 47B9 48FE 4AD3 4C92 4FD4 52E7 55EC 5C8F 6232 62F2 6458
 ```
 
 Order:
@@ -379,7 +389,7 @@ Order:
 1. High-frequency shared handlers: `4145`, `3904`, `47B9`, `48FE`, `2D37`,
    `3416`, `32F6`, `2ACF`, `2BD4`, `298A`, `403A`, `55EC`, `5C8F`, `62F2`,
    `6232`, `4C92`, `52E7`, `2F83`, `4AD3`, `36B0`.
-2. Dynamic/spawn-only handlers: `3F6C`, `6681`, `672B`, `69D3`.
+2. Dynamic/spawn-only handlers: `3F6C`.
 3. Per-cave verification after each batch.
 
 Tasks:
@@ -483,10 +493,10 @@ Acceptance:
 
 ## Immediate next actions
 
-1. Decode cell crystal collection and the `0xD412` exit state machine.
-2. Decode hub door entry and return-to-hub spawn (door cell `w0` now carries
-   IDs 1..16 in level 2).
-3. Port the remaining handlers in cave-sized batches.
+1. Port the loader map-command occupancy rules so transition cell/object
+   leftovers match the original exactly.
+2. Port the remaining 25 handlers in cave-sized batches.
+3. Decode HUD layout/counters and the story/finale transitions.
 
 ## Validation commands
 
@@ -496,8 +506,9 @@ make test-all
 make test-physics            # committed physics fixtures (fast)
 make test-oracle-physics     # regenerate physics fixtures (Unicorn)
 make test-oracle-objects     # requires tools/requirements.txt + .venv
-make test-combat             # committed combat fixtures (fast; Phase 2)
-make test-oracle-combat      # regenerate combat fixtures (Phase 2)
+make test-combat             # committed combat fixtures (fast)
+make test-cells              # committed cell/contact/exit fixtures
+make test-oracle-cells       # regenerate cell fixtures
 make startup                 # regenerate notes/startup.json + startup_data.h
 ```
 
@@ -513,6 +524,9 @@ PASS: 10 frames match oracle object state (level 2)
 PASS: 120 frames match oracle object state (level 3)
 PASS: 16 physics scenarios, 670 frames match oracle
 PASS: 74 combat scenarios, 624 frames match oracle
+PASS: 17 cell scenarios, 20 frames match oracle
+PASS: hub door and cave exit transitions load the correct levels
+PASS: mutable cell renderer matches baked; crystal clear changed 150 pixels
 ```
 
 ## Relevant files
@@ -530,6 +544,8 @@ PASS: 74 combat scenarios, 624 frames match oracle
 - `wasm/play.html` — playable shell, input, camera view, level selector.
 - `wasm/test_oracle_objects.js` — object/cell oracle comparison.
 - `wasm/test_combat.js` — committed combat/cell/globals/RNG/sound oracle test.
+- `tools/cell_fixtures.py` / `notes/cell_fixtures.json` — committed cell/contact/exit oracle trace.
+- `wasm/test_cells.js`, `wasm/test_levels.js`, `wasm/test_cells_render.js` — cell/transition/render regressions.
 - `tools/emulate_game.py` — full update-loop oracle and interaction fixtures;
   extend with scenario seeding and full-frame order in Phase 2.
 - `tools/oracle_frame.py` — player physics sub-routine oracle (DS data missing).

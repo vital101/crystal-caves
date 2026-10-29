@@ -16,6 +16,8 @@ There is no root Makefile; the build lives in `wasm/`.
 | `make test-gameplay` | Level-2 fixture smoke test |
 | `make test-physics` | Exact player/camera/platform-carry regression (committed fixtures) |
 | `make test-combat` | Committed combat/cell/globals/RNG/sound oracle fixtures (fast) |
+| `make test-cells` | Committed cell-event/contact/exit fixtures + transition/render checks |
+| `make test-oracle-cells` | Regenerate `notes/cell_fixtures.json` with Unicorn, then compare |
 | `make test-oracle-physics` | Regenerate physics fixtures from the real routines, then compare (needs venv deps) |
 | `make test-oracle-objects` | Compare C object/cell state with the Unicorn oracle, levels 2 and 3 (needs venv deps) |
 | `make test-oracle-combat` | Regenerate `notes/combat_fixtures.json` from the real routines and compare (needs venv deps) |
@@ -78,27 +80,35 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   the original byte-wise add/shift sequence, not a plain 32-bit multiply.
 - **Cell addressing**: `0x508C + (col+1)*500 + (row+1)*20`; slash/dug-block
   paths use the original +1 border indices (see `cell_border_*` in `objects.c`).
+- **Cell events**: handler is `0x0FC5:0xBB26` (linear `0x1B776`).  Layer
+  mapping is `(w4,w2)`, `(w5,w3)`, `(w6,w7)`; crystal cells are `w6=0xD`,
+  `w7=1..4`.  Counters: `0x509E` health, `0x509C` ammo, `0x50A2` collected,
+  `0xA0CC` remaining.  Cave flags live at `0x50A9..0x50B8`.
+- **Level args**: 0=hub, 1..16=caves, 0xFFFF=intro, 0xFFFE=finale.
 
 ## Current Status (do not overstate)
 
 - Static level rendering is **bit-exact on all 19 levels** (Python oracle + wasm).
 - Loader/object snapshots and structural oracle checks are done.
-- The 0xD72A update loop and 18 handlers are ported; level-2 object state
+- The 0xD72A update loop and 21 of the 46 handler-table entries are ported; level-2 object state
   (10 frames) and level-3 object state (120 frames) match the Unicorn oracle.
 - Full mutable 20-byte cells are exported as `out/portable/cells.bin` and
-  verified byte-for-byte by `test_oracle_objects.js`. The export now includes
-  the `0xC3E` startup state (notably level-2 hub door IDs 1..16).
+  verified byte-for-byte by `test_oracle_objects.js`.
 - Exact player/camera physics is validated frame-for-frame: 16 scenarios /
-  670 frames, including level-2/3 platform carry and reversed gravity. The
-  vertical table is `DS:0xA111` indexed by `[0x5134]`; one game frame is
-  8 PIT ticks at divisor `0x2147` ≈ 17.51 Hz. See `notes/physics.md`.
-- `0x20406` first interaction block (touch damage, pickups, kind-0x2C
-  score/effect) and its 0x831 effect spawn are ported and tested.
-- Still missing: 28 handlers, 0x20406 second-hit/projectile/cell-collection
-  matrix, hazard/item/fire/exit frame paths, hub door flow, HUD, menus, sound,
-  save.
-- `test_gameplay.js` still asserts score/crystals/lives/level-complete stay
-  zero; replace those assertions as real gameplay lands.
+  670 frames. The vertical table is `DS:0xA111` indexed by `[0x5134]`; one
+  game frame is 8 PIT ticks at divisor `0x2147` ≈ 17.51 Hz.
+- Phase 2 combat/fire/slash/death state is oracle-exact (74 scenarios / 624
+  frames in `notes/combat_fixtures.json`).
+- Phase 3 cell/contact/exit state is implemented: `0xE5D3` contact,
+  `0x0FC5:0xBB26` cell events, crystal/ammo/health counters, exit unlock,
+  hub-door and cave-exit state machines, and dynamic cell rendering.
+  `notes/cell_fixtures.json` covers direct cell branches plus full-frame
+  contact/exit runs (17 scenarios).
+- Known limitation: level transitions use the destination level's fresh
+  cell/object image. The original loader overlays onto the source level's
+  memory, so unused leftover cell/object bytes can differ after a transition.
+  Exact transition-state replay needs the loader map-command occupancy rules.
+- Still missing: 25 handlers, HUD, menus, sound, save/high scores, and exact loader transition overlays.
 
 ## Tooling Entrypoints
 
@@ -110,6 +120,7 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 | `tools/oracle_physics.py` | Exact player/camera/platform physics oracle |
 | `tools/physics_fixtures.py` | Generate `notes/physics_fixtures.json` |
 | `tools/combat_fixtures.py` | Generate `notes/combat_fixtures.json` (fire, slash, touch, death, RNG) |
+| `tools/cell_fixtures.py` | Generate `notes/cell_fixtures.json` (cell events, contact, exits) |
 | `tools/emulate_render.py` | Full EGA render oracle (real blitters + ports) |
 | `tools/oracle_frame.py` | Low-level physics/collision sub-routine oracle |
 | `tools/emulate_game.py` | Full update-loop + handler oracle (video/sound stubbed) |
@@ -130,6 +141,7 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - `wasm/startup_data.h` — generated startup/table/level-start data
 - `notes/startup.json`, `notes/physics_fixtures.json`, `notes/physics.md`
 - `notes/combat_fixtures.json` — committed combat oracle trace (`make test-combat`)
+- `notes/cell_fixtures.json` — committed cell/contact/exit oracle trace (`make test-cells`)
 - `notes/handlers.*`, `notes/oracle_catalog.json`, `notes/oracle_objects.json`, `notes/level_table.json`, `notes/gameplay.md`
 
 ## Known Constraints

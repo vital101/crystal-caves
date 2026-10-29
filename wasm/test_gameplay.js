@@ -66,21 +66,25 @@ const SPAWN_COUNTS = {
     throw new Error(`level 2 start ${px},${py} != 32,64 (main hub Y cell)`);
   }
 
-  // Score / collectibles / lives must be zero-stubs.
-  console.log(`  score=${e.cc_score()} total=${e.cc_collectibles_total()} left=${e.cc_collectibles_left()} lives=${e.cc_lives()} complete=${e.cc_level_complete()}`);
-  if (e.cc_score() !== 0) throw new Error("score should be 0 stub");
-  if (e.cc_collectibles_total() !== 0) throw new Error("collectibles_total should be 0 stub");
-  if (e.cc_collectibles_left() !== 0) throw new Error("collectibles_left should be 0 stub");
-  if (e.cc_lives() !== 3) throw new Error("lives should start at 3");
-  if (e.cc_level_complete() !== 0) throw new Error("level_complete should be 0 stub");
+  // Level 2 has no crystals; health starts at 3 and ammo at 5.
+  console.log(`  score=${e.cc_score()} crystals=${e.cc_crystals_collected()}/${e.cc_crystals_remaining()} health=${e.cc_health()} ammo=${e.cc_ammo()} complete=${e.cc_level_complete()}`);
+  if (e.cc_score() !== 0) throw new Error("level 2 should start with score 0");
+  if (e.cc_crystals_remaining() !== 0) throw new Error("level 2 should have no crystals");
+  if (e.cc_crystals_collected() !== 0) throw new Error("level 2 should have no collected crystals");
+  if (e.cc_health() !== 3 || e.cc_lives() !== 3) throw new Error("health should start at 3");
+  if (e.cc_ammo() !== 5) throw new Error("ammo should start at 5");
+  if (e.cc_level_complete() !== 0) throw new Error("level_complete should be 0");
+  e.cc_objects_init(3);
+  if (e.cc_crystals_remaining() !== 14) throw new Error(`level 3 crystals ${e.cc_crystals_remaining()} != 14`);
 
-  // Step with right input; score/collectibles must remain 0 (no collection).
+  // Level 2 has no collectible cells, so a short walk must not change score.
+  e.cc_objects_init(level);
   e.cc_input_set(0x338F, 1);
   for (let f = 1; f <= 20; f++) e.cc_objects_step();
   console.log(`  after 20 frames right: player=(${e.cc_player_x()},${e.cc_player_y()}) cam=(${e.cc_cam_x()},${e.cc_cam_y()})`);
-  console.log(`  score=${e.cc_score()} left=${e.cc_collectibles_left()} complete=${e.cc_level_complete()}`);
-  if (e.cc_score() !== 0 || e.cc_collectibles_left() !== 0) {
-    throw new Error("score/collectibles mutated without a collectible rule");
+  console.log(`  score=${e.cc_score()} crystals=${e.cc_crystals_remaining()} complete=${e.cc_level_complete()}`);
+  if (e.cc_score() !== 0 || e.cc_crystals_remaining() !== 0) {
+    throw new Error("score/crystals changed on a level with no collectibles");
   }
 
   console.log(`\nPASS: level ${level} fixture checks (start=${px},${py} active=${active})`);

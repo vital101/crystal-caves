@@ -17,6 +17,14 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 
 from oracle_physics import PhysicsOracle, FIELDS  # noqa: E402
+
+PHYS_FIELDS = ["x", "y", "cam_x", "cam_y", "move_dir", "walk_speed",
+               "impulse", "walk_phase", "jump_phase", "jump_flag",
+               "airborne", "anim_suppress", "shape", "shape_a", "shape_b",
+               "player_block", "anim_timer", "carry_x", "scroll_x",
+               "carry_y", "ride_h", "ride_v", "blocked_l", "blocked_r",
+               "gravity_scale", "c8", "c6", "lives", "ammo", "invuln",
+               "hit_lock", "exit_state"]
 import emulate_load as E  # noqa: E402
 
 
@@ -164,7 +172,7 @@ def main():
             only = set(arg.split("=", 1)[1].split(","))
     out = {
         "exe_sha256": E.sha256_file(E.EXE),
-        "fields": [name for name, _, _ in FIELDS],
+        "fields": PHYS_FIELDS,
         "object_fields": OBJ_FIELDS,
         "tick_hz": 1193182.0 / 0x2147 / 8.0,
         "scenarios": [],

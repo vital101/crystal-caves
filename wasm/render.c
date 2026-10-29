@@ -155,6 +155,57 @@ static void render_level_buf(int level) {
     }
 }
 
+/* Dynamic renderer: draw the mutable 20-byte cell records owned by objects.c.
+ * Mapping confirmed by tools/build_cells.py:
+ *   layer1 = (w4,w2), layer2 = (w5,w3) if shape, layer3 = (w6,w7) if shape. */
+extern int cc_cell_byte(int col, int row, int off);
+
+static int cell_word(int col, int row, int off) {
+    return cc_cell_byte(col, row, off) |
+           (cc_cell_byte(col, row, off + 1) << 8);
+}
+
+static void render_cells_buf(int level) {
+    (void)level;
+    memset(g_rgba, 0, sizeof(g_rgba));
+    if (!g_gfx) return;
+    for (int r = 0; r < LEVEL_H; r++) {
+        for (int c = 0; c < LEVEL_W; c++) {
+            int b[3], sh[3];
+            b[0] = cell_word(c, r, 0x08); sh[0] = cell_word(c, r, 0x04);
+            b[1] = cell_word(c, r, 0x0A); sh[1] = cell_word(c, r, 0x06);
+            b[2] = cell_word(c, r, 0x0C); sh[2] = cell_word(c, r, 0x0E);
+            for (int l = 0; l < 3; l++) {
+                int blk = b[l];
+                if (l > 0 && sh[l] == 0) continue;
+                if (blk == 0 && sh[l] != 0) blk = 20;
+                const unsigned char *s = shape_ptr(blk, sh[l]);
+                if (s) blit(s, c * SHAPE_W, r * SHAPE_H);
+            }
+        }
+    }
+}
+
+void cc_render_cells(int level, unsigned char *out_rgba) {
+    render_cells_buf(level);
+    memcpy(out_rgba, g_rgba, sizeof(g_rgba));
+}
+
+/* Viewport from the current mutable cell records (used by the game shell). */
+void cc_render_view_cells(int level, int cam_x, int cam_y) {
+    int x0 = cam_x, y0 = cam_y;
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x0 > TILE_W - SCREEN_W) x0 = TILE_W - SCREEN_W;
+    if (y0 > TILE_H - SCREEN_H) y0 = TILE_H - SCREEN_H;
+    render_cells_buf(level);
+    for (int y = 0; y < SCREEN_H; y++) {
+        memcpy(&g_view[y * SCREEN_W * 4],
+               &g_rgba[((y + y0) * TILE_W + x0) * 4],
+               SCREEN_W * 4);
+    }
+}
+
 void cc_render_level(int level, unsigned char *out_rgba) {
     render_level_buf(level);
     memcpy(out_rgba, g_rgba, sizeof(g_rgba));

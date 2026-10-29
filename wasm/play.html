@@ -92,7 +92,7 @@
 
   function renderFrame() {
     const camX = e.cc_cam_x(), camY = e.cc_cam_y();
-    e.cc_render_view(level, camX, camY);
+    e.cc_render_view_cells(level, camX, camY);
 
     /* Draw active objects on top of the 320x200 viewport. */
     for (let s = 0; s < e.cc_obj_count(); s++) {

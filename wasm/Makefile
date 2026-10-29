@@ -12,14 +12,14 @@ EMCC   ?= emcc
 PYTHON ?= $(if $(wildcard ../.venv/bin/python),../.venv/bin/python,python3)
 OUT    ?= render.wasm
 
-EXPORTS = cc_alloc cc_set_assets cc_set_palette cc_render_level cc_render_view cc_set_cells cc_cell_byte cc_cell_set cc_framebuffer cc_view_framebuffer cc_view_width cc_view_height cc_tex_width cc_tex_height \
-	  cc_objects_init cc_objects_step cc_objects_step_full cc_objects_step_physics cc_objects_step_objects cc_test_spawn_2002d cc_test_spawn_47d cc_obj_count cc_obj_get cc_obj_set cc_obj_state cc_obj_x cc_obj_y \
+EXPORTS = cc_alloc cc_set_assets cc_set_palette cc_render_level cc_render_view cc_render_cells cc_render_view_cells cc_set_cells cc_cell_byte cc_cell_set cc_framebuffer cc_view_framebuffer cc_view_width cc_view_height cc_tex_width cc_tex_height \
+	  cc_objects_init cc_level_exit cc_load_arg cc_objects_step cc_objects_step_full cc_objects_step_physics cc_objects_step_objects cc_test_cell_event cc_test_contact cc_test_spawn_2002d cc_test_spawn_47d cc_obj_count cc_obj_get cc_obj_set cc_obj_state cc_obj_x cc_obj_y \
 	  cc_obj_kind cc_obj_shape cc_obj_tile cc_obj_p10 cc_obj_p12 cc_obj_p14 cc_obj_p16 cc_obj_p18 cc_obj_p1a cc_obj_ready cc_obj_vx cc_obj_vy cc_obj_speed cc_obj_p24 cc_obj_cursor cc_obj_set_cursor cc_obj_handler cc_cur_level \
 	  cc_input_set cc_set_player cc_player_x cc_player_y cc_cam_x cc_cam_y cc_move_dir cc_collide_player \
 	  cc_draw_object cc_draw_object_view cc_sound_set_callback cc_sound_log_clear cc_sound_log_count cc_sound_log_total cc_sound_log_at \
 	  cc_global_get cc_global_set cc_rng_next cc_rng_seed cc_rng_lo cc_rng_hi \
 	  cc_score cc_score_lo cc_score_hi cc_cooldown cc_g_2da cc_g_a0c4 cc_g_a0ff cc_collectibles_total cc_collectibles_left \
-	  cc_lives cc_level_complete cc_handler_coverage_num cc_phys_get cc_phys_set
+	  cc_lives cc_health cc_ammo cc_crystals_collected cc_crystals_remaining cc_level_arg cc_exit_unlocked cc_exit_active cc_door_active cc_cave_flag cc_level_complete cc_handler_coverage_num cc_phys_get cc_phys_set
 
 clang: assets $(OUT)
 
@@ -92,6 +92,18 @@ test-physics: clang
 test-combat: clang
 	node test_combat.js
 
+# Cell/contact/exit fixtures and functional level transitions.
+test-cells: clang
+	node test_cells.js
+	node test_levels.js
+	node test_cells_render.js
+
+test-oracle-cells: clang
+	$(PYTHON) ../tools/cell_fixtures.py
+	node test_cells.js
+	node test_levels.js
+	node test_cells_render.js
+
 # Regenerate the combat oracle fixtures (needs Unicorn) and compare.
 test-oracle-combat: clang
 	$(PYTHON) ../tools/combat_fixtures.py
@@ -109,9 +121,9 @@ test-oracle-objects: clang
 	$(PYTHON) ../tools/emulate_game.py 3 120 --json > oracle_level3.json
 	node test_oracle_objects.js oracle_level3.json
 
-test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat
+test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat test-cells
 
 clean:
 	rm -f $(OUT) app.js app.wasm out_wasm_level*.png oracle_level*.json
 
-.PHONY: clang emcc assets data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-oracle-physics test-oracle-combat test-oracle-objects test-all clean
+.PHONY: clang emcc assets data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-cells test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-objects test-all clean

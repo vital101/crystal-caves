@@ -16,6 +16,8 @@ void cc_cell_set(int col, int row, int off, int value);
 
 /* Load the oracle-captured 60-slot object image for `level`. */
 void cc_objects_init(int level);
+void cc_level_exit(int arg);
+void cc_load_arg(int arg);
 
 /* Advance every object slot once (original update loop, 0xD72A).
  * C4: also processes input and updates the camera. */
@@ -26,6 +28,8 @@ void cc_objects_step(void);
 void cc_objects_step_objects(void);
 
 /* Combat test hook: invoke the 0x2002D slot-3 effect spawn. */
+void cc_test_cell_event(int x, int y);
+void cc_test_contact(void);
 void cc_test_spawn_2002d(int mode);
 void cc_test_spawn_47d(int handler, int handler_seg, int p18, int speed,
                        int p16, int p14, int p12, int vy, int vx,

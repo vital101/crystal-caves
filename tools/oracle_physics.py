@@ -36,12 +36,25 @@ from unicorn.x86_const import (  # noqa: E402
 )
 
 RET_SENTINEL = E.RET_SENTINEL
+# Segment 0x0FC5 contains both live gameplay routines and video/audio helpers.
+# Skip the latter by entry point; the cell-event handler at 0xBB26 must run.
 SKIP_SEGS = {0x28B5, 0x26C5, 0x0FC5}
+LIVE_FC5 = {(0x0FC5, 0xBB26)}
+# Video/text helpers called by the cell handler; skip them in the state oracle.
+# Their only tracked side effects are the latches below.
+FC5_SKIP_NEAR = {
+    0x5CC5: ("a110",), 0x5E06: ("a110",), 0x66D7: ("a110",),
+    0x67A3: ("a110",), 0x6870: ("a110",), 0x694D: ("a110",),
+    0x6A58: (), 0xA467: (),
+    0xA59D: ("a110", "3395"),
+}
 HORIZ = 0xE011
 JUMP = 0xE36B
+CONTACT = 0xE5D3
 FIRE_TIMERS = 0xEBF2
 STATUS_TIMERS = 0xEAEA
 OBJECTS = 0xD72A
+CELL_EVENT = 0x1B776  # 0x0FC5:0xBB26 = linear 0xFC50 + 0xBB26
 PLAY_SOUND = 0x1FBC5   # after the 0x1F9A:0x21F prologue; [bp+6] is the ID
 
 # Inputs: keyboard flags.  (0x338A is joystick fire, not the keyboard key.)
@@ -72,6 +85,22 @@ FIELDS = [
     ("lives", 0x509E, "u16"), ("ammo", 0x509C, "u16"),
     ("invuln", 0xA0EA, "u16"), ("hit_lock", 0x4660, "u8"),
     ("exit_state", 0x5124, "u16"),
+    # Phase 3 cell/exit state.
+    ("a0cc", 0xA0CC, "u16"), ("50a2", 0x50A2, "u16"),
+    ("a0f5", 0xA0F5, "u8"), ("a0f6", 0xA0F6, "u8"),
+    ("a0f7", 0xA0F7, "u8"), ("a0f8", 0xA0F8, "u8"),
+    ("a0be", 0xA0BE, "u16"),
+    ("a0e0", 0xA0E0, "u16"), ("a0e2", 0xA0E2, "u16"),
+    ("a0e6", 0xA0E6, "u16"), ("a0e8", 0xA0E8, "u16"),
+    ("a0d0", 0xA0D0, "u16"), ("a0d2", 0xA0D2, "u16"),
+    ("a0d4", 0xA0D4, "u16"), ("a0d6", 0xA0D6, "u16"),
+    ("a0d8", 0xA0D8, "u16"), ("a0da", 0xA0DA, "u16"),
+    ("a0dc", 0xA0DC, "u16"), ("a0de", 0xA0DE, "u16"),
+    ("a0ce", 0xA0CE, "u16"), ("a10b", 0xA10B, "u8"),
+    ("a0f9", 0xA0F9, "u8"), ("a0f3", 0xA0F3, "u8"),
+    ("a0c2", 0xA0C2, "u16"), ("a0c4", 0xA0C4, "u16"),
+    ("a0c6", 0xA0C6, "u16"), ("a0c8", 0xA0C8, "u16"),
+    ("a0ca", 0xA0CA, "u16"), ("a0e4", 0xA0E4, "u16"),
 ]
 
 
@@ -119,11 +148,25 @@ class PhysicsOracle:
                 self.sound_events.append(
                     E.u16(uc, uc.reg_read(UC_X86_REG_SS), (bp + 6) & 0xFFFF))
                 return
+            cs = uc.reg_read(UC_X86_REG_CS)
+            ip = uc.reg_read(UC_X86_REG_IP)
+            if cs == 0x0FC5 and ip in FC5_SKIP_NEAR:
+                sp = uc.reg_read(UC_X86_REG_SP)
+                ss = uc.reg_read(UC_X86_REG_SS)
+                ret = E.u16(uc, ss, sp)
+                uc.reg_write(UC_X86_REG_SP, (sp + 2) & 0xFFFF)
+                uc.reg_write(UC_X86_REG_IP, ret)
+                for effect in FC5_SKIP_NEAR[ip]:
+                    if effect == "a110":
+                        uc.mem_write((E.DATA_SEG << 4) + 0xA110, b"\x00")
+                    elif effect == "3395":
+                        uc.mem_write((E.DATA_SEG << 4) + 0x3395, b"\x00")
+                return
             if uc.mem_read(address, 1)[0] == 0x9A:
                 raw = uc.mem_read(address, 5)
                 off = int.from_bytes(raw[1:3], "little")
                 seg = int.from_bytes(raw[3:5], "little")
-                if seg in SKIP_SEGS:
+                if seg in SKIP_SEGS and (seg, off) not in LIVE_FC5:
                     n = E.retf_argbytes(self.module, seg, off)
                     sp = uc.reg_read(UC_X86_REG_SP)
                     uc.reg_write(UC_X86_REG_SP, (sp + n) & 0xFFFF)
@@ -247,9 +290,12 @@ class PhysicsOracle:
         sp -= 2
         w16(mu, E.STACK_SEG, sp, RET_SENTINEL)
         mu.reg_write(UC_X86_REG_SP, sp)
-        if 0x1F9A0 <= entry < 0x209A0:
+        if 0x1F9A0 <= entry < 0x26C50:
             mu.reg_write(UC_X86_REG_CS, 0x1F9A)
             mu.reg_write(UC_X86_REG_IP, entry - 0x1F9A0)
+        elif 0xFC50 <= entry < 0x1F9A0:
+            mu.reg_write(UC_X86_REG_CS, 0x0FC5)
+            mu.reg_write(UC_X86_REG_IP, entry - 0xFC50)
         else:
             mu.reg_write(UC_X86_REG_CS, 0)
             mu.reg_write(UC_X86_REG_IP, entry & 0xFFFF)
@@ -273,9 +319,12 @@ class PhysicsOracle:
         sp = (sp - 2) & 0xFFFF
         w16(mu, E.STACK_SEG, sp, RET_SENTINEL)
         mu.reg_write(UC_X86_REG_SP, sp)
-        if 0x1F9A0 <= entry < 0x209A0:
+        if 0x1F9A0 <= entry < 0x26C50:
             mu.reg_write(UC_X86_REG_CS, 0x1F9A)
             mu.reg_write(UC_X86_REG_IP, entry - 0x1F9A0)
+        elif 0xFC50 <= entry < 0x1F9A0:
+            mu.reg_write(UC_X86_REG_CS, 0x0FC5)
+            mu.reg_write(UC_X86_REG_IP, entry - 0xFC50)
         else:
             mu.reg_write(UC_X86_REG_CS, 0)
             mu.reg_write(UC_X86_REG_IP, entry & 0xFFFF)
@@ -307,19 +356,37 @@ class PhysicsOracle:
         self._run(OBJECTS)
 
     def step_full(self, with_objects=True):
-        """Frame order; dispatches the 0x5124 death/restart states."""
+        """Exact 0xF4E6 frame dispatch (Phase 3)."""
         self.sound_events = []
+        a0fb = self.state(0xA0FB) & 0xFF
+        a126 = self.state(0xA126) & 0xFF
+        a0f6 = self.state(0xA0F6) & 0xFF
+        a0f7 = self.state(0xA0F7) & 0xFF
         state = self.state(0x5124) & 0xFFFF
-        if state != 0:
+        if not (a0fb or a126 or a0f6 or a0f7 or state):
+            self._run(HORIZ)
+            self._run(JUMP)
+            self._run(CONTACT)
+            self._run(FIRE_TIMERS)
+        elif a0f6:
+            self._run(0xD360)
+        elif a0f7:
+            self._run(0xD4E5)
+        elif a0fb:
+            self._run(0xD710)
+        elif a126:
+            self._run(0xD6D4)
+        else:
             self._run(0xD17D if state == 1 else
                       (0xD1C6 if state == 2 else 0xD342))
-            return
-        self._run(HORIZ)
-        self._run(JUMP)
-        self._run(FIRE_TIMERS)
         self._run(STATUS_TIMERS)
         if with_objects:
             self._run(OBJECTS)
+
+    def cell_event(self, x, y):
+        """Call 0x0FC5:0xBB26 with the original (y,x) stack order."""
+        self.sound_events = []
+        self.call_far(CELL_EVENT, [y, x])
 
     def dump(self):
         out = {}

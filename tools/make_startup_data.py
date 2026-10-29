@@ -41,6 +41,19 @@ STARTUP_FIELDS = [
     ("50c7", "uint16_t"), ("50c9", "uint16_t"),
     ("a0ff", "uint8_t"), ("a0c4", "uint16_t"),
     ("2b5e", "uint16_t"),
+    # Phase 3: cell/exit state.
+    ("50a2", "uint16_t"), ("a0cc", "uint16_t"),
+    ("a0f5", "uint8_t"),
+    ("a0f9", "uint8_t"), ("a0f3", "uint8_t"),
+    ("a0e0", "uint16_t"), ("a0e2", "uint16_t"), ("a0e6", "uint16_t"),
+    ("a0e8", "uint16_t"), ("a0d0", "uint16_t"), ("a0d2", "uint16_t"),
+    ("a0d4", "uint16_t"), ("a0d6", "uint16_t"),
+    ("a0d8", "uint16_t"), ("a0da", "uint16_t"),
+    ("a0dc", "uint16_t"), ("a0de", "uint16_t"),
+    ("a0c2", "uint16_t"), ("a0c8", "uint16_t"),
+    ("a0ca", "uint16_t"), ("a0e4", "uint16_t"),
+    ("a0ce", "uint16_t"), ("a10b", "uint8_t"),
+    ("a0be", "uint16_t"), ("a0fb", "uint8_t"), ("a126", "uint8_t"),
 ]
 
 LEVEL_FIELDS = [
@@ -54,6 +67,19 @@ LEVEL_FIELDS = [
     ("30d", "uint8_t"),
     ("2a6", "uint16_t"), ("2a8", "uint16_t"),
     ("50a0", "uint16_t"),
+    # Phase 3 per-level cell/exit state.
+    ("50a2", "uint16_t"), ("a0cc", "uint16_t"), ("a0be", "uint16_t"),
+    ("a0f5", "uint8_t"), ("a0f6", "uint8_t"), ("a0f7", "uint8_t"),
+    ("a0f9", "uint8_t"), ("a0f3", "uint8_t"),
+    ("a0e0", "uint16_t"), ("a0e2", "uint16_t"), ("a0e6", "uint16_t"),
+    ("a0e8", "uint16_t"), ("a0d0", "uint16_t"), ("a0d2", "uint16_t"),
+    ("a0d4", "uint16_t"), ("a0d6", "uint16_t"),
+    ("a0d8", "uint16_t"), ("a0da", "uint16_t"),
+    ("a0dc", "uint16_t"), ("a0de", "uint16_t"),
+    ("a0c2", "uint16_t"), ("a0c8", "uint16_t"),
+    ("a0ca", "uint16_t"), ("a0e4", "uint16_t"),
+    ("a0ce", "uint16_t"), ("a10b", "uint8_t"),
+    ("a0fb", "uint8_t"), ("a126", "uint8_t"),
 ]
 
 

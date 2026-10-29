@@ -58,6 +58,7 @@ frame state can be compared directly with the oracle.
   attached (`[0x513D]`, `[0x511A]`, `[0x5118]`).
 - `0x6D31` (kind 20/0x27): vertical moving platform; carries the player when
   attached (`[0x5142]`, `[0x511C]`, `[0x5128]`).
+- `0x6681`, `0x672B`, `0x69D3`: death/crystal pickup effects.
 - `0x1FC2` (kind 8): proximity-triggered companion spawner/mover.
 - `0x323C` (kind 24), `0x3BE8` (kind 21), `0x5BBE` (kind 29/49/50/54/58),
   `0x2176` (kind 52): additional animators/movers ported from the disassembly.
@@ -78,8 +79,37 @@ frame state can be compared directly with the oracle.
   (`0xD17D`, `0xD1C6`, `0xD342`) with `0xCF46` checkpoint restore,
   `0xD15C` reload and `0xD140` latch are ported.
 
-Cell-based crystals, exits/airlocks, hub door entry and HUD remain Phase 3/5
-work.
+## Cells, crystals, exits and hub doors (Phase 3)
+
+- Player contact is `0xE5D3`, called between jump physics and `0xEBF2`.  It
+  calls the cell-event handler `0x0FC5:0xBB26` (linear `0x1B776`) for five
+  player-relative points, applies `0xFF9F`/`0xFF9D` hazard cells, and runs the
+  collectible pickup path.
+- `0xFC5:BB26` handles crystal cells (`w6=0xD`, `w7` 1..4), ammo/power-up
+  cells, score pickups, switches/levers, hazard cells, hub doors and cave
+  exits.  Crystal collection decrements `[0xA0CC]`, increments `[0x50A2]`,
+  adds score and plays sound 8/0x20.
+- Counter semantics: `[0x509E]` is health (starts 3, damage decrements),
+  `[0x509C]` is ammo, `[0x50A2]` is crystals collected, `[0xA0CC]` is
+  crystals remaining.  `cc_lives()` is retained as a compatibility alias for
+  health.
+- Cave flags are at `[0x50A8+arg]` for args 1..16 (1 = available/uncompleted,
+  0 = completed).  `[0xA0F5]` unlocks the exit when `[0xA0CC]==0`.
+- Exit/door state: `0xD4E5` is hub-door entry (cell `w0` = destination arg,
+  spawn override from `[0x2B72]/[0x2B74]`); `0xD360`/`0xD412` are the cave
+  exit animation, completion flag clear, all-caves check and hub load.
+- Level args: `0` = hub, `1..16` = caves, `0xFFFF` = intro, `0xFFFE` =
+  finale.  `cc_load_arg()` / `cc_level_exit()` use this mapping.
+- Dynamic cell rendering is handled by `cc_render_cells` /
+  `cc_render_view_cells`; layer mapping is `(w4,w2)`, `(w5,w3)`, `(w6,w7)`.
+- Known limitation: the original loader overlays cells/objects onto the
+  source level's memory.  Transitions currently load the destination level's
+  fresh cell/object image, so leftover bytes in unused fields can differ from
+  the original.  Contact, crystal, exit-animation and direct cell-event state
+  are oracle-exact; exact transition leftovers require porting the loader's
+  map-command occupancy rules (Phase 4).
+
+HUD remains Phase 5 work.
 
 ## Golden gameplay oracle
 
@@ -133,4 +163,6 @@ Combat fixtures:
 cd wasm
 make test-combat          # committed notes/combat_fixtures.json
 make test-oracle-combat   # regenerate from the real routines, then compare
+make test-cells           # committed cell/contact/exit fixtures
+make test-oracle-cells    # regenerate cell fixtures from Unicorn
 ```

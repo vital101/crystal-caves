@@ -114,6 +114,28 @@ GLOBALS = [
     ("a0cc", 0xA0CC, 2),
     ("a0f5", 0xA0F5, 1),
     ("a0be", 0xA0BE, 2),
+    # Phase 3: exit/door/switch state and counters.
+    ("50a2", 0x50A2, 2),
+    ("a0e0", 0xA0E0, 2),
+    ("a0e2", 0xA0E2, 2),
+    ("a0e6", 0xA0E6, 2),
+    ("a0e8", 0xA0E8, 2),
+    ("a0d0", 0xA0D0, 2),
+    ("a0d2", 0xA0D2, 2),
+    ("a0d4", 0xA0D4, 2),
+    ("a0d6", 0xA0D6, 2),
+    ("a0d8", 0xA0D8, 2),
+    ("a0da", 0xA0DA, 2),
+    ("a0dc", 0xA0DC, 2),
+    ("a0de", 0xA0DE, 2),
+    ("a0c2", 0xA0C2, 2),
+    ("a0c8", 0xA0C8, 2),
+    ("a0ca", 0xA0CA, 2),
+    ("a0e4", 0xA0E4, 2),
+    ("a0f9", 0xA0F9, 1),
+    ("a0f3", 0xA0F3, 1),
+    ("a0fb", 0xA0FB, 1),
+    ("a126", 0xA126, 1),
 ]
 
 # Vertical displacement table used by 0xDCB9/0xE36B.  Base is DS:0xA111 and

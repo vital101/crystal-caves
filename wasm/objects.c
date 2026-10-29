@@ -86,6 +86,7 @@ typedef struct {
     uint8_t input_jump;
     uint8_t input_down;
     uint8_t input_fire;
+    uint8_t input_joystick_fire;
 
     /* Player movement state. */
     uint16_t move_dir;           /* [0x4629]: 1 right / 0xFFFF left */
@@ -121,7 +122,51 @@ typedef struct {
     uint16_t exit_step;          /* [0xA0E6] */
     uint16_t spawn_col_override; /* [0x2B72]: 0xffff = none, use Y-token start */
     uint16_t spawn_row_override; /* [0x2B74] */
-    int16_t next_level;          /* [0xA0BE] pending level to load */
+    int16_t next_level;          /* [0xA0BE] current/pending loader argument */
+
+    /* Phase 3: cells, crystals, exits and hub doors. */
+    uint16_t g_a0cc;             /* [0xA0CC] crystals remaining in this cave */
+    uint16_t g_50a2;             /* [0x50A2] crystals collected */
+    uint8_t  g_a0f5;             /* [0xA0F5] exit unlocked (all crystals) */
+    uint8_t  g_a0f7;             /* [0xA0F7] hub-door entry sequence */
+    uint8_t  g_a0f9;             /* [0xA0F9] switch/door latch */
+    uint8_t  g_a0f3;             /* [0xA0F3] lever/door state */
+    uint8_t  g_a0fb;             /* [0xA0FB] all caves complete/finale */
+    uint8_t  g_a126;             /* [0xA126] story/menu transition */
+    uint8_t  g_a10b;             /* [0xA10B] collectible spawn active */
+    uint8_t  g_a10a;             /* [0xA10A] spawn base-cell suppress */
+    uint16_t g_a0e8;             /* [0xA0E8] switch repeat counter */
+    uint16_t g_a0d0;             /* [0xA0D0] spawned-cell px */
+    uint16_t g_a0d2;             /* [0xA0D2] spawned-cell py */
+    uint16_t g_a0d4;             /* [0xA0D4] switch A cell (raw col+1) */
+    uint16_t g_a0d6;             /* [0xA0D6] switch A cell (raw row+1) */
+    uint16_t g_a0d8;             /* [0xA0D8] switch B cell (raw col+1) */
+    uint16_t g_a0da;             /* [0xA0DA] switch B cell (raw row+1) */
+    uint16_t g_a0dc;             /* [0xA0DC] switch C cell (raw col+1) */
+    uint16_t g_a0de;             /* [0xA0DE] switch C cell (raw row+1) */
+    uint16_t g_a0ce;             /* [0xA0CE] collectible spawn timer */
+    uint16_t g_a0c2;             /* [0xA0C2] power-shot timer preset */
+    uint16_t g_a0c8;             /* [0xA0C8] power-shot timer preset */
+    uint16_t g_a0ca;             /* [0xA0CA] power-shot timer preset */
+    uint16_t g_a0e4;             /* [0xA0E4] power-shot timer preset */
+    uint16_t g_a0c6;             /* [0xA0C6] power-shot sub-timer */
+    uint8_t  g_a100;             /* [0xA100] timer event latch */
+    uint8_t  g_a101;             /* [0xA101] switch animation latch */
+    uint8_t  g_a102;             /* [0xA102] switch animation latch */
+    uint8_t  g_a104;             /* [0xA104] power-up animation latch */
+    uint8_t  g_a105;             /* [0xA105] switch animation latch */
+    uint8_t  g_a106;             /* [0xA106] exit-open latch */
+    uint8_t  g_a107;             /* [0xA107] exit-open latch */
+    uint8_t  g_a108;             /* [0xA108] lever animation latch */
+    uint8_t  g_a109;             /* [0xA109] switch animation latch */
+    uint8_t  g_a10d;             /* [0xA10D] gravity switch latch */
+    uint8_t  g_a0f4;             /* [0xA0F4] joystick fire latch */
+    uint8_t  g_3392;             /* [0x3392] joystick latch */
+    uint8_t  g_3395;             /* [0x3395] story/exit key latch */
+    uint8_t  g_3396;             /* [0x3396] story/exit key latch */
+    uint8_t  cave_flags[17];     /* [0x50A8 + arg], 1 = available/uncompleted */
+    uint8_t  level_block[0x21];  /* [0x5098] checkpoint/level state block */
+    uint8_t  checkpoint_block[0x21]; /* [0x50BA] saved copy */
 
     /* Handler cross-reference ([0x512A]/[0x513A]) used by kind-33 objects. */
     uint16_t g_512a;
@@ -154,11 +199,9 @@ typedef struct {
     uint8_t  g_30d;              /* [0x030d] disable cell cache stamp */
     uint16_t g_2f6;              /* [0x02f6] last cell cache stamp */
     uint16_t g_512c;             /* [0x512c] slash cell counter */
-    uint16_t g_50a2;             /* [0x50a2] checkpoint health */
     uint16_t g_2b5e;             /* [0x2b5e] restart timer */
     uint8_t  g_3394;             /* [0x3394] restart input latch */
     uint8_t  g_a110;             /* [0xa110] restart latch */
-    uint8_t  g_a100;             /* [0xa100] pending timer event */
     uint8_t  power_shot;         /* [0xa0ff] power-shot active */
     uint16_t power_timer;        /* [0xa0c4] power-shot expiry */
     uint16_t checkpoint_50a0;    /* [0x50a0] restart checkpoint */
@@ -213,6 +256,31 @@ static int cell_byte_cur(int col, int row, int off) {
 static void cell_put(int col, int row, int off, int value) {
     unsigned char *c = cell_rec(col, row);
     if (c) c[off] = (unsigned char)value;
+}
+static int cell_word_cur(int col, int row, int off) {
+    return cell_byte_cur(col, row, off) |
+           (cell_byte_cur(col, row, off + 1) << 8);
+}
+static void cell_word_put(int col, int row, int off, int value) {
+    cell_put(col, row, off, value & 0xFF);
+    cell_put(col, row, off + 1, (value >> 8) & 0xFF);
+}
+/* Raw original cell indices already include the +1 border offset. */
+static int cell_word_raw(int col1, int row1, int off) {
+    return cell_word_cur(col1 - 1, row1 - 1, off);
+}
+static void cell_word_raw_put(int col1, int row1, int off, int value) {
+    cell_word_put(col1 - 1, row1 - 1, off, value);
+}
+static int cave_flag_get(int idx) {
+    if (idx < 0 || idx > 16) return 0;
+    return S->cave_flags[idx];
+}
+static void cave_flag_set(int idx, int value) {
+    if (idx >= 0 && idx <= 16) {
+        S->cave_flags[idx] = (uint8_t)value;
+        S->level_block[0x10 + idx] = (uint8_t)value;
+    }
 }
 
 /* Current-level solid flag: mutable oracle cells when available, otherwise
@@ -320,7 +388,7 @@ void cc_input_set(uint16_t flag, int pressed) {
         case 0x338B: S->input_jump = v; break;
         case 0x338C: S->input_down = v; break;
         case 0x3390: S->input_fire = v; break;      /* keyboard fire */
-        case 0x338A: break;                         /* joystick fire: unused */
+        case 0x338A: S->input_joystick_fire = v; break; /* joystick fire */
         default: break;
     }
     /* Keyboard-ISR side effects used by the physics routines. */
@@ -730,6 +798,7 @@ static void h_1fb9(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 
 static void h_251d(ObjectEntry *o, int idx, int16_t x, int16_t y);
 static void load_level(int level, int new_game);
+static void load_arg(int arg);
 
 /* 0x1F9A:0x2850 (kind 2): ready gate around the slash update 0x251D. */
 static void h_2850(ObjectEntry *o, int idx, int16_t x, int16_t y) {
@@ -1070,7 +1139,7 @@ static void spawn_object_47d(const SpawnArgs *a) {
     if (a->slot < 0 || a->slot >= OBJ_MAX) return;
     o = &S->obj[a->slot];
     o->shape = (a->vx == 1) ? a->p14 : a->p12;
-    base_cell_stamp(a->xcell, a->ycell);
+    if (!S->g_a10a) base_cell_stamp(a->xcell, a->ycell);
     o->tile = a->tile;
     o->p14 = a->p14;
     o->p12 = a->p12;
@@ -1918,6 +1987,590 @@ static void h_2241(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 
 typedef void (*handler_fn)(ObjectEntry *, int, int16_t, int16_t);
 
+/* ---------------------------------------------------------------- cells
+ * 0x0FC5:0xBB26 (linear 0x1B776): per-cell event handler.  The original is
+ * called by 0xE5D3 for several player-relative points each frame.  All cell
+ * fields are words except the solid/exit flags at +0x11/+0x13. */
+static void helper_a110_clear(void) { S->g_a110 = 0; }
+static void helper_a59d(void) { S->g_a110 = 0; S->g_3395 = 0; }
+static void helper_toggle_gravity(void) {
+    if (S->gravity_scale == -1) {
+        S->gravity_scale = 1;
+        S->player_block = 6;
+    } else {
+        S->gravity_scale = -1;
+        S->player_block = 8;
+    }
+    S->g_3392 = 0;
+    S->airborne = 1;
+    S->obj[1].tile = S->player_block;
+}
+static void helper_toggle_kind(uint16_t kind) {
+    int i, end = S->obj_cursor;
+    if (end >= OBJ_MAX) end = OBJ_MAX - 1;
+    if (kind == 0x27 || kind == 0x3B || kind == 0x26) {
+        for (i = 4; i <= end; i++) {
+            ObjectEntry *o = &S->obj[i];
+            if (o->kind != kind) continue;
+            o->state = (o->state == 0) ? 2 : 0;
+        }
+    } else if (kind == 0x28) {
+        for (i = 4; i <= end; i++) {
+            ObjectEntry *o = &S->obj[i];
+            if (o->kind != kind) continue;
+            o->state = (o->state == 3) ? 0 : 3;
+        }
+    }
+}
+static void switch_pair(uint16_t col1, uint16_t row1, int shape1, int shape2) {
+    cell_word_raw_put(col1, row1, 0x0E, shape1);
+    cell_word_raw_put(col1, row1 + 1, 0x0E, shape2);
+    cell_word_raw_put(col1, row1, 0x06, 0);
+    cell_word_raw_put(col1, row1 + 1, 0x06, 0);
+    cell_word_raw_put(col1, row1, 0x0C, 0x16);
+    cell_word_raw_put(col1, row1 + 1, 0x0C, 0x16);
+    cell_put((int)col1 - 1, (int)row1 - 1, 0x11, 0);
+    cell_put((int)col1 - 1, (int)row1, 0x11, 0);
+    mark_redraw((int16_t)(((int)col1 - 1) * 16), (int16_t)(((int)row1 - 1) * 16));
+    mark_redraw((int16_t)(((int)col1 - 1) * 16), (int16_t)((int)row1 * 16));
+}
+static void cell_event(int16_t x, int16_t y) {
+    int col = (int)x / 16;
+    int row = (int)y / 16;
+    int w0 = cell_word_cur(col, row, 0x00);
+    int w3 = cell_word_cur(col, row, 0x06);
+    int w5 = cell_word_cur(col, row, 0x0A);
+    int w6 = cell_word_cur(col, row, 0x0C);
+    int w7 = cell_word_cur(col, row, 0x0E);
+
+    if (w7 != 0) {
+        if (w7 == 0x31 && w6 == 6) {
+            play_sound(9);
+            S->g_509c = (uint16_t)(S->g_509c + 5);
+            cell_word_put(col, row, 0x0E, 0);
+            mark_redraw(x, y);
+            goto phase2;
+        }
+        if (w7 == 0x32 && w6 == 6) {
+            play_sound(9);
+            if (S->g_a104) { S->g_a104 = 0; helper_a110_clear(); }
+            S->power_shot = 1;
+            cell_word_put(col, row, 0x0E, 0);
+            mark_redraw(x, y);
+            S->power_timer = S->g_a0c2;
+            S->g_a0c6 = 0;
+            goto phase2;
+        }
+        if (w7 == 0x26 && w6 == 0x0C) {
+            score_add(0x32, 0);
+            cell_word_put(col, row, 0x0E, 0);
+            mark_redraw(x, y);
+            helper_toggle_gravity();
+            play_sound(0x13);
+            if (S->g_a102) { helper_a110_clear(); S->g_a102 = 0; }
+            S->g_a100 = 1;
+            if (!S->g_513c && !S->g_5140) S->g_513c = 1;
+            S->power_timer = S->g_a0c8;
+            S->g_a0c6 = 0;
+            goto phase2;
+        }
+        if (w6 == 0x0D && (w7 == 1 || w7 == 2 || w7 == 3 || w7 == 4)) {
+            S->g_a0cc = (uint16_t)(S->g_a0cc - 1);
+            play_sound(S->g_a0cc == 0 ? 0x20 : 8);
+            score_add(0x32, 0);
+            cell_word_put(col, row, 0x0E, 0);
+            mark_redraw(x, y);
+            S->g_50a2 = (uint16_t)(S->g_50a2 + 1);
+            goto phase2;
+        }
+        if (w7 == 0x0B && w6 == 1) {
+            spawn_effect(0x17, (int16_t)col, (int16_t)row);
+            play_sound(9);
+            score_add(0x320, 0);
+            cell_word_put(col, row, 0x0E, 0);
+            mark_redraw(x, y);
+            goto phase2;
+        }
+        if (w7 == 4 && w6 == 1) {
+            spawn_effect(0x18, (int16_t)col, (int16_t)row);
+            score_add(0x3E8, 0);
+            cell_word_put(col, row, 0x0E, 0);
+            mark_redraw(x, y);
+            goto phase2;
+        }
+        if (w7 == 9 && w6 == 1) {
+            spawn_effect(0x1C, (int16_t)col, (int16_t)row);
+            play_sound(9);
+            score_add(0x1388, 0);
+            cell_word_put(col, row, 0x0E, 0);
+            mark_redraw(x, y);
+            goto phase2;
+        }
+        if (w7 == 0x2C && w6 == 0x0D) {
+            play_sound(9);
+            cell_word_put(col, row, 0x0E, 0);
+            mark_redraw(x, y);
+            S->g_a0f9 = 1;
+            goto phase2;
+        }
+        if (w7 >= 9 && w7 <= 0x0D && w6 == 9) {
+            if (w7 == 0x0D) {
+                spawn_effect(0x1F, (int16_t)col, (int16_t)row);
+                score_add(0x2710, 0);
+                play_sound(0x1B);
+            } else {
+                spawn_effect(0x10, (int16_t)col, (int16_t)row);
+                play_sound(9);
+                score_add(0x64, 0);
+            }
+            cell_word_put(col, row, 0x0E, 0);
+            mark_redraw(x, y);
+            goto phase2;
+        }
+        if (w7 == 0x31 && w6 == 0x0D) {
+            spawn_effect(0x18, (int16_t)col, (int16_t)row);
+            play_sound(0x16);
+            score_add(0x3E8, 0);
+            cell_word_put(col, row, 0x0E, 0);
+            mark_redraw(x, y);
+            goto phase2;
+        }
+        if (w7 == 0x2D && w6 == 0x0D) {
+            if (S->g_513c) {
+                S->g_a10d = 1;
+                S->g_513c = 0;
+                S->power_timer = S->g_a0ca;
+                S->g_a0c6 = 0;
+            }
+            play_sound(0x16);
+            cell_word_put(col, row, 0x0E, 0);
+            mark_redraw(x, y);
+            helper_a110_clear();
+            goto phase2;
+        }
+        if (w7 == 0x2E && w6 == 0x0D) {
+            play_sound(0x1D);
+            cell_word_put(col, row, 0x0E, 0);
+            mark_redraw(x, y);
+            if (S->g_a105) S->g_a105 = 0;
+            if (S->g_513c && !S->g_5140) S->g_5124 = 1;
+            goto phase2;
+        }
+        if (w7 >= 0x25 && w7 <= 0x27 && w6 == 1) {
+            S->g_a10a = 1;
+            spawn_effect(0x1C, (int16_t)col, (int16_t)row);
+            S->g_a10a = 0;
+            play_sound(9);
+            score_add(0x1388, 0);
+            cell_word_put(col, row, 0x0E, 0);
+            S->g_a0d0 = 0xFFFF;
+            S->g_a0d2 = 0xFFFF;
+            S->g_a10b = 0;
+            S->g_a0ce = 0;
+            mark_redraw(x, y);
+            goto phase2;
+        }
+        if (w7 == 0x19 && w6 == 0x0E) {
+            play_sound(0x12);
+            S->a0f8 = 1;
+            cell_word_put(col, row, 0x0E, 0);
+            S->power_timer = S->g_a0e4;
+            S->g_a0c6 = 0;
+            if (S->g_a101) helper_a110_clear();
+            goto phase2;
+        }
+    }
+
+phase2:
+    if (w3 == 0) goto hazard;
+    if ((w3 == 0x11 || w3 == 0x0D) && w5 == 0x0C) {
+        if (S->g_a0f5) {
+            if (!S->g_a0f6) {
+                play_sound(4);
+                if (S->g_509e == 3) {
+                    helper_a59d();
+                    score_add(0xC350, 0);
+                }
+                S->g_a0f6 = 1;
+                S->exit_step = 0;
+            }
+        } else if (S->g_a106) {
+            helper_a110_clear();
+            S->g_a106 = 0;
+        }
+        goto hazard;
+    }
+    if (w3 == 0x32 && w5 == 0x0D) {
+        if (S->g_a0f9) {
+            int shape;
+            cell_word_put(col, row, 0x06, (uint16_t)(w3 - 2));
+            play_sound(0x0B);
+            shape = (int)cc_rng_next(3);
+            if (shape == 0) {
+                spawn_effect(0x1B, (int16_t)col, (int16_t)(row - 1));
+                score_add(0x7D0, 0);
+            } else if (shape == 1) {
+                spawn_effect(0x18, (int16_t)col, (int16_t)(row - 1));
+                score_add(0x3E8, 0);
+            } else if (shape == 2) {
+                spawn_effect(0x1C, (int16_t)col, (int16_t)(row - 1));
+                score_add(0x1388, 0);
+            }
+        }
+        goto hazard;
+    }
+    if (w3 == 0x11 && w5 == 9) {
+        if (S->g_a109) { helper_a110_clear(); S->g_a109 = 0; }
+        if (S->input_joystick_fire && S->g_a0f4) {
+            S->g_a0f4 = 0;
+            S->g_a0e8 = (uint16_t)(S->g_a0e8 + 1);
+            if (S->g_a0e8 % 3 == 0) {
+                cell_word_put(col, row, 0x06, (uint16_t)(w3 + 1));
+                S->g_a0e8 = 0;
+                S->input_fire = 1;
+            }
+        }
+        if (S->input_fire) {
+            play_sound(0x15);
+            S->input_fire = 0;
+            cell_word_put(col, row, 0x06, (uint16_t)(w3 + 1));
+            switch_pair(S->g_a0d4, S->g_a0d6, 0x2D, 0x2E);
+        }
+        goto hazard;
+    }
+    if (w3 == 0x15 && w5 == 9) {
+        if (S->g_a109) { helper_a110_clear(); S->g_a109 = 0; }
+        if (S->input_joystick_fire && S->g_a0f4) {
+            S->g_a0f4 = 0;
+            S->g_a0e8 = (uint16_t)(S->g_a0e8 + 1);
+            if (S->g_a0e8 % 3 == 0) {
+                cell_word_put(col, row, 0x06, (uint16_t)(w3 + 1));
+                S->g_a0e8 = 0;
+                S->input_fire = 1;
+            }
+        }
+        if (S->input_fire) {
+            play_sound(0x15);
+            S->input_fire = 0;
+            cell_word_put(col, row, 0x06, (uint16_t)(w3 + 1));
+            switch_pair(S->g_a0d8, S->g_a0da, 0x31, 0x32);
+        }
+        goto hazard;
+    }
+    if (w3 == 0x13 && w5 == 9) {
+        if (S->g_a109) { helper_a110_clear(); S->g_a109 = 0; }
+        if (S->input_joystick_fire && S->g_a0f4) {
+            S->g_a0f4 = 0;
+            S->g_a0e8 = (uint16_t)(S->g_a0e8 + 1);
+            if (S->g_a0e8 % 3 == 0) {
+                cell_word_put(col, row, 0x06, (uint16_t)(w3 + 1));
+                S->g_a0e8 = 0;
+                S->input_fire = 1;
+            }
+        }
+        if (S->input_fire) {
+            play_sound(0x15);
+            S->input_fire = 0;
+            cell_word_put(col, row, 0x06, (uint16_t)(w3 + 1));
+            switch_pair(S->g_a0dc, S->g_a0de, 0x2F, 0x30);
+        }
+        goto hazard;
+    }
+    if (w3 == 0x0F && w5 == 9) {
+        if (S->g_a108) { helper_a110_clear(); S->g_a108 = 0; }
+        if (S->input_joystick_fire && S->g_a0f4) {
+            S->g_a0f4 = 0;
+            S->g_a0e8 = (uint16_t)(S->g_a0e8 + 1);
+            if (S->g_a0e8 % 3 == 0) { S->g_a0e8 = 0; S->input_fire = 1; }
+        }
+        if (S->input_fire) {
+            play_sound(0x14);
+            S->input_fire = 0;
+            cell_word_put(col, row, 0x06, (uint16_t)(w3 - 1));
+            S->g_a0f3 = 0;
+        }
+        goto hazard;
+    }
+    if (w3 == 0x0E && w5 == 9) {
+        if (S->g_a108) { helper_a110_clear(); S->g_a108 = 0; }
+        if (S->input_joystick_fire && S->g_a0f4) {
+            S->g_a0f4 = 0;
+            S->g_a0e8 = (uint16_t)(S->g_a0e8 + 1);
+            if (S->g_a0e8 % 3 == 0) { S->g_a0e8 = 0; S->input_fire = 1; }
+        }
+        if (S->input_fire) {
+            play_sound(0x14);
+            S->input_fire = 0;
+            cell_word_put(col, row, 0x06, (uint16_t)(w3 + 1));
+            S->g_a0f3 = 1;
+        }
+        goto hazard;
+    }
+    if (w3 == 0x1F && w5 == 0x0C) {
+        if (S->g_a108) { helper_a110_clear(); S->g_a108 = 0; }
+        if (S->input_joystick_fire && S->g_a0f4) {
+            S->g_a0f4 = 0;
+            S->g_a0e8 = (uint16_t)(S->g_a0e8 + 1);
+            if (S->g_a0e8 % 3 == 0) {
+                cell_word_put(col, row, 0x06, (uint16_t)(w3 + 1));
+                S->g_a0e8 = 0;
+                S->input_fire = 1;
+            }
+        }
+        if (S->input_fire) {
+            play_sound(0x14);
+            S->input_fire = 0;
+            cell_word_put(col, row, 0x06, (uint16_t)(w3 + 1));
+            helper_toggle_kind((uint16_t)w0);
+        }
+        goto hazard;
+    }
+    if (w3 == 0x20 && w5 == 0x0C) {
+        if (S->g_a108) { helper_a110_clear(); S->g_a108 = 0; }
+        if (S->input_joystick_fire && S->g_a0f4) {
+            S->g_a0f4 = 0;
+            S->g_a0e8 = (uint16_t)(S->g_a0e8 + 1);
+            if (S->g_a0e8 % 3 == 0) {
+                cell_word_put(col, row, 0x06, (uint16_t)(w3 - 1));
+                S->g_a0e8 = 0;
+                S->input_fire = 1;
+            }
+        }
+        if (S->input_fire) {
+            play_sound(0x14);
+            S->input_fire = 0;
+            cell_word_put(col, row, 0x06, (uint16_t)(w3 - 1));
+            helper_toggle_kind((uint16_t)w0);
+        }
+        goto hazard;
+    }
+    if (w3 == 0x0D && w5 == 1) {
+        if (cave_flag_get(w0) != 0) {
+            S->exit_col = (int16_t)col;
+            S->exit_row = (int16_t)row;
+            S->exit_step = 0;
+            S->g_a0f7 = 1;
+            play_sound(3);
+            memcpy_(S->checkpoint_block, S->level_block, 0x21);
+        }
+        goto hazard;
+    }
+
+hazard:
+    if (cell_byte_cur(col, row, 0x13) == 0) return;
+    if (!S->g_513c) return;
+    if (S->g_5140) return;
+    if ((w7 == 0x31 || w7 == 0x32 || w7 == 0x1B || w7 == 0x1C) &&
+        w6 == 0x0A) {
+        S->g_5124 = 1;
+        play_sound(5);
+        return;
+    }
+    if (S->g_5124 == 0) {
+        if ((int16_t)S->g_a0ea == -1) damage_life();
+        if ((int16_t)S->g_5124 > 0) play_sound(5);
+    }
+}
+
+/* 0xE51D: apply hazard-cell damage for the two lower player corners. */
+static void hazard_cell(int16_t x, int16_t y) {
+    int col = (int)x / 16;
+    int row = (int)y / 16;
+    if (cell_word_cur(col, row, 0x00) != (int)0xFF9F) return;
+    if (!S->g_513c) return;
+    if (S->g_5140) return;
+    if ((int16_t)S->g_a0ea != -1) return;
+    damage_life();
+    if ((int16_t)S->g_5124 > 0) play_sound(5);
+}
+
+/* 0xE5D3: player map-cell contact, hazard cells and collectible pickup. */
+static void contact_frame(void) {
+    int16_t x = S->player_x;
+    int16_t y = S->player_y;
+    int col, row, w0, w3, w5;
+
+    cell_event((int16_t)(x + 3), y);
+    cell_event((int16_t)(x + 0x0C), y);
+    cell_event((int16_t)(x + 3), (int16_t)(y + 0x0F));
+    cell_event((int16_t)(x + 0x0C), (int16_t)(y + 0x0F));
+    if (S->g_a106) cell_event((int16_t)(x + 0x0E), (int16_t)(y + 8));
+
+    col = (x + 4) / 16;
+    row = (y + 4) / 16;
+    if (cell_word_cur(col, row, 0x00) == (int)0xFF9F) {
+        hazard_cell((int16_t)(x + 3), (int16_t)(y + 2));
+        hazard_cell((int16_t)(x + 0x0C), (int16_t)(y + 2));
+    }
+
+    col = (x + 5) / 16;
+    row = (y - 5) / 16;
+    if (cell_word_cur(col, row, 0x00) == (int)0xFF9D && S->jump_flag) {
+        cell_word_put(col, row, 0x06, 3);
+        cell_word_put(col, row, 0x0A, 1);
+        cell_put(col, row, 0x11, 1);
+        mark_redraw((int16_t)(x + 5), (int16_t)(y - 5));
+        cell_word_put(col, row, 0x00, 0);
+        goto after_hazards;
+    }
+
+    col = (x + 0x0A) / 16;
+    row = (y - 5) / 16;
+    if (cell_word_cur(col, row, 0x00) == (int)0xFF9D && S->jump_flag) {
+        cell_word_put(col, row, 0x06, 3);
+        cell_word_put(col, row, 0x0A, 1);
+        cell_put(col, row, 0x11, 1);
+        mark_redraw((int16_t)(x + 0x0A), (int16_t)(y - 5));
+        cell_word_put(col, row, 0x00, 0);
+    }
+
+after_hazards:
+    if (!((S->airborne && S->g_a0b8 == 0) || S->g_a0fc)) return;
+
+    col = (x + 8) / 16;
+    row = (y - 1) / 16;
+    w0 = cell_word_cur(col, row, 0x00);
+    w3 = cell_word_cur(col, row, 0x06);
+    w5 = cell_word_cur(col, row, 0x0A);
+    if (w3 < 4 || w3 > 0x0C) return;
+    if (w5 != 0x14) return;
+
+    if (S->obj_cursor < OBJ_MAX && S->obj[S->obj_cursor].kind == 0x2D)
+        S->obj[S->obj_cursor].state = 2;
+
+    S->g_a0fc = 0;
+    S->g_a0b8 = 1;
+    S->g_a10a = 1;
+
+    if (w0 == (int)0xFF9E) {
+        int shape = w3;
+        play_sound(0x0A);
+        cell_word_put(col, row, 0x00, 0);
+        S->obj_cursor++;
+        if (S->obj_cursor < OBJ_MAX) S->obj[S->obj_cursor].state = 0x63;
+        {
+            SpawnArgs a;
+            a.handler = 0x672B; a.handler_seg = 0x1F9A;
+            a.p18 = 0; a.speed = 2; a.p16 = 1;
+            a.p14 = 0x25; a.p12 = 0x25;
+            a.vy = 0xFFFF; a.vx = 0;
+            a.ycell = (uint16_t)(row - 1);
+            a.xcell = (uint16_t)col;
+            a.tile = 0x0D; a.kind = 0x2E;
+            a.slot = (int)S->obj_cursor;
+            spawn_object_47d(&a);
+        }
+        (void)shape;
+    }
+    S->obj_cursor++;
+    {
+        SpawnArgs a;
+        int shape = w3;
+        a.handler = 0x69D3; a.handler_seg = 0x1F9A;
+        a.p18 = 0; a.speed = 1; a.p16 = 1;
+        a.p14 = (uint16_t)shape; a.p12 = (uint16_t)shape;
+        a.vy = 0xFFFF; a.vx = 0;
+        a.ycell = (uint16_t)row;
+        a.xcell = (uint16_t)col;
+        a.tile = 0x14; a.kind = 0x2D;
+        a.slot = (int)S->obj_cursor;
+        spawn_object_47d(&a);
+    }
+    S->g_a10a = 0;
+    cell_word_put(col, row, 0x06, 0x32);
+    S->anim_timer = 1;
+    S->shape_player = (S->move_dir == 1) ? 0x19 : 0x1A;
+}
+
+/* 0x6681 (entry 0x26021): cell-erase effect; only y changes. */
+static void h_6681(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx; (void)x; (void)y;
+    o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
+    mark_redraw((int16_t)(o->x_prev), (int16_t)(o->y_prev + 0x11));
+    mark_redraw((int16_t)(o->x_prev + 0x0F), (int16_t)(o->y_prev + 0x11));
+    mark_redraw((int16_t)(o->x_prev + 0x0F), (int16_t)(o->y_prev));
+}
+
+/* 0x672B (entry 0x260CB): crystal collection score/bob effect. */
+static void h_672b(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx; (void)x; (void)y;
+    o->p18 = (uint16_t)(o->p18 + 1u);
+    if (o->p1a == 0) {
+        if (o->p18 == 1) o->y = (int16_t)(o->y + 0x0C);
+        else o->y = (int16_t)(o->y - 0x0C);
+        if ((int16_t)o->p18 > 1) {
+            o->p1a = 1;
+            o->p18 = 0;
+        }
+        return;
+    }
+    if (o->p1a == 1) {
+        int i = (int)o->p18 + 3;
+        int16_t d = (int8_t)g_vert_speed[i];
+        o->y = (int16_t)(o->y - d);
+        if (i > 9) {
+            o->p1a = 2;
+            o->p18 = 0;
+        }
+        return;
+    }
+    if (o->p1a == 2) {
+        int i = (int)o->p18 + 0x0A;
+        int16_t d = (int8_t)g_vert_speed[i];
+        o->y = (int16_t)(o->y + d);
+        if (i > 0x10) {
+            o->p1a = 3;
+            o->p18 = 0;
+        }
+        return;
+    }
+    if (o->p1a == 3) {
+        o->y = (int16_t)(o->y - (int16_t)o->speed);
+        if ((int16_t)o->p18 > 1) {
+            o->p1a = 4;
+            o->p18 = 0;
+        }
+        return;
+    }
+    if (o->p1a == 4) {
+        o->y = (int16_t)(o->y + (int16_t)o->speed);
+        if ((int16_t)o->p18 > 1) {
+            o->p1a = 5;
+            o->p18 = 0;
+        }
+        return;
+    }
+    if (o->p1a == 5) {
+        if ((int16_t)o->p18 > 1) {
+            o->p1a = 6;
+            o->p18 = 0;
+        }
+        return;
+    }
+    if (o->p1a == 6) {
+        o->p1a = (uint16_t)(o->p1a + 1u);
+        o->ready = 1;
+        spawn_effect(0x1C, (int16_t)(o->x / 16), (int16_t)(o->y / 16));
+        score_add(0x1388, 0);
+    }
+}
+
+/* 0x69D3 (entry 0x26373): pickup sprite rise/fall and cell restore. */
+static void h_69d3(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)x; (void)y;
+    if ((int16_t)o->p18 >= 0 && (int16_t)o->p18 <= 3) {
+        o->y = (int16_t)(o->y - (int16_t)o->speed);
+    } else if ((int16_t)o->p18 >= 4 && (int16_t)o->p18 <= 7) {
+        o->y = (int16_t)(o->y + (int16_t)o->speed);
+    } else if ((int16_t)o->p18 == 8) {
+        o->ready = 1;
+        cell_word_put((int)o->x / 16, (int)o->y / 16, 0x06, o->p14);
+        mark_redraw(o->x, o->y);
+        if (idx + 1 < OBJ_MAX) S->obj[idx + 1].state = 0;
+    }
+    o->p18 = (uint16_t)(o->p18 + 1u);
+}
+
 static handler_fn handler_for(uint16_t off) {
     switch (off) {
         case 0x1fb9: return h_1fb9;
@@ -1936,6 +2589,9 @@ static handler_fn handler_for(uint16_t off) {
         case 0x4a82: return h_4a82;
         case 0x5855: return h_5855;
         case 0x5bbe: return h_5bbe;
+        case 0x6681: return h_6681;
+        case 0x672b: return h_672b;
+        case 0x69d3: return h_69d3;
         case 0x6afa: return h_6afa;
         case 0x6d31: return h_6d31;
         case 0x6ff6: return h_6ff6;
@@ -2044,6 +2700,105 @@ static void step_objects(void) {
     }
 }
 
+/* Level argument mapping: 0=hub, 1..16=caves, 0xffff=intro, 0xfffe=finale. */
+static int count_crystal_cells(void) {
+    int n = 0;
+    for (int r = 0; r < CELL_ROWS; r++) {
+        for (int c = 0; c < CELL_COLS; c++) {
+            int w6 = cell_word_cur(c, r, 0x0C);
+            int w7 = cell_word_cur(c, r, 0x0E);
+            if (w6 == 0x0D && w7 >= 1 && w7 <= 4) n++;
+        }
+    }
+    return n;
+}
+
+static void load_arg(int arg) {
+    int level;
+    uint16_t u = (uint16_t)arg;
+    if (u == 0xFFFF) level = 0;
+    else if (u == 0xFFFE) level = 1;
+    else if (u == 0) level = 2;
+    else if (u <= 16) level = (int)u + 2;
+    else level = 2;
+    S->next_level = (int16_t)arg;
+    load_level(level, 0);
+}
+
+/* 0xD4E5: hub door opening/entry; caller has set a0f7. */
+static void door_entry_frame(void) {
+    int c1, r1, w3;
+    S->exit_step = (uint16_t)(S->exit_step + 1u);
+    if ((int16_t)S->exit_step < 3) {
+        w3 = (int)S->exit_step + 0x0D;
+        cell_word_put(S->exit_col, S->exit_row, 0x06, w3);
+        mark_redraw((int16_t)(S->exit_col * 16), (int16_t)(S->exit_row * 16));
+        return;
+    }
+    if ((int16_t)S->exit_step != 3) return;
+
+    S->g_a0f7 = 0;
+    mark_redraw((int16_t)(S->exit_col * 16), (int16_t)(S->exit_row * 16));
+    S->spawn_col_override = (uint16_t)(S->exit_col - (int16_t)S->move_dir);
+    S->spawn_row_override = (uint16_t)S->exit_row;
+    play_sound(0x14);
+    S->jump_flag = 0;
+    S->g_a0f6 = 0;
+    c1 = S->exit_col + 1;
+    r1 = S->exit_row + 1;
+    {
+        int arg = cell_word_cur(S->exit_col, S->exit_row, 0x00);
+        S->next_level = (int16_t)arg;
+        load_arg(arg);
+    }
+    (void)c1; (void)r1;
+}
+
+/* 0xD360 + 0xD412: cave exit animation, completion flag and return to hub. */
+static void exit_to_hub_frame(void) {
+    int all;
+    int i;
+    S->exit_step = (uint16_t)(S->exit_step + 1u);
+    if ((int16_t)S->exit_step < 4) {
+        cell_word_put(S->exit_col, S->exit_row, 0x06,
+                      (uint16_t)(S->exit_step + 0x0D));
+        mark_redraw((int16_t)(S->exit_col * 16), (int16_t)(S->exit_row * 16));
+        cell_word_put(S->exit_col, (int16_t)(S->exit_row + 1), 0x06,
+                      (uint16_t)(S->exit_step + 0x11));
+        mark_redraw((int16_t)(S->exit_col * 16),
+                    (int16_t)((S->exit_row + 1) * 16));
+        return;
+    }
+    if ((int16_t)S->exit_step == 4) {
+        mark_redraw((int16_t)(S->exit_col * 16), (int16_t)(S->exit_row * 16));
+        mark_redraw((int16_t)(S->exit_col * 16), (int16_t)((S->exit_row + 1) * 16));
+        return;
+    }
+
+    S->player_block = 6;
+    S->player_y = (int16_t)((S->exit_row + 1) * 16);
+    S->shape_player = 1;
+    if ((S->exit_step & 1) == 0) player_anim_next();
+    S->player_x = (int16_t)(S->player_x + 1);
+    if (S->player_x != (int16_t)((S->exit_col + 1) * 16)) return;
+
+    play_sound(0x14);
+    S->jump_flag = 0;
+    S->g_a0f6 = 0;
+    cave_flag_set(S->next_level, 0);
+    all = 1;
+    for (i = 1; i <= 16; i++) if (S->cave_flags[i] != 0) { all = 0; break; }
+    S->g_a0fb = (uint8_t)all;
+    if (S->g_a0fb) {
+        S->g_a110 = 1;
+        S->g_3396 = 0;
+        S->g_3394 = 1;
+    }
+    S->next_level = 0;
+    play_sound(0x14);
+    load_arg(0);
+}
+
 /* 0xCF6C: player fire.  The attack is object slot 2 (DS:0x4638). */
 static void cc_fire(void) {
     ObjectEntry *a = &S->obj[2];
@@ -2108,11 +2863,55 @@ static void cc_fire(void) {
     S->impulse = S->fire_impulse;
 }
 
-/* 0xEBF2 fire/timer prefix.  The spawner/exit branches are deliberately not
- * executed in Phase 2; combat fixtures assert they are unreachable. */
+/* 0xEBF2: cooldown, collectible spawn/expiry, exit unlock and fire. */
 static void cc_fire_timers(void) {
     S->cooldown = (uint16_t)(S->cooldown + 1u);
     if ((int16_t)S->cooldown > 0x7D00) S->cooldown = 0x19;
+
+    S->g_a0ce = (uint16_t)(S->g_a0ce + 1u);
+    if ((int16_t)S->g_a0ce > 0x10E && S->g_a10b == 0) {
+        if (cc_rng_next(100) < 0x23) S->g_a10b = 1;
+        else S->g_a0ce = 0;
+    }
+    if (S->g_a10b != 0 && S->g_a126 == 0) {
+        if ((int16_t)S->g_a0d0 == -1) {
+            int rx = (int)cc_rng_next(0x140);
+            int ry = (int)cc_rng_next(0xC8);
+            int c1 = (rx + S->cam_x) / 16 + 1;
+            int r1 = (ry + S->cam_y) / 16 + 1;
+            if (cell_word_raw(c1, r1, 0x0E) == 0 &&
+                cell_byte_cur(c1 - 1, r1 - 1, 0x11) == 0) {
+                int shape = (int)cc_rng_next(3) + 0x25;
+                cell_word_raw_put(c1, r1, 0x0E, shape);
+                cell_word_raw_put(c1, r1, 0x0C, 1);
+                S->g_a0d0 = (uint16_t)(c1 * 16 - 1);
+                S->g_a0d2 = (uint16_t)(r1 * 16 - 1);
+                mark_redraw((int16_t)S->g_a0d0, (int16_t)S->g_a0d2);
+                play_sound(0x0C);
+            }
+        } else if ((int16_t)S->g_a0ce > 0x19E) {
+            int c1 = (int)S->g_a0d0 / 16 + 1;
+            int r1 = (int)S->g_a0d2 / 16 + 1;
+            S->g_a10b = 0;
+            S->g_a0ce = 0;
+            cell_word_raw_put(c1, r1, 0x0E, 0);
+            mark_redraw((int16_t)S->g_a0d0, (int16_t)S->g_a0d2);
+            S->g_a0d0 = 0xFFFF;
+            S->g_a0d2 = 0xFFFF;
+        }
+    }
+
+    if ((int16_t)S->next_level > 0 && S->g_a0cc == 0 && S->g_a0f5 == 0) {
+        play_sound(0x20);
+        if (S->g_a107 && (int16_t)S->next_level > 0) {
+            helper_a110_clear();
+            S->g_a107 = 0;
+        }
+        S->g_a0f5 = 1;
+        cell_put(S->exit_col, S->exit_row, 0x11, 0);
+        cell_put(S->exit_col, (int16_t)(S->exit_row + 1), 0x11, 0);
+        cell_put(S->exit_col, S->exit_row, 0x11, 0);
+    }
 
     if (S->power_shot != 0 && (int16_t)S->power_timer <= -1 &&
         S->obj[2].ready != 0)
@@ -2153,6 +2952,8 @@ void cc_objects_step_objects(void) {
 }
 
 void cc_test_spawn_2002d(int mode) { spawn_template_2002d(mode); }
+void cc_test_cell_event(int x, int y) { cell_event((int16_t)x, (int16_t)y); }
+void cc_test_contact(void) { contact_frame(); }
 void cc_test_spawn_47d(int handler, int handler_seg, int p18, int speed,
                        int p16, int p14, int p12, int vy, int vx,
                        int ycell, int xcell, int tile, int kind, int slot) {
@@ -2281,17 +3082,27 @@ static void death_state3(void) {
     if (S->input_fire || S->input_jump) restart_sequence();
 }
 
-/* Full normal frame (0xE011, 0xE36B, 0xEBF2, 0xEAEA, 0xD72A). */
+/* Exact 0xF4E6 frame dispatch. */
 void cc_objects_step_full(void) {
-    if (S->g_5124 != 0) {
+    if (S->g_a0f6) {
+        exit_to_hub_frame();
+    } else if (S->g_a0f7) {
+        door_entry_frame();
+    } else if (S->g_a0fb) {
+        /* 0xD710: story/finale transition. */
+        S->g_a0fb = 0;
+        S->g_a110 = 1;
+    } else if (S->g_a126) {
+        /* 0xD6D4: story screen input; outside Phase 3. */
+    } else if (S->g_5124) {
         if (S->g_5124 == 1) death_state1();
         else if (S->g_5124 == 2) death_state2();
         else death_state3();
-        sync_player_object();
-        return;
+    } else {
+        cc_objects_step_physics();
+        contact_frame();
+        cc_fire_timers();
     }
-    cc_objects_step_physics();
-    cc_fire_timers();
     cc_status_timers();
     sync_player_object();
     step_objects();
@@ -2389,7 +3200,48 @@ static void apply_startup_state(void) {
     S->checkpoint_50c7 = g_startup.f_50c7;
     S->checkpoint_50c9 = g_startup.f_50c9;
     S->g_2b5e = g_startup.f_2b5e;
-    S->g_50a2 = 0;
+    S->g_50a2 = g_startup.f_50a2;
+    S->g_a0cc = g_startup.f_a0cc;
+    S->next_level = (int16_t)g_startup.f_a0be;
+    S->g_a0f5 = g_startup.f_a0f5;
+    S->g_a0f6 = g_startup.f_a0f6;
+    S->g_a0f7 = g_startup.f_a0f7;
+    S->g_a0f9 = g_startup.f_a0f9;
+    S->g_a0f3 = g_startup.f_a0f3;
+    S->g_a0fb = g_startup.f_a0fb;
+    S->g_a126 = g_startup.f_a126;
+    S->g_a0e8 = g_startup.f_a0e8;
+    S->g_a0d0 = g_startup.f_a0d0;
+    S->g_a0d2 = g_startup.f_a0d2;
+    S->g_a0d4 = g_startup.f_a0d4;
+    S->g_a0d6 = g_startup.f_a0d6;
+    S->g_a0d8 = g_startup.f_a0d8;
+    S->g_a0da = g_startup.f_a0da;
+    S->g_a0dc = g_startup.f_a0dc;
+    S->g_a0de = g_startup.f_a0de;
+    S->g_a0ce = g_startup.f_a0ce;
+    S->g_a10b = g_startup.f_a10b;
+    S->g_a0c2 = g_startup.f_a0c2;
+    S->g_a0c8 = g_startup.f_a0c8;
+    S->g_a0ca = g_startup.f_a0ca;
+    S->g_a0e4 = g_startup.f_a0e4;
+    S->g_a0c6 = 0;
+    S->g_a10a = 0;
+    S->g_a100 = 0;
+    S->g_a101 = 1;
+    S->g_a102 = 1;
+    S->g_a104 = 1;
+    S->g_a105 = 1;
+    S->g_a106 = 1;
+    S->g_a107 = 1;
+    S->g_a108 = 1;
+    S->g_a109 = 1;
+    S->g_a10d = 0;
+    S->g_a0f4 = 0;
+    S->g_3395 = 0;
+    S->g_3396 = 0;
+    S->cave_flags[0] = 0;
+    for (int i = 1; i <= 16; i++) S->cave_flags[i] = 1;
     S->g_3394 = 0;
     S->g_a110 = 0;
     S->g_512c = 0;
@@ -2408,10 +3260,11 @@ static void apply_startup_state(void) {
     S->input_jump = 0;
     S->input_down = 0;
     S->input_fire = 0;
+    S->input_joystick_fire = 0;
 }
 
 /* Apply the loader's per-level player/camera/spawn state. */
-static void apply_level_state(int level, int use_start) {
+static void apply_level_state(int level, int use_start, int fresh) {
     const cc_level_start_t *st = &g_level_start_state[level];
 
     if (use_start) {
@@ -2443,7 +3296,50 @@ static void apply_level_state(int level, int use_start) {
     S->g_30d = st->f_30d;
     S->status_30b = st->f_30b;
     S->checkpoint_50a0 = st->f_50a0;
-    if (use_start) {
+    S->g_a0cc = st->f_a0cc;
+    S->g_50a2 = st->f_50a2;
+    S->next_level = (int16_t)st->f_a0be;
+    S->g_a0f5 = st->f_a0f5;
+    S->g_a0f6 = st->f_a0f6;
+    S->g_a0f7 = st->f_a0f7;
+    S->g_a0f9 = st->f_a0f9;
+    S->g_a0f3 = st->f_a0f3;
+    if (fresh) {
+        S->exit_col = (int16_t)st->f_a0e0;
+        S->exit_row = (int16_t)st->f_a0e2;
+        S->exit_step = st->f_a0e6;
+    }
+    S->g_a0e8 = st->f_a0e8;
+    S->g_a0d0 = st->f_a0d0;
+    S->g_a0d2 = st->f_a0d2;
+    S->g_a0d4 = st->f_a0d4;
+    S->g_a0d6 = st->f_a0d6;
+    S->g_a0d8 = st->f_a0d8;
+    S->g_a0da = st->f_a0da;
+    S->g_a0dc = st->f_a0dc;
+    S->g_a0de = st->f_a0de;
+    S->g_a0ce = st->f_a0ce;
+    S->g_a10b = st->f_a10b;
+    S->g_a0c2 = st->f_a0c2;
+    S->g_a0c8 = st->f_a0c8;
+    S->g_a0ca = st->f_a0ca;
+    S->g_a0e4 = st->f_a0e4;
+    S->g_a0c6 = 0;
+    S->g_a100 = 0;
+    S->g_a101 = 1;
+    S->g_a102 = 1;
+    S->g_a104 = 1;
+    S->g_a105 = 1;
+    S->g_a106 = 1;
+    S->g_a107 = 1;
+    S->g_a108 = 1;
+    S->g_a109 = 1;
+    S->g_a10a = 0;
+    S->g_a10d = 0;
+    S->g_a0f4 = 0;
+    S->g_a0fb = st->f_a0fb;
+    S->g_a126 = st->f_a126;
+    if (fresh) {
         S->rng_lo = st->f_2a6;
         S->rng_hi = st->f_2a8;
     }
@@ -2466,7 +3362,8 @@ static void load_level(int level, int new_game) {
     S->obj_cursor = g_level_cursor[level];
     S->a0f8 = 0;
     S->cur_level = (int16_t)level;
-    apply_level_state(level, S->spawn_col_override == 0xffff);
+    apply_level_state(level, S->spawn_col_override == 0xffff, new_game);
+    if (level >= 2) S->g_a0cc = (uint16_t)count_crystal_cells();
 }
 
 void cc_objects_init(int level) {
@@ -2475,30 +3372,9 @@ void cc_objects_init(int level) {
     load_level(level, 1);
 }
 
-/* Request a level transition from an exit cell.
- * Original exit state machine (0xD412-0xD5B4):
- *   * [0x2B72]/[0x2B74] = spawn cell on the next level
- *   * [0xA0BE] = next level argument
- *   * reload via the 0xB1A9 equivalent.
- *
- * Here `next_level` is current_level + 1 (linear progression).  The exact
- * "next level from exit cell byte 0" rule (original 0xD5A6) is deferred:
- * cell byte 0 does not hold a level index in the oracle data. */
-void cc_level_exit(int next_level) {
-    /* Caves return to the main mineshaft (level 2).  The exact door/spawn
-     * rule is still to be decoded; use the hub Y-start for now. */
-    if (S->cur_level >= 3) {
-        S->spawn_col_override = 0xffff;
-        S->spawn_row_override = 0;
-        S->next_level = 2;
-        load_level(2, 0);
-        return;
-    }
-    S->spawn_col_override = S->exit_col;
-    S->spawn_row_override = S->exit_row;
-    S->next_level = (int16_t)next_level;
-    load_level(next_level, 0);
-}
+/* Transition using the original loader argument (0=hub, 1..16=caves). */
+void cc_level_exit(int arg) { load_arg(arg); }
+void cc_load_arg(int arg) { load_arg(arg); }
 
 void cc_sound_set_callback(void (*cb)(uint16_t id)) {
     S->sound_callback = cb;
@@ -2677,7 +3553,53 @@ int32_t cc_global_get(int off) {
         case 0x50C9: return S->checkpoint_50c9;
         case 0xA0FF: return S->power_shot;
         case 0xA0C4: return S->power_timer;
-        default: return 0;
+        case 0xA0CC: return S->g_a0cc;
+        case 0x50A2: return S->g_50a2;
+        case 0xA0F5: return S->g_a0f5;
+        case 0xA0F7: return S->g_a0f7;
+        case 0xA0F9: return S->g_a0f9;
+        case 0xA0F3: return S->g_a0f3;
+        case 0xA0FB: return S->g_a0fb;
+        case 0xA126: return S->g_a126;
+        case 0xA10B: return S->g_a10b;
+        case 0xA10A: return S->g_a10a;
+        case 0xA0E8: return S->g_a0e8;
+        case 0xA0D0: return S->g_a0d0;
+        case 0xA0D2: return S->g_a0d2;
+        case 0xA0D4: return S->g_a0d4;
+        case 0xA0D6: return S->g_a0d6;
+        case 0xA0D8: return S->g_a0d8;
+        case 0xA0DA: return S->g_a0da;
+        case 0xA0DC: return S->g_a0dc;
+        case 0xA0DE: return S->g_a0de;
+        case 0xA0CE: return S->g_a0ce;
+        case 0xA0C2: return S->g_a0c2;
+        case 0xA0C8: return S->g_a0c8;
+        case 0xA0CA: return S->g_a0ca;
+        case 0xA0E4: return S->g_a0e4;
+        case 0xA0C6: return S->g_a0c6;
+        case 0xA0E0: return (uint16_t)S->exit_col;
+        case 0xA0E2: return (uint16_t)S->exit_row;
+        case 0xA0E6: return S->exit_step;
+        case 0xA0BE: return (uint16_t)S->next_level;
+        case 0xA100: return S->g_a100;
+        case 0xA101: return S->g_a101;
+        case 0xA102: return S->g_a102;
+        case 0xA104: return S->g_a104;
+        case 0xA105: return S->g_a105;
+        case 0xA106: return S->g_a106;
+        case 0xA107: return S->g_a107;
+        case 0xA108: return S->g_a108;
+        case 0xA109: return S->g_a109;
+        case 0xA10D: return S->g_a10d;
+        case 0xA0F4: return S->g_a0f4;
+        case 0x3392: return S->g_3392;
+        case 0x3395: return S->g_3395;
+        case 0x3396: return S->g_3396;
+        default:
+            if ((off & 0xFFFF) >= 0x50A8 && (off & 0xFFFF) <= 0x50B8)
+                return cave_flag_get((off & 0xFFFF) - 0x50A8);
+            return 0;
     }
 }
 void cc_global_set(int off, int32_t v) {
@@ -2742,7 +3664,53 @@ void cc_global_set(int off, int32_t v) {
         case 0x50C9: S->checkpoint_50c9 = (uint16_t)v; break;
         case 0xA0FF: S->power_shot = (uint8_t)v; break;
         case 0xA0C4: S->power_timer = (uint16_t)v; break;
-        default: break;
+        case 0xA0CC: S->g_a0cc = (uint16_t)v; break;
+        case 0x50A2: S->g_50a2 = (uint16_t)v; break;
+        case 0xA0F5: S->g_a0f5 = (uint8_t)v; break;
+        case 0xA0F7: S->g_a0f7 = (uint8_t)v; break;
+        case 0xA0F9: S->g_a0f9 = (uint8_t)v; break;
+        case 0xA0F3: S->g_a0f3 = (uint8_t)v; break;
+        case 0xA0FB: S->g_a0fb = (uint8_t)v; break;
+        case 0xA126: S->g_a126 = (uint8_t)v; break;
+        case 0xA10B: S->g_a10b = (uint8_t)v; break;
+        case 0xA10A: S->g_a10a = (uint8_t)v; break;
+        case 0xA0E8: S->g_a0e8 = (uint16_t)v; break;
+        case 0xA0D0: S->g_a0d0 = (uint16_t)v; break;
+        case 0xA0D2: S->g_a0d2 = (uint16_t)v; break;
+        case 0xA0D4: S->g_a0d4 = (uint16_t)v; break;
+        case 0xA0D6: S->g_a0d6 = (uint16_t)v; break;
+        case 0xA0D8: S->g_a0d8 = (uint16_t)v; break;
+        case 0xA0DA: S->g_a0da = (uint16_t)v; break;
+        case 0xA0DC: S->g_a0dc = (uint16_t)v; break;
+        case 0xA0DE: S->g_a0de = (uint16_t)v; break;
+        case 0xA0CE: S->g_a0ce = (uint16_t)v; break;
+        case 0xA0C2: S->g_a0c2 = (uint16_t)v; break;
+        case 0xA0C8: S->g_a0c8 = (uint16_t)v; break;
+        case 0xA0CA: S->g_a0ca = (uint16_t)v; break;
+        case 0xA0E4: S->g_a0e4 = (uint16_t)v; break;
+        case 0xA0C6: S->g_a0c6 = (uint16_t)v; break;
+        case 0xA0E0: S->exit_col = (int16_t)v; break;
+        case 0xA0E2: S->exit_row = (int16_t)v; break;
+        case 0xA0E6: S->exit_step = (uint16_t)v; break;
+        case 0xA0BE: S->next_level = (int16_t)v; break;
+        case 0xA100: S->g_a100 = (uint8_t)v; break;
+        case 0xA101: S->g_a101 = (uint8_t)v; break;
+        case 0xA102: S->g_a102 = (uint8_t)v; break;
+        case 0xA104: S->g_a104 = (uint8_t)v; break;
+        case 0xA105: S->g_a105 = (uint8_t)v; break;
+        case 0xA106: S->g_a106 = (uint8_t)v; break;
+        case 0xA107: S->g_a107 = (uint8_t)v; break;
+        case 0xA108: S->g_a108 = (uint8_t)v; break;
+        case 0xA109: S->g_a109 = (uint8_t)v; break;
+        case 0xA10D: S->g_a10d = (uint8_t)v; break;
+        case 0xA0F4: S->g_a0f4 = (uint8_t)v; break;
+        case 0x3392: S->g_3392 = (uint8_t)v; break;
+        case 0x3395: S->g_3395 = (uint8_t)v; break;
+        case 0x3396: S->g_3396 = (uint8_t)v; break;
+        default:
+            if ((off & 0xFFFF) >= 0x50A8 && (off & 0xFFFF) <= 0x50B8)
+                cave_flag_set((off & 0xFFFF) - 0x50A8, (int)v);
+            break;
     }
 }
 
@@ -2802,7 +3770,8 @@ static int is_real_handler(uint16_t off) {
         case 0x1fb9: case 0x2241: case 0x2850: case 0x2877:
         case 0x831: case 0x1fc2: case 0x2176: case 0x323c: case 0x3be8:
         case 0x3d23: case 0x3e70: case 0x3f13: case 0x4a4b: case 0x4a82:
-        case 0x5855: case 0x5bbe: case 0x6afa: case 0x6d31: case 0x6ff6: case 0x70e4:
+        case 0x5855: case 0x5bbe: case 0x6681: case 0x672b: case 0x69d3:
+        case 0x6afa: case 0x6d31: case 0x6ff6: case 0x70e4:
             return 1;
         default: return 0;
     }
@@ -2835,13 +3804,21 @@ uint16_t cc_cooldown(void)    { return S->cooldown; }
 uint16_t cc_g_2da(void)       { return S->fire_impulse; }
 uint16_t cc_g_a0c4(void)      { return S->power_timer; }
 uint8_t  cc_g_a0ff(void)      { return S->power_shot; }
-uint16_t cc_collectibles_total(void)  { return S->collectibles_total; }
-uint16_t cc_collectibles_left(void)   { return S->collectibles_left; }
+uint16_t cc_collectibles_total(void)  {
+    return (uint16_t)(S->g_50a2 + S->g_a0cc);
+}
+uint16_t cc_collectibles_left(void)   { return S->g_a0cc; }
 uint16_t cc_lives(void)             { return S->g_509e; }
-/* level_complete is a zero-stub until the real exit/collectible rules are
- * derived.  Do NOT derive it from collectibles_left (that was the invalid
- * "collect the player at (0,0)" premise). */
-int      cc_level_complete(void)    { return 0; }
+uint16_t cc_health(void)            { return S->g_509e; }
+uint16_t cc_ammo(void)              { return S->g_509c; }
+uint16_t cc_crystals_collected(void) { return S->g_50a2; }
+uint16_t cc_crystals_remaining(void) { return S->g_a0cc; }
+int16_t  cc_level_arg(void)          { return S->next_level; }
+uint8_t  cc_exit_unlocked(void)      { return S->g_a0f5; }
+uint8_t  cc_exit_active(void)        { return S->g_a0f6; }
+uint8_t  cc_door_active(void)        { return S->g_a0f7; }
+int      cc_cave_flag(int idx)       { return cave_flag_get(idx); }
+int      cc_level_complete(void)     { return S->g_a0fb; }
 
 /* ---------------------------------------------------------------- physics debug
  * Field order must stay in sync with enum cc_phys_field / tools fixtures. */
