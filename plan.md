@@ -33,8 +33,8 @@ Verified today:
   reversed gravity. Tick rate is 8 × 140.06 Hz PIT ticks ≈ 17.51 Hz.
 - `out/portable/cells.bin` now comes from startup+loader and includes the
   level-2 hub door IDs; static oracle renders were regenerated to match.
-- `make test-all`, `make test-oracle-objects`, and `make test-oracle-physics`
-  pass. The working tree is clean as of the Phase 1 commit.
+- Phase 2 is complete: `make test-all`, `make test-oracle-objects`,
+  `make test-oracle-physics`, and `make test-oracle-combat` pass.
 
 Important remaining unknowns:
 
@@ -92,9 +92,10 @@ Acceptance:
 
 ## Phase 2 — Complete `0x20406`, player fire, and combat
 
-Status: not started. This phase builds on the exact Phase 1 startup/physics
-state and the mutable cell image. It is the last prerequisite for cell
-collection, exits, and the remaining handlers.
+Status: COMPLETE. The Phase 2 harness, RNG, fire/slash update, full
+`0x20406` matrices, spawn/effect helpers, timer integration, and death/restart
+states are ported and covered by `notes/combat_fixtures.json` (74 scenarios /
+624 frames, including 120-frame full-frame level-2 and level-3 runs).
 
 ### Verified address model (corrects earlier notes)
 
@@ -482,12 +483,10 @@ Acceptance:
 
 ## Immediate next actions
 
-1. Port the `0x20406` slash gate and both state matrices, plus `0xCF6C`
-   fire and `0x251D` slot-2 slash update.
-2. Decode cell crystal collection and the `0xD412` exit state machine.
-3. Decode hub door entry and return-to-hub spawn (door cell `w0` now carries
+1. Decode cell crystal collection and the `0xD412` exit state machine.
+2. Decode hub door entry and return-to-hub spawn (door cell `w0` now carries
    IDs 1..16 in level 2).
-4. Then port the remaining 28 handlers in cave-sized batches.
+3. Port the remaining handlers in cave-sized batches.
 
 ## Validation commands
 
@@ -513,6 +512,7 @@ PASS: 0x20406 pickup interaction
 PASS: 10 frames match oracle object state (level 2)
 PASS: 120 frames match oracle object state (level 3)
 PASS: 16 physics scenarios, 670 frames match oracle
+PASS: 74 combat scenarios, 624 frames match oracle
 ```
 
 ## Relevant files
@@ -529,8 +529,7 @@ PASS: 16 physics scenarios, 670 frames match oracle
 - `wasm/render.c` — static renderer, viewport, object draw (HUD pending).
 - `wasm/play.html` — playable shell, input, camera view, level selector.
 - `wasm/test_oracle_objects.js` — object/cell oracle comparison.
-- `wasm/test_interaction.js` — `0x20406` pickup test (replace with oracle
-  fixtures in Phase 2).
+- `wasm/test_combat.js` — committed combat/cell/globals/RNG/sound oracle test.
 - `tools/emulate_game.py` — full update-loop oracle and interaction fixtures;
   extend with scenario seeding and full-frame order in Phase 2.
 - `tools/oracle_frame.py` — player physics sub-routine oracle (DS data missing).

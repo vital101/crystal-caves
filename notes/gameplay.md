@@ -61,15 +61,25 @@ frame state can be compared directly with the oracle.
 - `0x1FC2` (kind 8): proximity-triggered companion spawner/mover.
 - `0x323C` (kind 24), `0x3BE8` (kind 21), `0x5BBE` (kind 29/49/50/54/58),
   `0x2176` (kind 52): additional animators/movers ported from the disassembly.
-- `0x5855` (kind 48): three-record moving group; animate/move and wall-flip
-  paths ported (random companion spawn path still TODO).
+- `0x5855` (kind 48): three-record moving group; animate/move, wall-flip and
+  the `Random(100) < 5` companion-respawn path are ported.
 - `0x3E70` (kind 36), `0x4A4B` (kind 31): simple two-frame animations.
 - `0x4A82` (kind 44): interaction call with `[0x513C]`/`[0x5140]` toggles.
-- `0x20406` first block (touch damage, kind-specific pickups, 0x2C score and
-  effect spawn) and the kind-3 transform block are ported.  The second-hit /
-  projectile block (after 0x20707) and cell-based collection/exit paths are
-  still missing.
-- `0x20247`/`0x831` pickup effect object is ported.
+- `0x20406` is fully ported for combat: touch/pickup block, transform block,
+  slash gate, normal slash matrix (`0x20824..0x21335`) and power slash matrix
+  (`0x21342..0x21775`).
+- `0x20247`/`0x831` pickup effect object and the `0x2002D` slot-3 effect
+  template are ported.  `0x47D` general spawn, `0x1FFC8` free-slot reuse,
+  `0x200FE`/`0x1FD4B` cell tests, `0x259` base-cell stamping and `0x6681`
+  cell-erase effect are ported.
+- Player fire is `0xCF6C` (called from `0xEBF2`), the attack is object slot 2
+  (`DS:0x4638`), and `0x251D`/`0x2850`/`0x2241` drive the slash.
+- `0xEAEA` status timers and the `0x5124` death/restart states
+  (`0xD17D`, `0xD1C6`, `0xD342`) with `0xCF46` checkpoint restore,
+  `0xD15C` reload and `0xD140` latch are ported.
+
+Cell-based crystals, exits/airlocks, hub door entry and HUD remain Phase 3/5
+work.
 
 ## Golden gameplay oracle
 
@@ -89,3 +99,38 @@ Player physics is covered separately by `tools/oracle_physics.py` +
 runs `0xE011 → 0xE36B` (plus `0xD72A` for platform carry).  See
 `notes/physics.md`.  The real vertical table is `DS:0xA111`, indexed by the
 value of `[0x5134]` (not `0xF245`).
+
+## Combat / frame integration (Phase 2)
+
+Normal frame order: `0xE011 → 0xE36B → 0xEBF2 → 0xEAEA → 0xD72A`.
+`0xE5D3` hazard contact is still deferred; fixtures avoid hazards and assert
+the EBF2 spawner/exit branches are unreachable.
+
+- Fire cadence: `[0x2E0]` increments in `0xEBF2` and must be `> 6` to fire;
+  fire resets it to 0.
+- Power shot: `[0xA0FF]` bypasses the ammo decrement; `[0xA0C4]` is its
+  expiry timer.  Normal slash = slot-2 `p1a=1`, speed 4, p16 6, shapes
+  `0x25`/`0x2B`; power = `p1a=2`, speed 8, p16 4, shapes `0x1D`/`0x21`.
+- Slot 2 aliases: `0x4638` state, `0x463E` x, `0x4640` y, `0x4642/44` prev,
+  `0x4646` tile, `0x464E` p16, `0x4650` p18, `0x4652` p1a, `0x4654` shape,
+  `0x4656` vx, `0x465A` speed, `0x465E` kind, `0x4660` ready/hit lock,
+  `0x4661/63` handler.
+- `0x251D` tests the bottom-edge cells `(x, y+9)` and `(x+0xF, y+9)`; terrain
+  hits convert the slash to kind `0x2B` (handler `0x2241`) and clear cell
+  bytes `+0x06/+0x10/+0x11` plus `w0=0xFFA1`.
+- Cell addressing: assembly `0x508C + (col+1)*500 + (row+1)*20`; the border
+  helpers in `objects.c` treat the original `col/row` values as raw +1.
+- TP RNG `0x2BB5:0x980`: state `[0x2A6]/[0x2A8]`, multiplier `0x8405`,
+  increment 1.  The high word is computed by the original byte-wise
+  add/shift sequence, not a plain 32-bit multiply; `cc_rng_next` reproduces
+  the register operations exactly.  Return value is `(high) % n`.
+- RNG seed, `0x2DA`, `0x30B`, `0x2B8`, `0x511E`, `0x5122`, `0x2F2` and
+  checkpoint state are captured per level in `startup_data.h`.
+
+Combat fixtures:
+
+```sh
+cd wasm
+make test-combat          # committed notes/combat_fixtures.json
+make test-oracle-combat   # regenerate from the real routines, then compare
+```

@@ -12,12 +12,13 @@ There is no root Makefile; the build lives in `wasm/`.
 | `make test-render-all` | Pixel-diff every level against `out/oracle_L*.png` |
 | `make test-data` | Run `../tools/check_oracle.py` (structural oracle assertions) |
 | `make test-view` | 320x200 viewport crop regression |
-| `make test-interaction` | 0x20406 pickup/damage/effect interaction test |
 | `make test-objects` | Object init/input/collision smoke test |
 | `make test-gameplay` | Level-2 fixture smoke test |
 | `make test-physics` | Exact player/camera/platform-carry regression (committed fixtures) |
+| `make test-combat` | Committed combat/cell/globals/RNG/sound oracle fixtures (fast) |
 | `make test-oracle-physics` | Regenerate physics fixtures from the real routines, then compare (needs venv deps) |
 | `make test-oracle-objects` | Compare C object/cell state with the Unicorn oracle, levels 2 and 3 (needs venv deps) |
+| `make test-oracle-combat` | Regenerate `notes/combat_fixtures.json` from the real routines and compare (needs venv deps) |
 | `make startup` | Regenerate `notes/startup.json` + `wasm/startup_data.h` (needs venv deps) |
 | `make assets` | Copy portable assets from `../out/portable/` into `wasm/assets/` |
 | `make data` | Regenerate `wasm/startup_data.h` + `out/portable/` |
@@ -69,6 +70,14 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - **MNI**: ProGraphx 8x8 font/sprite; `CC1-F1/F2` are 50-glyph banks
 - **Sound**: Crystal Caves Sound (modified inverse-frequency, PC speaker); not decoded yet
 - **Borland Turbo Pascal** binary; TP runtime helpers live in segment `0x2BB5`
+- **Normal frame order**: `0xE011 → 0xE36B → 0xEBF2 → 0xEAEA → 0xD72A`;
+  `0xE5D3` hazard contact remains deferred.
+- **Player fire** is `0xCF6C`, called from `0xEBF2`. The attack is object slot 2
+  (`DS:0x4638`); `0x4652=p1a` selects normal/power, `0x4660=ready/hit lock`.
+- **TP RNG** is at `0x2BB5:0x980`, state `DS:0x2A6/0x2A8`. The high word uses
+  the original byte-wise add/shift sequence, not a plain 32-bit multiply.
+- **Cell addressing**: `0x508C + (col+1)*500 + (row+1)*20`; slash/dug-block
+  paths use the original +1 border indices (see `cell_border_*` in `objects.c`).
 
 ## Current Status (do not overstate)
 
@@ -100,6 +109,7 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 | `tools/emulate_load.py` | Run `0xC3E` + real loader `0xB1A9`; dump objects/cells |
 | `tools/oracle_physics.py` | Exact player/camera/platform physics oracle |
 | `tools/physics_fixtures.py` | Generate `notes/physics_fixtures.json` |
+| `tools/combat_fixtures.py` | Generate `notes/combat_fixtures.json` (fire, slash, touch, death, RNG) |
 | `tools/emulate_render.py` | Full EGA render oracle (real blitters + ports) |
 | `tools/oracle_frame.py` | Low-level physics/collision sub-routine oracle |
 | `tools/emulate_game.py` | Full update-loop + handler oracle (video/sound stubbed) |
@@ -119,6 +129,7 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - `wasm/render.wasm` — build artifact (gitignored)
 - `wasm/startup_data.h` — generated startup/table/level-start data
 - `notes/startup.json`, `notes/physics_fixtures.json`, `notes/physics.md`
+- `notes/combat_fixtures.json` — committed combat oracle trace (`make test-combat`)
 - `notes/handlers.*`, `notes/oracle_catalog.json`, `notes/oracle_objects.json`, `notes/level_table.json`, `notes/gameplay.md`
 
 ## Known Constraints

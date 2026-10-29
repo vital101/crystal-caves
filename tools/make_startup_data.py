@@ -40,6 +40,7 @@ STARTUP_FIELDS = [
     ("50a0", "uint16_t"), ("50be", "uint16_t"), ("50c4", "uint16_t"),
     ("50c7", "uint16_t"), ("50c9", "uint16_t"),
     ("a0ff", "uint8_t"), ("a0c4", "uint16_t"),
+    ("2b5e", "uint16_t"),
 ]
 
 LEVEL_FIELDS = [

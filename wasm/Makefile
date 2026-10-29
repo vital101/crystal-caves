@@ -85,9 +85,6 @@ test-integration: clang
 test-view: clang
 	node test_view.js
 
-test-interaction: clang
-	node test_interaction.js
-
 test-physics: clang
 	node test_physics.js
 
@@ -112,9 +109,9 @@ test-oracle-objects: clang
 	$(PYTHON) ../tools/emulate_game.py 3 120 --json > oracle_level3.json
 	node test_oracle_objects.js oracle_level3.json
 
-test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-interaction test-physics test-combat
+test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat
 
 clean:
 	rm -f $(OUT) app.js app.wasm out_wasm_level*.png oracle_level*.json
 
-.PHONY: clang emcc assets data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-interaction test-physics test-combat test-oracle-physics test-oracle-combat test-oracle-objects test-all clean
+.PHONY: clang emcc assets data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-oracle-physics test-oracle-combat test-oracle-objects test-all clean

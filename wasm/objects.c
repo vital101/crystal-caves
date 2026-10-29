@@ -154,6 +154,10 @@ typedef struct {
     uint8_t  g_30d;              /* [0x030d] disable cell cache stamp */
     uint16_t g_2f6;              /* [0x02f6] last cell cache stamp */
     uint16_t g_512c;             /* [0x512c] slash cell counter */
+    uint16_t g_50a2;             /* [0x50a2] checkpoint health */
+    uint16_t g_2b5e;             /* [0x2b5e] restart timer */
+    uint8_t  g_3394;             /* [0x3394] restart input latch */
+    uint8_t  g_a110;             /* [0xa110] restart latch */
     uint8_t  g_a100;             /* [0xa100] pending timer event */
     uint8_t  power_shot;         /* [0xa0ff] power-shot active */
     uint16_t power_timer;        /* [0xa0c4] power-shot expiry */
@@ -725,6 +729,7 @@ static void h_1fb9(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 static void h_251d(ObjectEntry *o, int idx, int16_t x, int16_t y);
+static void load_level(int level, int new_game);
 
 /* 0x1F9A:0x2850 (kind 2): ready gate around the slash update 0x251D. */
 static void h_2850(ObjectEntry *o, int idx, int16_t x, int16_t y) {
@@ -2174,8 +2179,117 @@ void cc_objects_step(void) {
     step_objects();
 }
 
+/* 0xCF46: restore the restart checkpoint. */
+static void restore_checkpoint(void) {
+    S->g_509c = S->checkpoint_50be;
+    S->score_lo = S->checkpoint_50c7;
+    S->score_hi = S->checkpoint_50c9;
+    S->g_50a2 = S->checkpoint_50c4;
+    S->g_509e = 3;
+}
+
+/* 0xD15C: reload the current level through the loader-equivalent path. */
+static void reload_current_level(void) {
+    S->spawn_col_override = 0xFFFF;
+    S->spawn_row_override = 0;
+    load_level(S->cur_level, 0);
+}
+
+/* 0xD140: decrement the fade/lives latch. */
+static void fade_latch(void) {
+    S->checkpoint_50a0 = (uint16_t)(S->checkpoint_50a0 - 1u);
+    if (S->checkpoint_50a0 == 0) {
+        S->g_3394 = 1;
+        S->g_a110 = 1;
+    }
+}
+
+static void restart_sequence(void) {
+    S->g_5124 = 0;
+    reload_current_level();
+    fade_latch();
+    restore_checkpoint();
+}
+
+/* 0xD17D: death state 1 - wait for input/restart timer. */
+static void death_state1(void) {
+    if ((S->g_2b5e > 0 && S->g_2b5e < 0x80 && S->obj[1].p18 > 0) ||
+        S->input_fire)
+        restart_sequence();
+}
+
+/* 0xD1C6: death state 2 - spawn 0x6681 and play the fall/restart sequence. */
+static void death_state2(void) {
+    uint16_t *phase = &S->obj[1].p18;
+    uint16_t *frame = &S->obj[1].p1a;
+
+    if (*phase == 0) {
+        if (*frame == 0) {
+            S->player_block = 0x11;
+            S->anim_timer = 1;
+            S->shape_player = 0x12;
+            S->obj[1].p16 = 3;
+        }
+        if (*frame > 3 && (*frame % 3) == 0 &&
+            S->anim_timer < S->obj[1].p16)
+            S->anim_timer = (uint16_t)(S->anim_timer + 1u);
+        *frame = (uint16_t)(*frame + 1u);
+        if (*frame > 0x11) {
+            *frame = 0;
+            *phase = (uint16_t)(*phase + 1u);
+        }
+        return;
+    }
+    if (*phase != 1) return;
+
+    if (*frame == 0) {
+        int slot;
+        S->obj_cursor++;
+        slot = S->obj_cursor;
+        if (slot < OBJ_MAX) {
+            SpawnArgs a;
+            S->obj[slot].state = 0x63;
+            a.handler = 0x6681; a.handler_seg = 0x1F9A;
+            a.p18 = 0; a.speed = 4; a.p16 = 1;
+            a.p14 = 0x15; a.p12 = 0x15;
+            a.vy = 0xFFFF; a.vx = 0;
+            a.ycell = (uint16_t)(S->player_y / 16);
+            a.xcell = (uint16_t)(S->player_x / 16 + 1);
+            a.tile = 0x11; a.kind = 0x29; a.slot = slot;
+            spawn_object_47d(&a);
+            S->obj[slot].state = 0;
+            S->obj[slot].x = S->player_x;
+            S->obj[slot].y = (int16_t)(S->player_y - 0x10);
+            S->obj[slot].x_prev = S->obj[slot].x;
+            S->obj[slot].y_prev = S->obj[slot].y;
+        }
+        S->player_block = 7;
+        S->anim_timer = 0;
+        S->shape_player = 0x19;
+        S->obj[1].p16 = 9;
+        *frame = (uint16_t)(*frame + 1u);
+    }
+    if (S->anim_timer < S->obj[1].p16)
+        S->anim_timer = (uint16_t)(S->anim_timer + 1u);
+    else
+        *frame = (uint16_t)(*frame + 1u);
+    if (*frame >= 4) restart_sequence();
+}
+
+/* 0xD342: death state 3 - wait for the restart input. */
+static void death_state3(void) {
+    if (S->input_fire || S->input_jump) restart_sequence();
+}
+
 /* Full normal frame (0xE011, 0xE36B, 0xEBF2, 0xEAEA, 0xD72A). */
 void cc_objects_step_full(void) {
+    if (S->g_5124 != 0) {
+        if (S->g_5124 == 1) death_state1();
+        else if (S->g_5124 == 2) death_state2();
+        else death_state3();
+        sync_player_object();
+        return;
+    }
     cc_objects_step_physics();
     cc_fire_timers();
     cc_status_timers();
@@ -2274,6 +2388,10 @@ static void apply_startup_state(void) {
     S->checkpoint_50c4 = g_startup.f_50c4;
     S->checkpoint_50c7 = g_startup.f_50c7;
     S->checkpoint_50c9 = g_startup.f_50c9;
+    S->g_2b5e = g_startup.f_2b5e;
+    S->g_50a2 = 0;
+    S->g_3394 = 0;
+    S->g_a110 = 0;
     S->g_512c = 0;
     S->sound_log_count = 0;
     S->sound_log_total = 0;
@@ -2547,6 +2665,7 @@ int32_t cc_global_get(int off) {
         case 0x02DA: return S->fire_impulse;
         case 0x02F2: return S->g_2f2;
         case 0x02B8: return S->g_2b8;
+        case 0x2B5E: return S->g_2b5e;
         case 0x511E: return S->g_511e;
         case 0x5122: return S->g_5122;
         case 0x50A5: return S->score_lo;
@@ -2611,6 +2730,7 @@ void cc_global_set(int off, int32_t v) {
         case 0x02DA: S->fire_impulse = (uint16_t)v; break;
         case 0x02F2: S->g_2f2 = (uint16_t)v; break;
         case 0x02B8: S->g_2b8 = (uint16_t)v; break;
+        case 0x2B5E: S->g_2b5e = (uint16_t)v; break;
         case 0x511E: S->g_511e = (uint16_t)v; break;
         case 0x5122: S->g_5122 = (uint16_t)v; break;
         case 0x50A5: S->score_lo = (uint16_t)v; break;

@@ -307,8 +307,13 @@ class PhysicsOracle:
         self._run(OBJECTS)
 
     def step_full(self, with_objects=True):
-        """Normal frame order (0xE5D3 hazard contact deferred until ported)."""
+        """Frame order; dispatches the 0x5124 death/restart states."""
         self.sound_events = []
+        state = self.state(0x5124) & 0xFFFF
+        if state != 0:
+            self._run(0xD17D if state == 1 else
+                      (0xD1C6 if state == 2 else 0xD342))
+            return
         self._run(HORIZ)
         self._run(JUMP)
         self._run(FIRE_TIMERS)

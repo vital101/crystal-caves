@@ -10,7 +10,7 @@ const fixture = JSON.parse(fs.readFileSync(FILE, "utf8"));
 
 const INPUT_FLAGS = [
   ["left", 0x338E], ["right", 0x338F], ["jump", 0x338B],
-  ["fire", 0x3390], ["up", 0x338B], ["down", 0x338C],
+  ["fire", 0x3390], ["down", 0x338C],
 ];
 
 let failures = 0;

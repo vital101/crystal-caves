@@ -28,7 +28,7 @@ C_GLOBALS = [
     "461b", "461d", "461f", "4619", "4627", "4629", "460d",
     "5118", "5126", "5128", "5124", "512e", "5130", "5132", "5134",
     "513c", "513d", "5140", "5142", "509c", "509e", "4660", "4652",
-    "2a6", "2a8", "2da", "50a5", "50a7", "50a0", "50be", "50c4",
+    "2a6", "2a8", "2da", "2b5e", "50a5", "50a7", "50a0", "50be", "50c4",
     "50c7", "50c9", "a0ff", "a0c4",
 ]
 GLOBAL_OFF = {name: (off, width) for name, off, width in S.GLOBALS}
@@ -785,6 +785,24 @@ SCENARIOS = [
             "objects": {"50": {"kind": 51, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 17, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 2, "p1e": 1}},
         },
         "frames": inputs(3),
+    },
+    {
+        "name": "death_restart_l2", "level": 2, "mode": "full",
+        "seed": {"globals": {"5124": 2}},
+        "frames": inputs(25),
+    },
+    {
+        "name": "long_l2_run", "level": 2, "mode": "full",
+        "frames": inputs(120, right=True, fire=True),
+    },
+    {
+        "name": "long_l3_run", "level": 3, "mode": "full",
+        "frames": inputs(120, fire=True, jump=True),
+    },
+    {
+        "name": "fire_noammo_power_l2", "level": 2, "mode": "full",
+        "seed": {"globals": {"509c": 0, "a0ff": 1, "a0c4": 0}},
+        "frames": [{"fire": True}] + inputs(5),
     },
     {
         "name": "r5855_hit_l3", "level": 3, "mode": "objects",
