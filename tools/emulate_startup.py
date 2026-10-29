@@ -89,6 +89,25 @@ GLOBALS = [
     ("4652", 0x4652, 2),
     ("2b60", 0x2B60, 2),
     ("a0c0", 0xA0C0, 2),
+    # Phase 2: combat/fire/RNG/restart state.
+    ("2a6", 0x02A6, 2),
+    ("2a8", 0x02A8, 2),
+    ("2da", 0x02DA, 2),
+    ("50a5", 0x50A5, 2),
+    ("50a7", 0x50A7, 2),
+    ("50a0", 0x50A0, 2),
+    ("50be", 0x50BE, 2),
+    ("50c4", 0x50C4, 2),
+    ("50c7", 0x50C7, 2),
+    ("50c9", 0x50C9, 2),
+    ("a0ff", 0xA0FF, 1),
+    ("a0c4", 0xA0C4, 2),
+    # EBF2 spawner/exit branch guards (oracle-only; not yet in C).
+    ("a0ce", 0xA0CE, 2),
+    ("a10b", 0xA10B, 1),
+    ("a0cc", 0xA0CC, 2),
+    ("a0f5", 0xA0F5, 1),
+    ("a0be", 0xA0BE, 2),
 ]
 
 # Vertical displacement table used by 0xDCB9/0xE36B.  Base is DS:0xA111 and

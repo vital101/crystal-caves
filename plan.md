@@ -19,9 +19,13 @@ Verified today:
 - Level-3 object state matches the Unicorn oracle for 120 frames.
 - Full mutable 20-byte cells are exported as `out/portable/cells.bin` and
   verified byte-for-byte against the oracle.
-- 18/46 object handlers are implemented; 28 remain.
+- 18/46 object handlers are implemented; 28 remain. Some handlers counted as
+  done are still stubs on combat paths (`0x251D`, `0x2850`, `0x2877`).
 - `0x20406` first interaction block (touch damage, pickups, kind-`0x2C`
   score/effect) and the `0x20247`/`0x831` effect object are ported.
+  The slash gate and both slash state matrices are not.
+- Player fire is `0xCF6C` (called from `0xEBF2`), not `0xD17D`/`0xD236`;
+  the attack is object slot 2 (`0x4638`) driven by `0x251D`.
 - Exact startup DS (`0xC3E`) is recovered. The vertical displacement table is
   at `DS:0xA111` (not `0xF245`), indexed by `[0x5134]`.
 - Exact player/camera physics is validated frame-for-frame against the real
@@ -30,13 +34,16 @@ Verified today:
 - `out/portable/cells.bin` now comes from startup+loader and includes the
   level-2 hub door IDs; static oracle renders were regenerated to match.
 - `make test-all`, `make test-oracle-objects`, and `make test-oracle-physics`
-  pass. Changes are currently uncommitted.
+  pass. The working tree is clean as of the Phase 1 commit.
 
 Important remaining unknowns:
 
 - Crystal collection and cave exit/airlock logic are not decoded/ported.
 - Hub door-to-cave mapping and door entry are not decoded.
-- `0x20406` second-hit/projectile block after `0x20707` is not ported.
+- `0x20406` second-hit/projectile state matrices after `0x20707` are not
+  ported; the transform and slash control-flow gates are also incomplete.
+- Player fire (`0xCF6C`), the slot-2 slash update (`0x251D`), and the
+  transform/dissolve handler (`0x2877`) are not ported.
 - `0x5855` random companion-spawn branch is still TODO.
 - General dynamic spawn (`0x47D`) is not ported; only the pickup effect spawn
   (`0x20247`) exists.
@@ -83,28 +90,251 @@ Acceptance:
 - Level 2/3 platform-carry behavior matches the oracle.
 - No guessed physics constants remain.
 
-## Phase 2 — Complete `0x20406` and combat
+## Phase 2 — Complete `0x20406`, player fire, and combat
 
-Tasks:
+Status: not started. This phase builds on the exact Phase 1 startup/physics
+state and the mutable cell image. It is the last prerequisite for cell
+collection, exits, and the remaining handlers.
 
-- Port the second-hit/projectile block after `0x20707`:
-  - player projectile hitbox `[0x463E]/[0x4640]`,
-  - projectile state `[0x4652]`,
-  - enemy hit/kill score paths,
-  - hit locks `[0x4660]`.
-- Port player fire and projectile spawn (player fire path `0xD17D`/`0xD236`).
-- Port general object spawn `0x47D` and free paths needed by combat/effects.
-- Port remaining `0x20406` score bonuses and kind-specific hit reactions.
-- Add interaction fixtures with seeded player position/global flags:
-  - pickup, damage, death/life loss, projectile hit, transform-to-kind-3.
-- Resolve the `0x5855` random companion spawn branch; recover the TP RNG
-  (`0x2BB5:0x980`) or seed behavior so fixtures are deterministic.
+### Verified address model (corrects earlier notes)
+
+- Player fire is **`0xCF6C`**, called from the items/fire frame routine
+  **`0xEBF2`** at `0xEEAE`. `0xD17D`/`0xD1C6`/`0xD342` are the
+  `[0x5124]` death/restart handlers selected by `0xF4E6`, not fire.
+- The player attack is **object slot 2** (`DS:0x4638`), not a separately
+  spawned projectile. Its record aliases:
+  `[0x463E]=x`, `[0x4640]=y`, `[0x4642]/[0x4644]=prev x/y`,
+  `[0x4646]=tile/block`, `[0x464E]=p16`, `[0x4650]=p18`,
+  **`[0x4652]=p1a` (1 = normal slash, 2 = power slash)**,
+  `[0x4654]=shape`, `[0x4656]=vx (facing)`, `[0x465A]=speed`,
+  `[0x465E]=kind 2`, **`[0x4660]=ready/hit lock**,
+  `[0x4661]/[0x4663]=handler 0x1F9A:0x2850`.
+- Slot 2 is driven by `0x1F9A:0x2850 -> 0x251D`. `0x251D` is the real slash
+  update: animation, terrain collision, conversion to kind `0x2B` with
+  handler `0x2241`, and cell digging. The current C `h_2850` is a no-op and
+  `h_251d` only bumps `p18`; the update loop also only special-cases kind 2,
+  not kind `0x2B`.
+- `0x20406` is one routine spanning `0x20406..0x21778` with four blocks:
+  first touch/pickup (`0x20491..0x20597`), transform (`0x2059A..0x20707`),
+  slash gate (`0x20707..0x2081A`), slash state 1 (`0x20824..0x21335`) and
+  slash state 2 (`0x21342..0x21775`). The current C returns before the
+  slash gate and never executes either state matrix.
+- `0x251D`'s terrain path clears cell bytes `+0x06`, `+0x10`, `+0x11` and
+  writes `w0=0xFFA1`; `0x20406` writes cells at least at `+0x00`, `+0x06`,
+  `+0x0A`, `+0x0C`, `+0x0E`. The assembly cell index is
+  `0x508C + (col+1)*500 + (row+1)*20`; translate to logical `(col,row)` in C.
+- Score is `[0x50A5]` (low) + `[0x50A7]` (high) with `add/adc`. A plain
+  `uint32_t` add is not exact once the low word wraps.
+- TP RNG is `0x2BB5:0x980` (load `0x2C4D0`): LCG at `0x2C51F`, multiplier
+  `CS:[0xA05]=0x8405`, increment 1, state `DS:0x2A6/0x2A8`; it returns
+  `(state >> 16) % n` (n=0 returns 0). Startup+loader seed is deterministic
+  (currently `0x8A6D4FF1`); capture it in `startup.json` and expose an
+  explicit seed API.
+- Fire gating: `[0x2E0] > 6` (cooldown, incremented in `0xEBF2`),
+  `[0x509C]` ammo (`[0xA0FF]` power shot bypasses the ammo decrement),
+  `[0x4660]` hit lock, `[0x4629]` facing. Normal slash: sound `0x0E`,
+  speed 4, p16 6, state 1, shapes `0x25`/`0x2B`. Power slash: sound `0x0F`,
+  speed 8, p16 4, state 2, shapes `0x1D`/`0x21`, no ammo loss.
+- Handler call convention passes predicted `x+vx*speed`, `y+vy*speed` to
+  `0x20406`; the first/slash hitbox tests use those args, while later
+  branches reload record fields directly. Do not substitute one for the
+  other.
+- Current stubs that must be finished on combat paths: `0x251D`, `0x2850`,
+  `0x2877` (transform/dissolve, 99 instructions), `0x2241` (dug-block
+  animator), `0x2002D` (effect spawn from slot 3 template), `0x200FE`
+  (cell test helper), and `0x47D` spawn/free semantics.
+
+### P2.0 — Determinism oracle and test surface (do first)
+
+Without this, the rest cannot be validated frame-for-frame.
+
+- Extend `tools/emulate_startup.py` `GLOBALS` with `0x2A6/0x2A8` (RNG),
+  `0x50A5/0x50A7` (score), `0x2DA` (fire impulse), `0xA0FF`/`0xA0C4`
+  (power shot + timer), `0x50A0/0x50BE/0x50C4/0x50C7/0x50C9` (restart
+  checkpoint). Regenerate `startup_data.h` via `make startup`.
+- Extend `PhysicsOracle`/`GameOracle` with generic seeding:
+  `seed_global(off,val,width)`, `seed_object(slot, fields)`,
+  `seed_cell(col,row,bytes)`, `seed_rng(lo,hi)`, per-frame inputs, and a
+  `step_full()` that runs the real normal frame order
+  (`E011`, `E36B`, `EBF2`, `EAEA`, `D72A`). Leave `0xE5D3` out until it is
+  ported; Phase 2 scenarios must avoid hazard cells and assert it is inert.
+- Extend dumps/fixtures to include every object field used by combat
+  (`p02`, `p04`, `x_prev`, `y_prev`, `handler_seg`), all game globals,
+  RNG state, `obj_cursor`, and sound-ID events - not just the subset in
+  `test_oracle_objects.js` today.
+- Add C test APIs: `cc_obj_set_*` for every field, `cc_cell_set`,
+  `cc_rng_seed`, `cc_rng_next`, game-state getters for score low/high,
+  ammo/health/invuln/cooldown, and a full-frame step entry point. Keep
+  `cc_objects_step_objects()` object-only so existing oracle tests stay
+  stable.
+- Add `tools/combat_fixtures.py`, committed
+  `notes/combat_fixtures.json`, `wasm/test_combat.js`, and
+  `make test-combat` / `make test-oracle-combat`. Land the harness with an
+  object-only no-op fixture first; switch it to full-frame once P2.2 adds the
+  `0xEBF2` prefix and `0xEAEA`.
+
+Exit: a no-op object-only combat scenario round-trips objects, cells,
+globals, RNG, cursor, and sound IDs byte-for-byte against the oracle. The
+full-frame version becomes the gate in P2.2.
+
+### P2.1 — TP RNG and the `0x5855` random branch
+
+- Port the 32-bit LCG and modulo exactly in `objects.c`; keep the state in
+  `cc_state_t` and include it in startup data and save state.
+- Port the full `0x5855` handler, especially `0x5960`: `Random(100) < 5`
+  respawns the previous slot (`shape`, `ready=0`, `state=0`, copied x/y)
+  and plays sound `0x10`; the non-hit path must leave RNG state unchanged
+  except for the draw itself.
+- Add hit-seed and miss-seed fixtures; compare the full slot group and RNG
+  state after every frame.
+
+### P2.2 — Fire, slash update, and frame integration
+
+- Port `0xCF6C` exactly: ammo/cooldown/hit-lock gates, normal and power
+  variants, facing/left-right shapes, slot-2 field writes, `[0x2CA]=[0x2DA]`,
+  `[0x2E0]=0`, `[0x30A]=1`, and the sound IDs `0x0E`/`0x0F`.
+- Port `0x251D` (`0x21EBD..0x221ED`): `p18++`, `anim_next`, the two terrain
+  cell tests at `x+9`, `y`/`y+0xF`, kind `0x2B`/handler `0x2241` conversion,
+  cell clears/`w0=0xFFA1`, and the no-terrain lifetime path.
+- Port `0x2850` as the ready gate around `0x251D`, and `0x2241` as the
+  dug-block animator. Fix `step_objects()` so kind `0x2B` takes the same
+  direct `0x251D` path as kind 2.
+- Port the `0xEBF2` fire/timer prefix only: cooldown increment/clamp,
+  power-shot expiry, fire dispatch at `0xEE99..0xEEAE`, and the reset
+  writes. Explicitly mark the spawner/exit branches unreachable for Phase 2
+  fixtures and finish them in Phase 3.
+- Port `0xEAEA` now: the invulnerability/status timer section is required
+  for repeated damage fixtures. `0xE5D3` hazard contact remains deferred.
+- Wire a full normal-frame entry point (physics, fire/timers, object loop)
+  and use it from `play.html`; update `test_objects`/`test_gameplay` if the
+  richer frame changes their expectations.
+- Fixtures: normal/power fire, left/right, ammo exhausted, cooldown active,
+  hit lock active, held fire, terrain hit/miss, slash expiry; compare slot 2,
+  ammo, cooldown, sounds, and cells each frame.
+
+### P2.3 — `0x20406` first-hit and transform blocks
+
+- Restore the exact control flow: first block -> `0x20707`; transform block
+  when `[0x513C]==0` -> `0x20707`; slash gate only skipped when
+  `[0x4660]!=0` or no rect overlap.
+- Verify every first-block kind case: `0x10/0x0E` death, `0x24` heal/ammo,
+  `0x16` gravity-dependent state 1/3, `0x2C` score/effect, default damage;
+  match `damage_life` (`0x203D6`), `[0x509E]`, `[0x509C]`, `[0x460D]`,
+  `[0x5124]`, `[0xA0EA]`, sounds, and spawns.
+- Complete the transform list (kinds `9,7,0xA,0x39,0x1A,5,0x35,0x30,0x17,
+  0x23,0x1C,8,0xB,0xC`) and port `0x2877` so transformed objects dissolve
+  correctly over the following frames.
+- Replace the hand-picked `test_interaction.js` assertions with oracle
+  fixtures covering each branch.
+
+### P2.4 — `0x20406` slash state 1 (normal)
+
+- Port the full `0x20824..0x21335` matrix mechanically:
+  - rect test against slot 2, `[0x4660]` lock, kind-`0x24` special handling
+    (`g_5124=2`, p10/p16 reset), object `p04--`;
+  - clear the hit lock for kinds `0x15,0x1D,0x12,0x37,0x19`;
+  - per-kind kill/survival paths and score adds (`+0x64`, `+0x3E8`,
+    `+0x1388`) via `[0x50A5]/[0x50A7]` add/adc;
+  - cell writes at `+0x00/+0x06/+0x0A/+0x0C/+0x0E`, neighbor-slot/free
+    writes, `[0x512C]` counter, sounds;
+  - helper calls `0x2002D`, `0x200FE`, `0x20247`, `0x1FC73`, `0x1FBBF`,
+    `0x1FCB0`, `0x1FCF7` with exact argument order.
+- Fixtures: one scenario per kind group (`0x1A/0x23/0x17/0x0C/0x32/0x36/
+  0x3A/0x31`, `0x2F`, `0x09`, `0x05`, `0x30`, `0x39`, `0x35`, `0x33`,
+  `0x2C`, and the no-kill/`p04>=1` path), plus hit-lock clear checks.
+
+### P2.5 — `0x20406` slash state 2 (power)
+
+- Port `0x21342..0x21775`: excluded-kind early return (`0x16,0x0E,0x24,
+  0x1D,0x15,0x10,0x37,0x12,0x19,4`), `0x2C` effect/spawn, `0x35`,
+  `0x2F`, `0x33`, `0x30`, `0x39`, score/cell/sound writes, and the same
+  helper calls.
+- Fixtures: power slash vs each handled kind, no-ammo power shot, power
+  expiry, and a mixed normal/power sequence.
+
+### P2.6 — Death, life loss, and restart paths
+
+Needed so "take damage and restore lives" is actually playable rather than
+leaving `[0x5124]` stuck.
+
+- Port `0xCF46` (restore checkpoint ammo/score/health), `0xD15C` (reload
+  current level via the loader-equivalent), `0xD140` (fade/lives latch).
+- Port the `[0x5124]` handlers selected by `0xF4E6`: `0xD17D` (state 1,
+  wait for fire/key then restart), `0xD1C6` (state 2, spawn
+  `0x1F9A:0x6681`, timed sequence), `0xD342` (state 3, timed sequence).
+  `0x6681` (cell-erase effect) must be ported here rather than deferred to
+  Phase 4.
+- Fixtures: lethal hit, non-lethal hit, hit while invulnerable, death ->
+  restart, and compare the post-restart object/cell/global state.
+
+### P2.7 — Spawn/effect helpers used by combat
+
+- Port the exact state side of `0x47D` (14-word far args): field copy,
+  `[0x5120]` cursor advance/wrap, state `0x63`, base-cell stamp
+  (`0x59`/`[0x2B8]`/`[0x5122]`), and caller-visible state transitions.
+  Drawing may remain a renderer concern, but every cell/object write must
+  be preserved.
+- Port `0x1FFC8` free-slot reuse, `0x2002D` slot-3-template effect spawn,
+  and `0x200FE` cell test/damage helper. Add a one-spawn oracle test before
+  relying on them in the slash fixtures.
+
+### P2.8 — Regression, fixtures, and docs
+
+- Commit `notes/combat_fixtures.json` with the full matrix:
+  - touch: default, `0x10/0x0E`, `0x24`, `0x16` (both gravities), `0x2C`,
+    invulnerable, already dead;
+  - transform: all 14 kinds plus a non-listed kind and dissolve frames;
+  - fire/slash: normal/power, directions, ammo/cooldown/hit-lock, terrain
+    hit/miss, expiry;
+  - slash state 1 and state 2 kind matrices;
+  - RNG `0x5855` hit/miss;
+  - death/restart;
+  - long full-frame level-2 and level-3 runs (>=120 frames) with movement
+    and fire.
+- Add `make test-combat` (committed fixture) and `make test-oracle-combat`
+  (regenerate), then add both to `test-all`. Keep `test-oracle-objects`
+  passing with the richer comparison. `0x20406` is called from 40 handler
+  sites, so rerun `test-oracle-objects` after every matrix batch.
+- Update `notes/gameplay.md` and `AGENTS.md` with the corrected fire path,
+  slot-2 record map, RNG, cell offsets, and the new test commands.
 
 Acceptance:
 
-- C `0x20406` matches the oracle for touch and projectile scenarios.
-- Player can collect, take damage, lose/restore lives, and shoot correctly.
-- Interaction fixtures are deterministic.
+- C `0x20406` matches the oracle for every touch, transform, normal-slash,
+  and power-slash fixture; object slots 2/3, all cell bytes, score low/high,
+  ammo, health/lives, invuln, hit lock, cooldown, RNG, cursor, and sound IDs
+  all match frame-for-frame.
+- Player can collect, take damage, lose/restore lives, restart after death,
+  and fire both slash types correctly.
+- `0x5855` companion respawn is deterministic with a seeded RNG.
+- No stubs remain on active combat paths (`0x251D`, `0x2850`, `0x2877`,
+  `0x2241`, `0x2002D`, `0x200FE`, spawn/free).
+- Existing render, physics, object, and gameplay regressions still pass.
+
+Risks / decisions:
+
+- `0xEBF2` also contains item spawner/exit branches. Port only the
+  fire/timer prefix now; Phase 2 fixtures must either stay below the
+  spawner threshold or assert those branches unreachable. Finish the rest in
+  Phase 3 rather than guessing.
+- `0xE5D3` hazard contact is deferred. Combat scenarios avoid hazard cells
+  and verify the routine is state-inert for them; otherwise port it early.
+- Cell offsets and the `+1` border indexing are easy to get wrong. Port
+  them through a single `cell_record(col,row)` accessor and prove it against
+  the oracle before porting the matrices.
+- `0x47D` drawing/base-cell stamping has many call sites. Validate the state
+  side with one known spawn (slot, cursor, cells) before using it broadly.
+- The current `score` field and `[0x50A5]/[0x50A7]` are duplicated. Replace
+  the former with exact low/high fields and carry-aware adds.
+- `test_gameplay.js` currently asserts score/collectibles stay zero. Update
+  those assertions only when the corresponding real rule lands; do not add
+  temporary fake counters.
+
+Suggested order: P2.0 -> P2.1 -> P2.2 -> P2.3 -> P2.7 -> P2.4 -> P2.5 ->
+P2.6 -> P2.8. P2.7 must land before P2.4 because the slash matrices call
+`0x2002D`/`0x200FE`, and before P2.6 because `0xD1C6` spawns `0x6681` through
+the general spawn path. Commit after P2.0/P2.2/P2.3/P2.5/P2.8 so each step has
+a working oracle fixture.
 
 ## Phase 3 — Cells, crystals, exits, hub doors
 
@@ -135,7 +365,7 @@ Acceptance:
 
 ## Phase 4 — Remaining handlers and all 16 caves
 
-Remaining handlers (28):
+Remaining handlers (28; `0x6681` moves to Phase 2 as the death effect):
 
 ```text
 298A 2ACF 2BD4 2D37 2E25 2F83 32F6 3416 36B0 3904 3A2E 3F6C 403A
@@ -252,7 +482,8 @@ Acceptance:
 
 ## Immediate next actions
 
-1. Port the `0x20406` second-hit/projectile block and player fire.
+1. Port the `0x20406` slash gate and both state matrices, plus `0xCF6C`
+   fire and `0x251D` slot-2 slash update.
 2. Decode cell crystal collection and the `0xD412` exit state machine.
 3. Decode hub door entry and return-to-hub spawn (door cell `w0` now carries
    IDs 1..16 in level 2).
@@ -266,6 +497,8 @@ make test-all
 make test-physics            # committed physics fixtures (fast)
 make test-oracle-physics     # regenerate physics fixtures (Unicorn)
 make test-oracle-objects     # requires tools/requirements.txt + .venv
+make test-combat             # committed combat fixtures (fast; Phase 2)
+make test-oracle-combat      # regenerate combat fixtures (Phase 2)
 make startup                 # regenerate notes/startup.json + startup_data.h
 ```
 
@@ -296,9 +529,14 @@ PASS: 16 physics scenarios, 670 frames match oracle
 - `wasm/render.c` — static renderer, viewport, object draw (HUD pending).
 - `wasm/play.html` — playable shell, input, camera view, level selector.
 - `wasm/test_oracle_objects.js` — object/cell oracle comparison.
-- `wasm/test_interaction.js` — `0x20406` pickup test.
-- `tools/emulate_game.py` — full update-loop oracle and interaction fixtures.
+- `wasm/test_interaction.js` — `0x20406` pickup test (replace with oracle
+  fixtures in Phase 2).
+- `tools/emulate_game.py` — full update-loop oracle and interaction fixtures;
+  extend with scenario seeding and full-frame order in Phase 2.
 - `tools/oracle_frame.py` — player physics sub-routine oracle (DS data missing).
+- `tools/combat_fixtures.py` / `notes/combat_fixtures.json` — planned
+  committed combat oracle trace.
+- `wasm/test_combat.js` — planned C-vs-oracle combat regression.
 - `tools/export_assets.py` — portable asset export; add PCX/SND/UI assets here.
 - `out/portable/cells.bin` — mutable 20-byte cell records.
 - `notes/handlers_disasm.txt` — handler port source.

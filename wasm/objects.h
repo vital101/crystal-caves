@@ -12,6 +12,7 @@ extern "C" {
 /* Optional full mutable 20-byte cell image (19 x 25 x 40 x 20; cells.bin). */
 void cc_set_cells(const unsigned char *cells);
 int cc_cell_byte(int col, int row, int off);
+void cc_cell_set(int col, int row, int off, int value);
 
 /* Load the oracle-captured 60-slot object image for `level`. */
 void cc_objects_init(int level);
@@ -26,6 +27,10 @@ void cc_objects_step_objects(void);
 
 /* Advance only exact player physics (0xE011 + 0xE36B); no object loop. */
 void cc_objects_step_physics(void);
+
+/* Full normal frame (physics, fire/timers, object loop).  Phase 2.2 fills in
+ * 0xEBF2/0xEAEA; used by the game shell and combat fixtures. */
+void cc_objects_step_full(void);
 
 /* Exact physics-state debug/test access (field order mirrors
  * tools/oracle_physics.FIELDS). */
@@ -44,6 +49,9 @@ int32_t cc_phys_get(int field);
 void    cc_phys_set(int field, int32_t value);
 
 int  cc_obj_count(void);
+/* Generic object field access using tools/emulate_load.OBJ_FIELDS offsets. */
+int32_t cc_obj_get(int i, int off);
+void    cc_obj_set(int i, int off, int32_t value);
 uint16_t cc_obj_state(int i);
 int32_t  cc_obj_x(int i);
 int32_t  cc_obj_y(int i);
@@ -62,6 +70,7 @@ int32_t  cc_obj_vy(int i);
 uint16_t cc_obj_speed(int i);
 uint16_t cc_obj_p24(int i);
 uint16_t cc_obj_cursor(void);
+void     cc_obj_set_cursor(int value);
 
 /* C4: input.  Set a directional input flag (pressed=1 / released=0).
  * Flags: 0x338E=left, 0x338F=right, 0x338B=jump, 0x3390=fire.
@@ -81,11 +90,32 @@ int16_t  cc_move_dir(void);
 int  cc_collide_player(int mode, int16_t radius);
 
 /* C5: sound.  Set a callback (id -> void) invoked when the original would
- * play a sound via 0x1F9A:0x21F. */
+ * play a sound via 0x1F9A:0x21F.  Every ID is also recorded in a log so the
+ * wasm test harness can compare event order without JS callbacks. */
 void cc_sound_set_callback(void (*cb)(uint16_t id));
+void cc_sound_log_clear(void);
+int  cc_sound_log_count(void);
+int  cc_sound_log_total(void);
+uint16_t cc_sound_log_at(int i);
+
+/* Generic gameplay global access by original DS offset. */
+int32_t cc_global_get(int off);
+void    cc_global_set(int off, int32_t value);
+
+/* Phase 2 RNG (0x2BB5:0x980). */
+uint16_t cc_rng_next(uint16_t n);
+void     cc_rng_seed(uint16_t lo, uint16_t hi);
+uint16_t cc_rng_lo(void);
+uint16_t cc_rng_hi(void);
 
 /* C5: score / collectibles / lives / level completion. */
 uint32_t  cc_score(void);
+uint16_t  cc_score_lo(void);
+uint16_t  cc_score_hi(void);
+uint16_t  cc_cooldown(void);
+uint16_t  cc_g_2da(void);
+uint16_t  cc_g_a0c4(void);
+uint8_t   cc_g_a0ff(void);
 uint16_t  cc_collectibles_total(void);
 uint16_t  cc_collectibles_left(void);
 uint16_t  cc_lives(void);

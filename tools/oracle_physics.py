@@ -31,14 +31,18 @@ from unicorn import (  # noqa: E402
 )
 from unicorn.x86_const import (  # noqa: E402
     UC_X86_REG_CS, UC_X86_REG_DS, UC_X86_REG_ES, UC_X86_REG_SS,
-    UC_X86_REG_SP, UC_X86_REG_IP, UC_X86_REG_AX, UC_X86_REG_FLAGS,
+    UC_X86_REG_SP, UC_X86_REG_BP, UC_X86_REG_IP, UC_X86_REG_AX,
+    UC_X86_REG_FLAGS,
 )
 
 RET_SENTINEL = E.RET_SENTINEL
 SKIP_SEGS = {0x28B5, 0x26C5, 0x0FC5}
 HORIZ = 0xE011
 JUMP = 0xE36B
+FIRE_TIMERS = 0xEBF2
+STATUS_TIMERS = 0xEAEA
 OBJECTS = 0xD72A
+PLAY_SOUND = 0x1FBC5   # after the 0x1F9A:0x21F prologue; [bp+6] is the ID
 
 # Inputs: keyboard flags.  (0x338A is joystick fire, not the keyboard key.)
 INPUT_LEFT = 0x338E
@@ -92,6 +96,7 @@ class PhysicsOracle:
         mu.reg_write(UC_X86_REG_ES, E.DATA_SEG)
         mu.reg_write(UC_X86_REG_CS, 0)
         self.stopped = None
+        self.sound_events = []
         self._install_hooks()
         self.reset()
         self.start = self.dump()
@@ -103,6 +108,11 @@ class PhysicsOracle:
             if address == RET_SENTINEL:
                 self.stopped = "ret"
                 uc.emu_stop()
+                return
+            if address == PLAY_SOUND:
+                bp = uc.reg_read(UC_X86_REG_BP)
+                self.sound_events.append(
+                    E.u16(uc, uc.reg_read(UC_X86_REG_SS), (bp + 6) & 0xFFFF))
                 return
             if uc.mem_read(address, 1)[0] == 0x9A:
                 raw = uc.mem_read(address, 5)
@@ -132,6 +142,7 @@ class PhysicsOracle:
         """Restore the exact post-startup/post-load DS image."""
         self.mu.mem_write(E.DATA_SEG << 4, self.ds)
         self.stopped = None
+        self.sound_events = []
 
     def state(self, off):
         return s16(self.mu, E.DATA_SEG, off)
@@ -140,6 +151,48 @@ class PhysicsOracle:
         self.mu.mem_write((E.DATA_SEG << 4) + off,
                           (val & 0xFF).to_bytes(1, "little") if width == 1
                           else (val & 0xFFFF).to_bytes(2, "little"))
+
+    def seed_global(self, off, val, width=2):
+        self.set_global(off, val, width)
+
+    def seed_object(self, slot, fields):
+        """Write object fields by E.OBJ_FIELDS name (x/y signed, ready byte)."""
+        if slot < 0 or slot >= E.OBJ_SLOTS:
+            raise ValueError("object slot out of range: %d" % slot)
+        base = E.OBJ_BASE + slot * E.OBJ_STRIDE
+        offsets = {name: off for name, off, _ in E.OBJ_FIELDS}
+        for name, val in fields.items():
+            if name not in offsets:
+                raise KeyError("unknown object field %r" % name)
+            width = 1 if name == "ready" else 2
+            self.set_global(base + offsets[name], val, width)
+
+    def seed_cell(self, col, row, data):
+        """Write a 20-byte cell (bytes or hex string) at logical (col,row)."""
+        raw = bytes.fromhex(data) if isinstance(data, str) else bytes(data)
+        if len(raw) != 20:
+            raise ValueError("cell data must be 20 bytes")
+        off = (E.CELL_BASE + (col + 1) * E.CELL_COL_STRIDE
+               + (row + 1) * E.CELL_ROW_STRIDE)
+        self.mu.mem_write((E.DATA_SEG << 4) + off, raw)
+
+    def seed_rng(self, lo, hi):
+        self.set_global(0x02A6, lo, 2)
+        self.set_global(0x02A8, hi, 2)
+
+    def rng(self):
+        return [self.state(0x02A6) & 0xFFFF, self.state(0x02A8) & 0xFFFF]
+
+    def dump_globals(self, names=None):
+        """Dump captured gameplay globals by startup-capture name."""
+        wanted = names or [name for name, _, _ in S.GLOBALS]
+        table = {name: (off, width) for name, off, width in S.GLOBALS}
+        out = {}
+        for name in wanted:
+            off, width = table[name]
+            out[name] = (self.mu.mem_read((E.DATA_SEG << 4) + off, width)[0]
+                         if width == 1 else self.state(off) & 0xFFFF)
+        return out
 
     def set_inputs(self, left=False, right=False, jump=False, fire=False):
         mu = self.mu
@@ -198,8 +251,23 @@ class PhysicsOracle:
             raise RuntimeError("routine %04X stopped: %s" % (entry, self.stopped))
 
     def step(self, with_objects=True):
+        self.sound_events = []
         self._run(HORIZ)
         self._run(JUMP)
+        if with_objects:
+            self._run(OBJECTS)
+
+    def step_objects_only(self):
+        self.sound_events = []
+        self._run(OBJECTS)
+
+    def step_full(self, with_objects=True):
+        """Normal frame order (0xE5D3 hazard contact deferred until ported)."""
+        self.sound_events = []
+        self._run(HORIZ)
+        self._run(JUMP)
+        self._run(FIRE_TIMERS)
+        self._run(STATUS_TIMERS)
         if with_objects:
             self._run(OBJECTS)
 

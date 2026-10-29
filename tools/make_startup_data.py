@@ -34,6 +34,12 @@ STARTUP_FIELDS = [
     ("509c", "uint16_t"), ("509e", "uint16_t"),
     ("4660", "uint8_t"), ("4652", "uint16_t"),
     ("a0c0", "uint16_t"),
+    # Phase 2: RNG, score, fire/timer, restart checkpoint.
+    ("2a6", "uint16_t"), ("2a8", "uint16_t"), ("2da", "uint16_t"),
+    ("50a5", "uint16_t"), ("50a7", "uint16_t"),
+    ("50a0", "uint16_t"), ("50be", "uint16_t"), ("50c4", "uint16_t"),
+    ("50c7", "uint16_t"), ("50c9", "uint16_t"),
+    ("a0ff", "uint8_t"), ("a0c4", "uint16_t"),
 ]
 
 LEVEL_FIELDS = [
@@ -41,6 +47,10 @@ LEVEL_FIELDS = [
     ("512e", "int16_t"), ("5130", "int16_t"),
     ("4619", "uint16_t"), ("461b", "uint16_t"), ("461d", "uint16_t"),
     ("461f", "uint16_t"), ("4627", "uint16_t"), ("4629", "uint16_t"),
+    # Per-level prologue state that affects combat/fire and RNG.
+    ("2da", "uint16_t"), ("30b", "uint8_t"),
+    ("2a6", "uint16_t"), ("2a8", "uint16_t"),
+    ("50a0", "uint16_t"),
 ]
 
 

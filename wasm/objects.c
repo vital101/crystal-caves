@@ -141,18 +141,32 @@ typedef struct {
     uint16_t g_509e;             /* [0x509e] lives/crystal counter in border cell */
     uint16_t g_509c;             /* [0x509c] HUD counter in border cell */
     uint8_t  g_4660;             /* [0x4660] player-hit lock */
-    uint8_t  g_4652;             /* [0x4652] projectile state */
+    uint16_t g_4652;             /* [0x4652] projectile state */
 
-    /* Sound callback (host-set).  Forwarded to by 0x1F9A:0x21F. */
+    /* Phase 2 exact combat/fire state. */
+    uint16_t score_lo;           /* [0x50a5] */
+    uint16_t score_hi;           /* [0x50a7] */
+    uint16_t rng_lo;             /* [0x02a6] */
+    uint16_t rng_hi;             /* [0x02a8] */
+    uint16_t cooldown;           /* [0x02e0] frames since fire */
+    uint16_t fire_impulse;       /* [0x02da] per-level firing impulse */
+    uint8_t  power_shot;         /* [0xa0ff] power-shot active */
+    uint16_t power_timer;        /* [0xa0c4] power-shot expiry */
+    uint16_t checkpoint_50a0;    /* [0x50a0] restart checkpoint */
+    uint16_t checkpoint_50be;    /* [0x50be] */
+    uint16_t checkpoint_50c4;    /* [0x50c4] */
+    uint16_t checkpoint_50c7;    /* [0x50c7] */
+    uint16_t checkpoint_50c9;    /* [0x50c9] */
+
+    /* Sound callback / event log (host-set).  0x1F9A:0x21F forwards here. */
     void (*sound_callback)(uint16_t id);
+    uint16_t sound_log[256];
+    uint16_t sound_log_count;
+    uint32_t sound_log_total;
 
-    /* C4/C5: score / collectibles / lives are explicit zero-stubs until the
-     * real cell-based rules are derived.  Kind 1 is the player, not a
-     * collectible. */
-    uint32_t score;
+    /* C4/C5: collectibles-lifetime stubs until Phase 3. */
     uint16_t collectibles_total;
     uint16_t collectibles_left;
-    uint16_t lives;
 } cc_state_t;
 
 static cc_state_t g_state = { 0 };
@@ -165,6 +179,15 @@ static int16_t wadd(int16_t a, int16_t b) { return (int16_t)((uint16_t)a + (uint
 static int16_t wsub(int16_t a, int16_t b) { return (int16_t)((uint16_t)a - (uint16_t)b); }
 static int16_t wmul(int16_t a, int16_t b) { return (int16_t)((uint16_t)a * (uint16_t)b); }
 static int16_t wneg(int16_t a) { return (int16_t)(0u - (uint16_t)a); }
+
+/* [0x50a5]/[0x50a7] add/adc pair.  The two words are not contiguous in
+ * memory (0x50a6 is unused), so carry is applied explicitly. */
+static void score_add(uint16_t lo_add, uint16_t hi_add) {
+    uint32_t lo = (uint32_t)S->score_lo + lo_add;
+    uint32_t hi = (uint32_t)S->score_hi + hi_add + (lo >> 16);
+    S->score_lo = (uint16_t)lo;
+    S->score_hi = (uint16_t)hi;
+}
 
 void cc_set_cells(const unsigned char *cells) { g_cells_asset = cells; }
 
@@ -253,8 +276,11 @@ static int16_t proximity_mode2(int16_t x, int16_t y, int16_t radius) {
 /* 0x1F9A:0x21F play_sound_or_effect(id).
  * Original: manages sound channels [0x50E0]/[0x50F4], sets [0x5138]=1,
  * [0x513F]=1, and advances the sound channel index [0x5136].
- * Here we just forward the sound ID to the host callback. */
+ * Here we log the ID for oracle comparison and forward it to the host. */
 static void play_sound(uint16_t id) {
+    if (S->sound_log_count < 256)
+        S->sound_log[S->sound_log_count++] = id;
+    S->sound_log_total++;
     if (S->sound_callback) S->sound_callback(id);
 }
 
@@ -1004,7 +1030,7 @@ static void player_interact(ObjectEntry *o, int16_t x, int16_t y) {
             o->ready = 1;
             spawn_effect(0x18, (int16_t)(x / 16), (int16_t)(y / 16));
             play_sound(8);
-            S->score += 1000;
+            score_add(1000, 0);
             break;
         default:
             break;
@@ -1320,6 +1346,14 @@ void cc_objects_step(void) {
     step_objects();
 }
 
+/* Full normal frame used by the game shell and combat fixtures.  Phase 2.2
+ * inserts 0xEBF2 (fire/timers) and 0xEAEA (status timers) between physics
+ * and the object loop; until then this is the physics+objects subset. */
+void cc_objects_step_full(void) {
+    cc_objects_step_physics();
+    step_objects();
+}
+
 /* ---------------------------------------------------------------- collision
  * Check if any object is in proximity to the player (using helper 0x1F9A:0x177B).
  * Returns the object index, or -1 if none.  `radius` is the proximity
@@ -1397,7 +1431,23 @@ static void apply_startup_state(void) {
     S->g_509c = g_startup.f_509c;
     S->g_509e = g_startup.f_509e;
     S->g_4660 = g_startup.f_4660;
-    S->g_4652 = (uint8_t)g_startup.f_4652;
+    S->g_4652 = g_startup.f_4652;
+
+    S->score_lo = g_startup.f_50a5;
+    S->score_hi = g_startup.f_50a7;
+    S->rng_lo = g_startup.f_2a6;
+    S->rng_hi = g_startup.f_2a8;
+    S->cooldown = g_startup.f_2e0;
+    S->fire_impulse = g_startup.f_2da;
+    S->power_shot = g_startup.f_a0ff;
+    S->power_timer = g_startup.f_a0c4;
+    S->checkpoint_50a0 = g_startup.f_50a0;
+    S->checkpoint_50be = g_startup.f_50be;
+    S->checkpoint_50c4 = g_startup.f_50c4;
+    S->checkpoint_50c7 = g_startup.f_50c7;
+    S->checkpoint_50c9 = g_startup.f_50c9;
+    S->sound_log_count = 0;
+    S->sound_log_total = 0;
 
     S->g_512a = 0;
     S->g_513a = 0;
@@ -1436,6 +1486,15 @@ static void apply_level_state(int level, int use_start) {
     S->shape_a = st->f_461f;
     S->shape_player = st->f_4627;
     S->move_dir = st->f_4629;
+    /* Prologue state is reloaded with every level.  RNG is only seeded on a
+     * fresh game load; transitions preserve the live LCG state. */
+    S->fire_impulse = st->f_2da;
+    S->status_30b = st->f_30b;
+    S->checkpoint_50a0 = st->f_50a0;
+    if (use_start) {
+        S->rng_lo = st->f_2a6;
+        S->rng_hi = st->f_2a8;
+    }
 }
 
 static void load_level(int level, int new_game) {
@@ -1492,6 +1551,15 @@ void cc_level_exit(int next_level) {
 void cc_sound_set_callback(void (*cb)(uint16_t id)) {
     S->sound_callback = cb;
 }
+void cc_sound_log_clear(void) {
+    S->sound_log_count = 0;
+    S->sound_log_total = 0;
+}
+int cc_sound_log_count(void) { return S->sound_log_count; }
+int cc_sound_log_total(void) { return (int)S->sound_log_total; }
+uint16_t cc_sound_log_at(int i) {
+    return (i >= 0 && i < S->sound_log_count) ? S->sound_log[i] : 0;
+}
 
 int cc_obj_count(void) { return OBJ_MAX; }
 uint16_t cc_obj_state(int i)  { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].state  : 0; }
@@ -1512,6 +1580,7 @@ int32_t  cc_obj_vy(int i)     { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].vy   
 uint16_t cc_obj_speed(int i)  { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].speed  : 0; }
 uint16_t cc_obj_p24(int i)    { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].p24    : 0; }
 uint16_t cc_obj_cursor(void)  { return S->obj_cursor; }
+void     cc_obj_set_cursor(int value) { S->obj_cursor = (uint16_t)value; }
 /* Current level index (updated by cc_level_exit / cc_objects_init). */
 int32_t  cc_cur_level(void)    { return S->cur_level; }
 int cc_cell_byte(int col, int row, int off) {
@@ -1522,6 +1591,215 @@ int cc_cell_byte(int col, int row, int off) {
     if (off == 19) return cc_cell_exit(S->cur_level, col, row);
     return 0;
 }
+void cc_cell_set(int col, int row, int off, int value) {
+    if (col < 0 || col >= CELL_COLS || row < 0 || row >= CELL_ROWS ||
+        off < 0 || off >= 20) return;
+    S->cells[row][col][off] = (unsigned char)value;
+}
+
+/* ---------------------------------------------------------------- test seeding
+ * Generic field access mirrors tools/emulate_load.OBJ_FIELDS offsets.
+ * Returns signed 16-bit values for x/y/x_prev/y_prev/vx/vy and unsigned for
+ * the word fields; callers compare with & 0xFFFF. */
+int32_t cc_obj_get(int i, int off) {
+    if (i < 0 || i >= OBJ_MAX) return 0;
+    const ObjectEntry *o = &S->obj[i];
+    switch (off) {
+        case 0x00: return o->state;
+        case 0x02: return o->p02;
+        case 0x04: return o->p04;
+        case 0x06: return (int16_t)o->x;
+        case 0x08: return (int16_t)o->y;
+        case 0x0a: return (int16_t)o->x_prev;
+        case 0x0c: return (int16_t)o->y_prev;
+        case 0x0e: return o->tile;
+        case 0x10: return o->p10;
+        case 0x12: return o->p12;
+        case 0x14: return o->p14;
+        case 0x16: return o->p16;
+        case 0x18: return o->p18;
+        case 0x1a: return o->p1a;
+        case 0x1c: return o->shape;
+        case 0x1e: return (int16_t)o->vx;
+        case 0x20: return (int16_t)o->vy;
+        case 0x22: return o->speed;
+        case 0x24: return o->p24;
+        case 0x26: return o->kind;
+        case 0x28: return o->ready;
+        case 0x29: return o->handler;
+        case 0x2b: return o->handler_seg;
+        default: return 0;
+    }
+}
+void cc_obj_set(int i, int off, int32_t v) {
+    if (i < 0 || i >= OBJ_MAX) return;
+    ObjectEntry *o = &S->obj[i];
+    switch (off) {
+        case 0x00: o->state = (uint16_t)v; break;
+        case 0x02: o->p02 = (uint16_t)v; break;
+        case 0x04: o->p04 = (uint16_t)v; break;
+        case 0x06: o->x = (int16_t)v; break;
+        case 0x08: o->y = (int16_t)v; break;
+        case 0x0a: o->x_prev = (int16_t)v; break;
+        case 0x0c: o->y_prev = (int16_t)v; break;
+        case 0x0e: o->tile = (uint16_t)v; break;
+        case 0x10: o->p10 = (uint16_t)v; break;
+        case 0x12: o->p12 = (uint16_t)v; break;
+        case 0x14: o->p14 = (uint16_t)v; break;
+        case 0x16: o->p16 = (uint16_t)v; break;
+        case 0x18: o->p18 = (uint16_t)v; break;
+        case 0x1a: o->p1a = (uint16_t)v; break;
+        case 0x1c: o->shape = (uint16_t)v; break;
+        case 0x1e: o->vx = (int16_t)v; break;
+        case 0x20: o->vy = (int16_t)v; break;
+        case 0x22: o->speed = (uint16_t)v; break;
+        case 0x24: o->p24 = (uint16_t)v; break;
+        case 0x26: o->kind = (uint16_t)v; break;
+        case 0x28: o->ready = (uint8_t)v; break;
+        case 0x29: o->handler = (uint16_t)v; break;
+        case 0x2b: o->handler_seg = (uint16_t)v; break;
+        default: break;
+    }
+}
+
+/* Generic DS-offset access for the captured gameplay globals. */
+int32_t cc_global_get(int off) {
+    switch (off & 0xFFFF) {
+        case 0x4611: return (int16_t)S->player_x;
+        case 0x4613: return (int16_t)S->player_y;
+        case 0xA0F1: return S->blocked_l;
+        case 0xA0F2: return S->blocked_r;
+        case 0xA0F6: return S->g_a0f6;
+        case 0xA0F8: return S->a0f8;
+        case 0xA0FC: return S->g_a0fc;
+        case 0xA0FD: return S->airborne;
+        case 0xA0EA: return S->g_a0ea;
+        case 0xA0B4: return S->walk_phase;
+        case 0xA0B8: return S->g_a0b8;
+        case 0x02BA: return S->walk_speed;
+        case 0x02CA: return S->impulse;
+        case 0x02C8: return S->c8;
+        case 0x02C6: return S->c6;
+        case 0x02E0: return S->cooldown;
+        case 0x0306: return S->jump_flag;
+        case 0x030A: return S->anim_suppress;
+        case 0x030B: return S->status_30b;
+        case 0x030C: return S->paused_30c;
+        case 0x461B: return S->anim_timer;
+        case 0x461D: return S->shape_b;
+        case 0x461F: return S->shape_a;
+        case 0x4619: return S->player_block;
+        case 0x4627: return S->shape_player;
+        case 0x4629: return S->move_dir;
+        case 0x460D: return S->g_460d;
+        case 0x5118: return S->g_5118;
+        case 0x5126: return S->g_5126;
+        case 0x5128: return S->g_5128;
+        case 0x5124: return S->g_5124;
+        case 0x512E: return (int16_t)S->cam_x;
+        case 0x5130: return (int16_t)S->cam_y;
+        case 0x5132: return S->gravity_scale;
+        case 0x5134: return S->jump_phase;
+        case 0x513C: return S->g_513c;
+        case 0x513D: return S->g_513d;
+        case 0x5140: return S->g_5140;
+        case 0x5142: return S->g_5142;
+        case 0x509C: return S->g_509c;
+        case 0x509E: return S->g_509e;
+        case 0x4660: return S->g_4660;
+        case 0x4652: return S->g_4652;
+        case 0x02A6: return S->rng_lo;
+        case 0x02A8: return S->rng_hi;
+        case 0x02DA: return S->fire_impulse;
+        case 0x50A5: return S->score_lo;
+        case 0x50A7: return S->score_hi;
+        case 0x50A0: return S->checkpoint_50a0;
+        case 0x50BE: return S->checkpoint_50be;
+        case 0x50C4: return S->checkpoint_50c4;
+        case 0x50C7: return S->checkpoint_50c7;
+        case 0x50C9: return S->checkpoint_50c9;
+        case 0xA0FF: return S->power_shot;
+        case 0xA0C4: return S->power_timer;
+        default: return 0;
+    }
+}
+void cc_global_set(int off, int32_t v) {
+    switch (off & 0xFFFF) {
+        case 0x4611: S->player_x = (int16_t)v; break;
+        case 0x4613: S->player_y = (int16_t)v; break;
+        case 0xA0F1: S->blocked_l = (uint8_t)v; break;
+        case 0xA0F2: S->blocked_r = (uint8_t)v; break;
+        case 0xA0F6: S->g_a0f6 = (uint8_t)v; break;
+        case 0xA0F8: S->a0f8 = (uint8_t)v; break;
+        case 0xA0FC: S->g_a0fc = (uint8_t)v; break;
+        case 0xA0FD: S->airborne = (uint8_t)v; break;
+        case 0xA0EA: S->g_a0ea = (uint16_t)v; break;
+        case 0xA0B4: S->walk_phase = (uint16_t)v; break;
+        case 0xA0B8: S->g_a0b8 = (uint16_t)v; break;
+        case 0x02BA: S->walk_speed = (uint16_t)v; break;
+        case 0x02CA: S->impulse = (uint16_t)v; break;
+        case 0x02C8: S->c8 = (uint16_t)v; break;
+        case 0x02C6: S->c6 = (uint16_t)v; break;
+        case 0x02E0: S->cooldown = (uint16_t)v; break;
+        case 0x0306: S->jump_flag = (uint8_t)v; break;
+        case 0x030A: S->anim_suppress = (uint8_t)v; break;
+        case 0x030B: S->status_30b = (uint8_t)v; break;
+        case 0x030C: S->paused_30c = (uint8_t)v; break;
+        case 0x461B: S->anim_timer = (uint16_t)v; break;
+        case 0x461D: S->shape_b = (uint16_t)v; break;
+        case 0x461F: S->shape_a = (uint16_t)v; break;
+        case 0x4619: S->player_block = (uint16_t)v; break;
+        case 0x4627: S->shape_player = (uint16_t)v; break;
+        case 0x4629: S->move_dir = (uint16_t)v; break;
+        case 0x460D: S->g_460d = (uint16_t)v; break;
+        case 0x5118: S->g_5118 = (uint16_t)v; break;
+        case 0x5126: S->g_5126 = (uint16_t)v; break;
+        case 0x5128: S->g_5128 = (uint16_t)v; break;
+        case 0x5124: S->g_5124 = (uint16_t)v; break;
+        case 0x512E: S->cam_x = (int16_t)v; break;
+        case 0x5130: S->cam_y = (int16_t)v; break;
+        case 0x5132: S->gravity_scale = (int16_t)v; break;
+        case 0x5134: S->jump_phase = (uint16_t)v; break;
+        case 0x513C: S->g_513c = (uint8_t)v; break;
+        case 0x513D: S->g_513d = (uint8_t)v; break;
+        case 0x5140: S->g_5140 = (uint8_t)v; break;
+        case 0x5142: S->g_5142 = (uint8_t)v; break;
+        case 0x509C: S->g_509c = (uint16_t)v; break;
+        case 0x509E: S->g_509e = (uint16_t)v; break;
+        case 0x4660: S->g_4660 = (uint8_t)v; break;
+        case 0x4652: S->g_4652 = (uint16_t)v; break;
+        case 0x02A6: S->rng_lo = (uint16_t)v; break;
+        case 0x02A8: S->rng_hi = (uint16_t)v; break;
+        case 0x02DA: S->fire_impulse = (uint16_t)v; break;
+        case 0x50A5: S->score_lo = (uint16_t)v; break;
+        case 0x50A7: S->score_hi = (uint16_t)v; break;
+        case 0x50A0: S->checkpoint_50a0 = (uint16_t)v; break;
+        case 0x50BE: S->checkpoint_50be = (uint16_t)v; break;
+        case 0x50C4: S->checkpoint_50c4 = (uint16_t)v; break;
+        case 0x50C7: S->checkpoint_50c7 = (uint16_t)v; break;
+        case 0x50C9: S->checkpoint_50c9 = (uint16_t)v; break;
+        case 0xA0FF: S->power_shot = (uint8_t)v; break;
+        case 0xA0C4: S->power_timer = (uint16_t)v; break;
+        default: break;
+    }
+}
+
+/* ---------------------------------------------------------------- RNG
+ * 0x2BB5:0x980 / LCG at 0x2C51F.  Multiplier CS:[0xA05]=0x8405, +1.
+ * Returns (state >> 16) % n; n == 0 returns 0. */
+uint16_t cc_rng_next(uint16_t n) {
+    uint32_t s = ((uint32_t)S->rng_hi << 16) | S->rng_lo;
+    s = s * 0x8405u + 1u;
+    S->rng_lo = (uint16_t)s;
+    S->rng_hi = (uint16_t)(s >> 16);
+    return n ? (uint16_t)((s >> 16) % n) : 0;
+}
+void cc_rng_seed(uint16_t lo, uint16_t hi) {
+    S->rng_lo = lo;
+    S->rng_hi = hi;
+}
+uint16_t cc_rng_lo(void) { return S->rng_lo; }
+uint16_t cc_rng_hi(void) { return S->rng_hi; }
 /* Handler offset (behaviour ID, segment 0x1F9A) for slot i. */
 uint16_t cc_obj_handler(int i)  { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].handler : 0; }
 
@@ -1559,7 +1837,13 @@ int16_t  cc_move_dir(void) { return S->move_dir; }
 int      cc_collide_player(int mode, int16_t radius);
 
 /* C5 exports: score / collectibles / lives / sound. */
-uint32_t cc_score(void)       { return S->score; }
+uint32_t cc_score(void)       { return ((uint32_t)S->score_hi << 16) | S->score_lo; }
+uint16_t cc_score_lo(void)    { return S->score_lo; }
+uint16_t cc_score_hi(void)    { return S->score_hi; }
+uint16_t cc_cooldown(void)    { return S->cooldown; }
+uint16_t cc_g_2da(void)       { return S->fire_impulse; }
+uint16_t cc_g_a0c4(void)      { return S->power_timer; }
+uint8_t  cc_g_a0ff(void)      { return S->power_shot; }
 uint16_t cc_collectibles_total(void)  { return S->collectibles_total; }
 uint16_t cc_collectibles_left(void)   { return S->collectibles_left; }
 uint16_t cc_lives(void)             { return S->g_509e; }
