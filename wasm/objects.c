@@ -191,6 +191,14 @@ typedef struct {
     uint16_t rng_lo;             /* [0x02a6] */
     uint16_t rng_hi;             /* [0x02a8] */
     uint16_t cooldown;           /* [0x02e0] frames since fire */
+    uint16_t g_260;              /* [0x0260] 4FD4 retarget timer */
+    uint16_t g_50dc;             /* [0x50dc] 403A proximity radius A */
+    uint16_t g_50de;             /* [0x50de] 403A proximity radius B */
+    uint16_t g_50e0;             /* [0x50e0] 403A proximity radius C */
+    uint8_t  g_a0f0;             /* [0xa0f0] 5C8F companion flag A */
+    uint8_t  g_a0fa;             /* [0xa0fa] 5C8F companion flag B */
+    uint16_t g_2cc, g_2ce, g_2d4, g_2d6, g_2d8; /* loader map-command state */
+    uint16_t g_2fa, g_2fc, g_2fe;
     uint16_t fire_impulse;       /* [0x02da] per-level firing impulse */
     uint16_t g_2f2;              /* [0x02f2] status object index */
     uint16_t g_2b8;              /* [0x02b8] base cell block */
@@ -332,21 +340,21 @@ static int16_t proximity_test(int mode, int16_t radius,
     int16_t dx, dy, adx, ady;
 
     if (mode == 1) {
-        dx = obj_x - S->player_x;
-        adx = dx < 0 ? -dx : dx;
-        if (adx != 0) return 0;
-        dy = obj_y - S->player_y;
-        ady = dy < 0 ? -dy : dy;
-        if (ady >= radius) return 0;
-        return (dy > 0) ? 1 : (dy < 0 ? -1 : 0);
+        /* 0x2177B mode 1: same y, x within radius; direction by x. */
+        dy = (int16_t)(obj_y - S->player_y);
+        if (dy != 0) return 0;
+        dx = (int16_t)(obj_x - S->player_x);
+        adx = dx < 0 ? (int16_t)-dx : dx;
+        if (adx >= radius) return 0;
+        return (dx > 0) ? -1 : 1;
     } else if (mode == 2) {
-        dx = obj_x - S->player_x;
-        adx = dx < 0 ? -dx : dx;
+        dx = (int16_t)(obj_x - S->player_x);
+        adx = dx < 0 ? (int16_t)-dx : dx;
         if (adx >= 8) return 0;
-        dy = obj_y - S->player_y;
-        ady = dy < 0 ? -dy : dy;
+        dy = (int16_t)(obj_y - S->player_y);
+        ady = dy < 0 ? (int16_t)-dy : dy;
         if (ady >= radius) return 0;
-        return (dy > 0) ? 1 : (dy < 0 ? -1 : 0);
+        return (dy > 0) ? -1 : 1;
     }
     return 0;
 }
@@ -391,7 +399,12 @@ void cc_input_set(uint16_t flag, int pressed) {
         case 0x338A: S->input_joystick_fire = v; break; /* joystick fire */
         default: break;
     }
-    /* Keyboard-ISR side effects used by the physics routines. */
+}
+
+/* Apply the keyboard-ISR side effects once, after a whole input frame has
+ * been latched.  Doing this in cc_input_set() resets the walk phase on the
+ * intermediate left=0/right=0 state when the player switches direction. */
+static void input_commit(void) {
     if (!S->input_left && !S->input_right) S->walk_phase = 0;
     if (S->input_left || S->input_right) S->anim_suppress = 0;
 }
@@ -1753,6 +1766,35 @@ static int cell_test_200fe(int x, int y) {
     return 0;
 }
 
+/* 0x1F9A:0x1F58: shove the player by `amount` in `dir` (1=left, else
+ * right) if the cell immediately beside them is clear. */
+static void push_player(int16_t amount, int16_t dir) {
+    if (dir == 1) {
+        if (!cell_test_200fe((int16_t)(S->player_x - 3), S->player_y)) {
+            S->player_x = (int16_t)(S->player_x - amount);
+            S->obj[1].x = S->player_x;
+            S->g_5126 = (uint16_t)amount;
+            S->g_5118 = (uint16_t)amount;
+        }
+    } else {
+        if (!cell_test_200fe((int16_t)(S->player_x + 3), S->player_y)) {
+            S->g_5126 = (uint16_t)(-(int16_t)amount);
+            S->g_5118 = (uint16_t)(-(int16_t)amount);
+            S->player_x = (int16_t)(S->player_x + amount);
+            S->obj[1].x = S->player_x;
+        }
+    }
+}
+
+/* Turbo Pascal 32-bit multiply/divide helpers (0x2BB5:0x0279/0x0294). */
+static int32_t tp_long_mul(int32_t a, int32_t b) {
+    return (int32_t)((uint32_t)a * (uint32_t)b);
+}
+static int32_t tp_long_div(int32_t a, int32_t b) {
+    if (b == 0) return 0;
+    return (int32_t)(a / b);
+}
+
 /* 0x1F9A:0x1E74 helper: proximity test against the player using the object
  * record's current x/y.  mode 1: |dy| < r1 and |dx| < r2; mode 2:
  * |dx| < 8 and |dy| < r1.  Returns -1/1 for direction, 0 for no match. */
@@ -2571,6 +2613,792 @@ static void h_69d3(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     o->p18 = (uint16_t)(o->p18 + 1u);
 }
 
+static uint32_t g_unknown_handler_hits = 0;
+
+/* 0x1F9A:0x298A (kind 0x05): two-phase walker. */
+static void h_298a(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx;
+    anim_next(o);
+    if (cell_test_200fe(x, y))
+        o->vx = (int16_t)(-o->vx);
+    if ((int16_t)o->p1a < (int16_t)(o->p18 + 0xa)) {
+        anim_select_shape(o);
+        o->p16 = 0x10;
+        o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+    } else if ((int16_t)o->p1a < (int16_t)(o->p18 + 0x19)) {
+        o->shape = 0x11;
+        o->p16 = 6;
+    } else {
+        o->p1a = 0;
+        o->p10 = 1;
+    }
+    o->p1a = (uint16_t)(o->p1a + 1u);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+}
+
+/* 0x1F9A:0x403A (kind 0x1E): proximity player shover. */
+static void h_403a(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    int16_t dir;
+    dir = proximity_test(1, (int16_t)(S->g_50dc << 4), x, y);
+    S->g_5126 = 0;
+    if (dir != 0) {
+        push_player(5, dir);
+        S->g_5118 = 5;
+        goto common;
+    }
+    dir = proximity_test(1, (int16_t)(S->g_50de << 4), x, y);
+    if (dir != 0) {
+        if ((int16_t)o->vx == dir) {
+            push_player(3, dir);
+            S->g_5118 = 3;
+        }
+        goto common;
+    }
+    dir = proximity_test(1, (int16_t)(S->g_50e0 << 4), x, y);
+    if (dir != 0 && (int16_t)o->vx == dir) {
+        push_player(1, dir);
+        S->g_5118 = 1;
+    }
+common:
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+    anim_next(o);
+    if (idx + 1 < OBJ_MAX) anim_next(&S->obj[idx + 1]);
+}
+
+/* 0x1F9A:0x55EC (kind 0x36): paired horizontal mover. */
+static void h_55ec(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    ObjectEntry *child;
+    int16_t dir_p, dir_c;
+    int spd;
+    if (idx + 1 >= OBJ_MAX) return;
+    child = &S->obj[idx + 1];
+    dir_p = proximity_obj_dir(1, 0x20, 0x130, idx);
+    dir_c = proximity_obj_dir(1, 0x20, 0x130, idx + 1);
+    if ((int16_t)o->vx == dir_p || (int16_t)child->vx == dir_c) {
+        o->speed = 4;
+        child->speed = 4;
+        spd = 1;
+    } else {
+        o->speed = 2;
+        child->speed = 2;
+        spd = 2;
+    }
+    o->p18 = (uint16_t)(o->p18 + 1u);
+    if ((int16_t)o->p18 % spd == 0) {
+        anim_next(o);
+        anim_next(child);
+    }
+    if (cell_test_200fe(x, y)) {
+        o->vx = (int16_t)(-o->vx);
+        anim_select_shape(o);
+        child->vx = (int16_t)(-child->vx);
+        anim_select_shape(child);
+    }
+    o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+    child->x = (int16_t)(child->x + (int32_t)child->vx * child->speed);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+    player_interact(child, (int16_t)child->x, (int16_t)child->y);
+}
+
+
+
+
+/* 0x1F9A:0x3A2E (kind 0x1C): proximity lever with animation phases. */
+static void h_3a2e(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx;
+    int16_t dir;
+    if (o->state == 1) o->state = 3;
+    if ((int16_t)o->vx == 1)
+        dir = proximity_test(1, 0x30, (int16_t)(o->x - 0x10), (int16_t)o->y);
+    else
+        dir = proximity_test(1, 0x30, (int16_t)(o->x + 0x10), (int16_t)o->y);
+    if (((int16_t)o->vx == 1 && dir == 1) ||
+        ((int16_t)o->vx == -1 && dir == -1) || o->p18 != 0) {
+        o->p18 = (uint16_t)(o->p18 + 1u);
+        o->state = 0;
+        if ((int16_t)o->p18 >= 0x1e) {
+            o->p18 = 0;
+        } else if ((int16_t)o->p10 < (int16_t)o->p16) {
+            o->p10 = (uint16_t)(o->p10 + 1u);
+        }
+        player_interact(o, (int16_t)o->x, (int16_t)o->y);
+        return;
+    }
+    if ((int16_t)o->p10 > 1) {
+        o->p10 = (uint16_t)(o->p10 - 1u);
+    } else {
+        o->state = 1;
+    }
+}
+
+/* 0x1F9A:0x3F6C (dynamic): proximity player shover (variant). */
+static void h_3f6c(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx;
+    int16_t dir;
+    S->g_5126 = 0;
+    S->g_5118 = 0;
+    dir = proximity_test(1, (int16_t)(S->g_50dc << 4), x, y);
+    if (dir != 0) {
+        push_player(5, dir);
+        goto common;
+    }
+    dir = proximity_test(1, (int16_t)(S->g_50de << 4), x, y);
+    if (dir != 0) {
+        push_player(3, dir);
+        goto common;
+    }
+    dir = proximity_test(1, (int16_t)(S->g_50e0 << 4), x, y);
+    if (dir != 0) push_player(1, dir);
+common:
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+    anim_next(o);
+}
+
+/* 0x1F9A:0x2E25 (kind 0x16): camera-relative spawner/mover. */
+static void h_2e25(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx; (void)x; (void)y;
+    if (o->p18 == 0) {
+        int32_t v = (int32_t)S->cam_x + (int32_t)cc_rng_next(0x140);
+        v = tp_long_div(v, 16);
+        v = tp_long_mul(v, 16);
+        o->x = (int16_t)v;
+        o->y = S->cam_y;
+        o->x_prev = o->x;
+        o->y_prev = o->y;
+    }
+    o->p18 = (uint16_t)(o->p18 + 1u);
+    if ((int16_t)o->y > 0x174) {
+        o->ready = 1;
+        o->p18 = 0;
+    }
+    if ((int16_t)S->player_y < 0x64 && (int16_t)o->p18 <= 1) {
+        o->ready = 1;
+        o->p18 = 0;
+        return;
+    }
+    o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+}
+
+/* 0x1F9A:0x2F83 (kind 0x1A): paired vertical mover/trigger. */
+static void h_2f83(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    ObjectEntry *child;
+    if (idx + 1 >= OBJ_MAX) return;
+    child = &S->obj[idx + 1];
+    if (o->state == 1) o->state = 4;
+    if (o->state == 3)
+        o->vy = (uint16_t)proximity_test(2, 0x50, (int16_t)(x + 0xf), y);
+    if ((int16_t)o->vy != 1) return;
+    child->vy = 1;
+    child->state = 0;
+    o->state = 0;
+    o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
+    child->y = (int16_t)(child->y + (int32_t)child->vy * child->speed);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+    player_interact(child, (int16_t)child->x, (int16_t)child->y);
+    if (cell_byte_cur((o->x + 2) / 16, (o->y + 0x11) / 16, 0x11) != 0 ||
+        cell_byte_cur((o->x + 2) / 16, (o->y + 0x11) / 16, 0x12) != 0) {
+        cell_put((o->x + 2) / 16, (o->y + 8) / 16, 0x12, 1);
+        cell_put((child->x + 2) / 16, (child->y + 8) / 16, 0x12, 1);
+        play_sound(0x17);
+        o->state = 1;
+        child->state = 1;
+        o->vy = 0;
+        o->vy = 0;
+    }
+}
+
+/* 0x1F9A:0x4AD3 (kind 0x35): left/right animated walker. */
+static void h_4ad3(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx;
+    if (cell_test_200fe(x, y)) o->vx = (int16_t)(-o->vx);
+    o->p1a = (uint16_t)(o->p1a + 1u);
+    if ((int16_t)o->p1a > 0x46) {
+        o->p1a = 0;
+        if (cc_rng_next(100) > 0x46) {
+            o->vx = (int16_t)(-o->vx);
+            anim_select_shape(o);
+        }
+    }
+    if ((int16_t)o->vx == 1) {
+        anim_next(o);
+    } else {
+        o->p10 = (uint16_t)(o->p10 - 1u);
+        if ((int16_t)o->p10 < 1) o->p10 = o->p16;
+    }
+    o->speed = 4;
+    o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+}
+
+/* 0x1F9A:0x36B0 (kind 0x16): four-record vertical formation mover. */
+static void h_36b0(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    int k;
+    if (idx + 3 >= OBJ_MAX) return;
+    S->obj[idx + 1].state = 0xFFFF;
+    S->obj[idx + 2].state = 0xFFFF;
+    S->obj[idx + 3].state = 0xFFFF;
+    if (cell_byte_cur((x + 0x10) / 16, y / 16, 0x11) ||
+        cell_byte_cur((x + 0x10) / 16, (y + 0x1b) / 16, 0x11)) {
+        o->vy = (int16_t)(-o->vy);
+        if ((int16_t)o->vy == -1) {
+            o->speed = 2;
+            o->p18 = 1;
+            o->p1a = 0;
+            play_sound(0x17);
+        }
+    }
+    if (o->p18 == 0) {
+        for (k = 0; k <= 3; k++)
+            S->obj[idx + k].y = (int16_t)(S->obj[idx + k].y +
+                                          (int32_t)o->vy * o->speed);
+    } else {
+        o->p18 = (uint16_t)(o->p18 + 1u);
+        o->p1a = (uint16_t)(o->p1a + 1u);
+        if ((int16_t)o->p18 > 0x14) o->p18 = 0;
+        if ((int16_t)o->p1a == 1) {
+            for (k = 0; k <= 3; k++)
+                S->obj[idx + k].y = (int16_t)(S->obj[idx + k].y - 3);
+        } else if ((int16_t)o->p1a == 3) {
+            for (k = 0; k <= 3; k++)
+                S->obj[idx + k].y = (int16_t)(S->obj[idx + k].y + 3);
+            play_sound(0x17);
+        }
+    }
+    for (k = 0; k <= 3; k++)
+        player_interact(o, (int16_t)S->obj[idx + k].x,
+                        (int16_t)S->obj[idx + k].y);
+}
+
+/* 0x1F9A:0x4EEB (dynamic): simple companion walker. */
+static void h_4eeb(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx;
+    anim_next(o);
+    if (cell_byte_cur((x + 3) / 16, (y + 8) / 16, 0x11) ||
+        cell_byte_cur((x + 0xc) / 16, (y + 8) / 16, 0x11))
+        o->vx = (int16_t)(-o->vx);
+    o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+}
+
+/* 0x1F9A:0x52E7 (kind 0x37): projectile/phase state machine. */
+static void h_52e7(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx;
+    int16_t dir;
+    if (o->p18 == 1) {
+        o->p1a = (uint16_t)(o->p1a + 1u);
+        if ((int16_t)o->p1a > 0x2d) {
+            o->ready = 1;
+            o->p18 = 0;
+            o->p1a = 0;
+        }
+    }
+    if (o->p18 == 0 &&
+        (cell_byte_cur((x + 8) / 16, (y + 3) / 16, 0x11) ||
+         cell_byte_cur((x + 8) / 16, (y + 0xc) / 16, 0x11))) {
+        play_sound(0x17);
+        if (cc_rng_next(1000) < 0x64) {
+            o->shape = 0x2e;
+            dir = proximity_obj_dir(1, 0x20, 0x130, idx);
+            o->vx = (dir == 0) ? (uint16_t)-1 : (uint16_t)dir;
+            o->vy = 0;
+            o->y = (int16_t)(((int16_t)(o->y + 6) / 16) << 4);
+            o->kind = 0x38;
+            o->p16 = 5;
+            o->speed = 2;
+            o->p04 = 1;
+            o->p18 = 1;
+            o->handler = 0x4EEB;
+            o->handler_seg = 0x1F9A;
+            mark_redraw((int16_t)o->x, (int16_t)(o->y + 0x10));
+        } else {
+            o->p18 = 1;
+            o->y = (int16_t)(((int16_t)(o->y + 6) / 16) << 4);
+            o->shape = 1;
+        }
+    }
+    if (o->p18 == 1) {
+        o->p1a = (uint16_t)(o->p1a + 1u);
+        player_interact(o, (int16_t)o->x, (int16_t)(o->y + 0xc));
+        return;
+    }
+    o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+}
+
+/* 0x1F9A:0x6232 (kind 0x33): two-frame walker. */
+static void h_6232(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx;
+    o->p18 = (uint16_t)(o->p18 + 1u);
+    if ((int16_t)o->p18 % 2 == 0) anim_next(o);
+    if (cell_test_200fe(x, y)) {
+        o->vx = (int16_t)(-o->vx);
+        anim_select_shape(o);
+    }
+    o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+}
+
+/* 0x1F9A:0x4C92 (kind 0x37): spawner that converts a companion to 0x52E7. */
+static void h_4c92(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    ObjectEntry *child;
+    anim_next(o);
+    if (proximity_test(2, 0x70, x, y) == 1 && idx > 0) {
+        child = &S->obj[idx - 1];
+        if (child->ready != 0) {
+            play_sound(0x10);
+            child->vx = 0;
+            child->vy = 1;
+            child->kind = 0x37;
+            child->p16 = 1;
+            child->p10 = 1;
+            child->speed = 6;
+            child->p04 = 0x7D00;
+            child->handler = 0x52E7;
+            child->handler_seg = 0x1F9A;
+            child->ready = 0;
+            child->state = 0;
+            child->x = (int16_t)(((int16_t)(o->x + 8) / 16) << 4);
+            child->y = o->y;
+            child->p18 = 0;
+            child->p1a = 0;
+            child->shape = 0x27;
+        }
+    }
+    if (cell_byte_cur((x + 3) / 16, (y + 8) / 16, 0x11) ||
+        cell_byte_cur((x + 0xc) / 16, (y + 8) / 16, 0x11))
+        o->vx = (int16_t)(-o->vx);
+    o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+}
+
+/* 0x1F9A:0x5C8F (kind 0x3A): three-object boss formation. */
+static void h_5c8f(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    ObjectEntry *prev, *next;
+    int16_t prev_x, prev_y, next_x, next_y, dir;
+    int flip = 0;
+    (void)x; (void)y;
+    if (idx < 2 || idx + 1 >= OBJ_MAX) return;
+    prev = &S->obj[idx - 1];
+    next = &S->obj[idx + 1];
+    prev_x = (int16_t)(prev->x + (int32_t)prev->vx * prev->speed);
+    prev_y = (int16_t)(prev->y + (int32_t)prev->vy * prev->speed);
+    next_x = (int16_t)(next->x + (int32_t)next->vx * next->speed);
+    next_y = (int16_t)(next->y + (int32_t)next->vy * next->speed);
+
+    if (S->g_a0f0 != 0) {
+        if (cc_rng_next(1000) < 0x14 && (int16_t)prev->shape < 0x15) {
+            prev->shape = 5;
+            prev->p10 = (uint16_t)(prev->p16 + 1u);
+            S->g_a0f0 = 0;
+        }
+    }
+    if (S->g_a0fa != 0) {
+        if (cc_rng_next(1000) < 0x14 && (int16_t)next->shape < 0x15) {
+            next->shape = 0x0D;
+            next->p10 = (uint16_t)(next->p16 + 1u);
+            S->g_a0fa = 0;
+        }
+    }
+    if (S->g_a0f0 == 0 && cc_rng_next(1000) < 0x14) S->g_a0f0 = 1;
+    if (S->g_a0fa == 0 && cc_rng_next(1000) < 0x14) S->g_a0fa = 1;
+
+    o->p18 = (uint16_t)(o->p18 + 1u);
+    if ((int16_t)o->p18 % 2 == 0) {
+        if (S->g_a0f0 == 0) {
+            prev->p10 = (uint16_t)(prev->p10 - 1u);
+            if ((int16_t)prev->p10 < 1) prev->p10 = 1;
+        } else {
+            if ((int16_t)prev->shape == 5 &&
+                (int16_t)prev->p10 == (int16_t)prev->p16)
+                prev->shape = 9;
+            anim_next(prev);
+        }
+        anim_next(o);
+        if (S->g_a0fa == 0) {
+            next->p10 = (uint16_t)(next->p10 - 1u);
+            if ((int16_t)next->p10 < 1) next->p10 = 1;
+        } else {
+            if ((int16_t)next->shape == 0x0D &&
+                (int16_t)next->p10 == (int16_t)next->p16)
+                next->shape = 0x11;
+            anim_next(next);
+        }
+    }
+
+    dir = proximity_obj_dir(1, 6, 0x130, idx);
+    if ((int16_t)o->vx == dir && idx >= 2 &&
+        S->obj[idx - 2].ready != 0 && cc_rng_next(100) < 5) {
+        play_sound(0x10);
+        S->obj[idx - 2].vx = (uint16_t)dir;
+        S->obj[idx - 2].ready = 0;
+        S->obj[idx - 2].state = 0;
+        S->obj[idx - 2].x = o->x;
+        S->obj[idx - 2].y = o->y;
+        anim_select_shape(&S->obj[idx - 2]);
+    }
+
+    if ((int16_t)o->vx == -1) {
+        if (cell_test_200fe(prev_x, prev_y)) flip = 1;
+    } else if ((int16_t)o->vx == 1) {
+        if (cell_test_200fe(next_x, next_y)) flip = 1;
+    }
+    if (flip) {
+        o->vx = (int16_t)(-o->vx);
+        next->vx = (int16_t)(-next->vx);
+        prev->vx = (int16_t)(-prev->vx);
+    }
+    prev->x = (int16_t)(prev->x + (int32_t)prev->vx * prev->speed);
+    o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+    next->x = (int16_t)(next->x + (int32_t)next->vx * next->speed);
+    player_interact(prev, (int16_t)prev->x, (int16_t)prev->y);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+    player_interact(next, (int16_t)next->x, (int16_t)next->y);
+}
+
+/* 0x1F9A:0x62F2 (kind 0x34): companion respawn walker. */
+static void h_62f2(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    int16_t dir;
+    anim_next(o);
+    if (cell_test_200fe(x, y)) {
+        o->vx = (int16_t)(-o->vx);
+        anim_select_shape(o);
+    }
+    dir = proximity_obj_dir(1, 6, 0x130, idx);
+    if ((int16_t)o->vx == dir && idx > 0 &&
+        S->obj[idx - 1].ready != 0 && cc_rng_next(100) < 5) {
+        play_sound(0x10);
+        S->obj[idx - 1].vx = (uint16_t)dir;
+        S->obj[idx - 1].ready = 0;
+        S->obj[idx - 1].state = 0;
+        S->obj[idx - 1].x = o->x;
+        S->obj[idx - 1].y = o->y;
+    }
+    o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+}
+
+/* 0x1F9A:0x3416 (kind 0x0C): proximity walker with companion spawn. */
+static void h_3416(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    ObjectEntry *child;
+    o->p18 = (uint16_t)proximity_test(1, 0x15, x, y);
+    if ((int16_t)o->x > (int16_t)S->player_x &&
+        (int16_t)o->p18 == -1 && (int16_t)o->vx == 1)
+        o->p18 = 0;
+    if (idx + 1 >= OBJ_MAX) return;
+    child = &S->obj[idx + 1];
+    if (o->p18 != 0 && (int16_t)o->p18 == (int16_t)o->vx) {
+        child->state = 0;
+        child->ready = 0;
+        child->y = o->y;
+        player_interact(child, (int16_t)child->x, (int16_t)child->y);
+        anim_next(child);
+        if (o->p18 == 1) {
+            o->p10 = 9;
+            child->x = (int16_t)(o->x + 0x11);
+        } else {
+            o->p10 = 6;
+            child->x = (int16_t)(o->x - 0x10);
+        }
+        return;
+    }
+    child->ready = 1;
+    anim_next(o);
+    o->p1a = (uint16_t)(o->p1a + 1u);
+    if ((int16_t)o->p1a > 0x1e) {
+        o->p1a = 0;
+        if (cc_rng_next(100) > 0x32) {
+            o->vx = (int16_t)(-o->vx);
+            anim_select_shape(o);
+        }
+    }
+    if (cell_test_200fe(x, y)) {
+        o->vx = (int16_t)(-o->vx);
+        anim_select_shape(o);
+    }
+    o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+}
+
+/* 0x1F9A:0x2D37 (kind 0x10): proximity-triggered vertical mover. */
+static void h_2d37(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx;
+    if (o->state == 3) {
+        o->vy = (uint16_t)proximity_test(2, 0x70, x, y);
+    }
+    if ((int16_t)o->vy != 1) return;
+    if (o->state == 3) play_sound(0x19);
+    o->state = 0;
+    o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+    if ((int16_t)o->y > 0x180) o->ready = 1;
+}
+
+/* 0x1F9A:0x2ACF (kind 0x06): flip-on-contact walker. */
+static void h_2acf(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx;
+    if (cell_test_200fe(x, y) && o->p18 == 0) {
+        o->vx = (int16_t)(-o->vx);
+        o->p18 = 1;
+    }
+    if ((int16_t)o->p18 > 0) {
+        o->p18 = (uint16_t)(o->p18 + 1u);
+        o->p10 = 1;
+        if ((int16_t)o->p18 > 0x39) o->p18 = 0;
+        player_interact(o, (int16_t)o->x, (int16_t)o->y);
+        return;
+    }
+    o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+    anim_next(o);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+}
+
+/* 0x1F9A:0x2BD4 (kind 0x07): proximity-triggered horizontal walker. */
+static void h_2bd4(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx;
+    if (o->state == 3)
+        o->vx = (uint16_t)proximity_test(1, 0x80, x, y);
+    if ((int16_t)o->vx == 0) return;
+    o->state = 0;
+    if ((int16_t)o->p10 > 4 && o->p18 != 1) {
+        o->p18 = 1;
+        o->p12 = (uint16_t)(o->p12 + 4u);
+        o->p14 = (uint16_t)(o->p14 + 4u);
+        o->p16 = (uint16_t)(o->p16 - 4u);
+    }
+    anim_next(o);
+    if (cell_test_200fe(x, y))
+        o->vx = (int16_t)(-o->vx);
+    anim_select_shape(o);
+    if (o->p18 == 1)
+        o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+}
+
+/* 0x1F9A:0x3904 (kind 0x0F): proximity-triggered lever/switch. */
+static void h_3904(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx; (void)x; (void)y;
+    int16_t dir;
+    if (o->state == 1) o->state = 3;
+    dir = proximity_test(2, 0x40, (int16_t)o->x, (int16_t)o->y);
+    if (dir != 0 && (int16_t)(S->player_y - 1) < (int16_t)o->y) {
+        o->state = 0;
+        if ((int16_t)o->p10 < (int16_t)o->p16)
+            o->p10 = (uint16_t)(o->p10 + 1u);
+        if ((int16_t)o->p10 > 1 && (int16_t)o->p10 < 4)
+            play_sound(0x1f);
+        player_interact(o, (int16_t)o->x, (int16_t)o->y);
+        return;
+    }
+    o->state = 1;
+    o->p10 = 1;
+}
+
+/* 0x1F9A:0x47B9 (kind 0x0B): walker with two animation phases. */
+static void h_47b9(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx;
+    anim_next(o);
+    if (cell_test_200fe(x, y)) {
+        o->vx = (int16_t)(-o->vx);
+        anim_select_shape(o);
+    }
+    o->p1a = (uint16_t)(o->p1a + 1u);
+    if ((int16_t)o->p1a < (int16_t)(o->p18 + 0xa)) {
+        o->p16 = 9;
+        o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+    } else if ((int16_t)o->p1a < (int16_t)(o->p18 + 0x19)) {
+        o->shape = 0x0e;
+        o->p16 = 7;
+    } else {
+        o->p1a = 0;
+        o->p10 = 1;
+    }
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+}
+
+/* 0x1F9A:0x32F6 (kind 0x19): companion-driven vertical mover. */
+static void h_32f6(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)x; (void)y;
+    if (o->state == 2 && idx > 0) anim_next(&S->obj[idx - 1]);
+    o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
+    anim_next(o);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+    if (cell_byte_cur((o->x + 2) / 16, (o->y + 8) / 16, 0x11) != 0 ||
+        cell_byte_cur((o->x + 2) / 16, (o->y + 8) / 16, 0x12) != 0) {
+        play_sound(0x18);
+        o->ready = 1;
+    }
+}
+
+/* 0x1F9A:0x4145 (kind 0x23): bouncing adversary. */
+static int cell_blocked_4145(int col, int row) {
+    return cell_byte_cur(col, row, 0x11) != 0 ||
+           cell_word_cur(col, row, 0x00) == 0xFFA0;
+}
+static void h_4145(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx;
+    int pick = 0;
+    anim_next(o);
+    if ((int16_t)o->vy != 0) {
+        if (cell_blocked_4145((x + 8) / 16, (y + 3) / 16) ||
+            cell_blocked_4145((x + 8) / 16, (y + 0xc) / 16))
+            pick = 1;
+    }
+    if (!pick) {
+        if ((int16_t)o->vx == 0) {
+            if ((int16_t)o->vy == 0) pick = 1;
+        } else {
+            if (cell_blocked_4145((x + 3) / 16, (y + 8) / 16) ||
+                cell_blocked_4145((x + 0xc) / 16, (y + 8) / 16))
+                pick = 1;
+        }
+    }
+    if (pick) {
+        switch (cc_rng_next(4)) {
+            case 0:
+                if (cell_blocked_4145((o->x - 4) / 16, (o->y + 8) / 16)) {
+                    o->vx = 0; o->vy = 0;
+                } else {
+                    o->shape = 0x25; o->p10 = 1; o->vx = -1; o->vy = 0;
+                }
+                break;
+            case 1:
+                if (cell_blocked_4145((o->x + 0x14) / 16, (o->y + 8) / 16)) {
+                    o->vx = 0; o->vy = 0;
+                } else {
+                    o->shape = 0x21; o->p10 = 1; o->vx = 1; o->vy = 0;
+                }
+                break;
+            case 2:
+                if (cell_blocked_4145((o->x + 8) / 16, (o->y - 4) / 16)) {
+                    o->vx = 0; o->vy = 0;
+                } else {
+                    o->shape = 0x29; o->p10 = 1; o->vx = 0; o->vy = -1;
+                }
+                break;
+            default:
+                if (cell_blocked_4145((o->x + 8) / 16, (o->y + 0x14) / 16)) {
+                    o->vx = 0; o->vy = 0;
+                } else {
+                    o->shape = 0x2d; o->p10 = 1; o->vx = 0; o->vy = 1;
+                }
+                break;
+        }
+    }
+    o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
+    o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+}
+
+/* 0x1F9A:0x48FE (kind 0x0A): random walker; flips at walls/proximity. */
+static void h_48fe(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx;
+    anim_next(o);
+    o->p1a = (uint16_t)(o->p1a + 1u);
+    if ((int16_t)o->p1a > 0x1e) {
+        o->p1a = 0;
+        if (cc_rng_next(100) > 0x32) {
+            o->vx = (int16_t)(-o->vx);
+            anim_select_shape(o);
+        }
+    }
+    if (cell_byte_cur((x + 3) / 16, (y + 8) / 16, 0x11) ||
+        cell_byte_cur((x + 0xc) / 16, (y + 8) / 16, 0x11)) {
+        o->vx = (int16_t)(-o->vx);
+        anim_select_shape(o);
+    }
+    o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+}
+
+/* 0x1F9A:0x6458 (kind 0x38): companion spawn/move pair. */
+static void h_6458(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    ObjectEntry *n;
+    int16_t dir;
+    int16_t rem;
+    if (o->state == 3) return;
+    if (idx + 1 >= OBJ_MAX) return;
+    n = &S->obj[idx + 1];
+    dir = proximity_obj_dir(1, 6, 0x130, idx);
+    if ((int16_t)n->vx == dir && n->state == 2) {
+        play_sound(0x10);
+        n->ready = 0;
+        n->state = 0;
+        if ((int16_t)n->vx == 1)
+            n->x = (int16_t)(o->x + 8);
+        else
+            n->x = (int16_t)(o->x - 8);
+        rem = (int16_t)(o->y % 16);
+        n->y = (int16_t)(((int16_t)(o->y + rem) / 16) << 4);
+        o->p18 = 1;
+    }
+    anim_next(o);
+    if (cell_byte_cur((x + 8) / 16, (y + 5) / 16, 0x11) ||
+        cell_byte_cur((x + 8) / 16, (y + 0xa) / 16, 0x11) ||
+        cell_byte_cur((x + 8) / 16, (y + 5) / 16, 0x12) != 0)
+        o->vy = (int16_t)(-o->vy);
+    o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
+}
+
+/* 0x1F9A:0x4FD4 (kind 0x39): multi-state boss/companion retargeter. */
+static void h_4fd4(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    ObjectEntry *cm1 = (idx >= 1) ? &S->obj[idx - 1] : o;
+    ObjectEntry *cm2 = (idx >= 2) ? &S->obj[idx - 2] : o;
+    int16_t dir;
+
+    if (o->p1a == 0) {
+        if ((int16_t)o->p18 <= (int16_t)S->g_260) goto p1a_handling;
+        if ((int16_t)(o->x % 16) != 0) goto p1a_handling;
+        o->p18 = 0;
+        o->p1a = 1;
+        o->p10 = 1;
+        o->shape = 0x2d;
+        cm2->state = 0;
+        cm2->ready = 0;
+        cm2->x = o->x;
+        cm2->y = (int16_t)(o->y - 0x10);
+        S->g_260 = (uint16_t)(cc_rng_next(0x32) + 0x32);
+    }
+
+p1a_handling:
+    if ((int16_t)o->p1a > 0x24) {
+        o->p1a = 0;
+        cm2->ready = 1;
+        anim_select_shape(o);
+        goto p1a_check;
+    }
+    if ((int16_t)o->p1a <= 0) goto p1a_check;
+    o->p1a = (uint16_t)(o->p1a + 1u);
+    if ((int16_t)o->p1a % 3 != 0) goto p1a_check;
+    anim_next(cm2);
+
+p1a_check:
+    if (o->p1a != 0) goto interact_only;
+
+    o->p18 = (uint16_t)(o->p18 + 1u);
+    if ((int16_t)o->p18 % 2 == 0) anim_next(o);
+
+    if (cell_test_200fe(x, y)) {
+        o->vx = (int16_t)(-o->vx);
+        anim_select_shape(o);
+    }
+
+    dir = proximity_obj_dir(1, 6, 0x130, idx);
+    if ((int16_t)o->vx != dir) goto move_x;
+    if (cm1->ready == 0) goto move_x;
+    if (cc_rng_next(100) >= 5) goto move_x;
+    cm1->vx = (uint16_t)dir;
+    cm1->ready = 0;
+    cm1->state = 0;
+    cm1->x = o->x;
+    cm1->y = o->y;
+
+move_x:
+    o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+interact_only:
+    player_interact(o, (int16_t)o->x, (int16_t)o->y);
+}
+
 static handler_fn handler_for(uint16_t off) {
     switch (off) {
         case 0x1fb9: return h_1fb9;
@@ -2585,8 +3413,34 @@ static handler_fn handler_for(uint16_t off) {
         case 0x3d23: return h_3d23;
         case 0x3e70: return h_3e70;
         case 0x3f13: return h_3f13;
+        case 0x298a: return h_298a;
+        case 0x2d37: return h_2d37;
+        case 0x3416: return h_3416;
+        case 0x403a: return h_403a;
+        case 0x55ec: return h_55ec;
+        case 0x62f2: return h_62f2;
+        case 0x6232: return h_6232;
+        case 0x4c92: return h_4c92;
+        case 0x5c8f: return h_5c8f;
+        case 0x4eeb: return h_4eeb;
+        case 0x52e7: return h_52e7;
+        case 0x2f83: return h_2f83;
+        case 0x3a2e: return h_3a2e;
+        case 0x3f6c: return h_3f6c;
+        case 0x2e25: return h_2e25;
+        case 0x4ad3: return h_4ad3;
+        case 0x36b0: return h_36b0;
+        case 0x2acf: return h_2acf;
+        case 0x2bd4: return h_2bd4;
+        case 0x3904: return h_3904;
+        case 0x4145: return h_4145;
+        case 0x47b9: return h_47b9;
+        case 0x32f6: return h_32f6;
         case 0x4a4b: return h_4a4b;
         case 0x4a82: return h_4a82;
+        case 0x48fe: return h_48fe;
+        case 0x4fd4: return h_4fd4;
+        case 0x6458: return h_6458;
         case 0x5855: return h_5855;
         case 0x5bbe: return h_5bbe;
         case 0x6681: return h_6681;
@@ -2596,7 +3450,9 @@ static handler_fn handler_for(uint16_t off) {
         case 0x6d31: return h_6d31;
         case 0x6ff6: return h_6ff6;
         case 0x70e4: return h_70e4;
-        default:     return h_1fb9;   /* inert fallback */
+        default:
+            g_unknown_handler_hits++;
+            return h_1fb9;   /* inert fallback */
     }
 }
 
@@ -2948,9 +3804,25 @@ static void cc_status_timers(void) {
 }
 
 void cc_objects_step_objects(void) {
+    input_commit();
     step_objects();
 }
 
+void cc_test_fill_source(int obj_byte, int cell_byte) {
+    unsigned char *raw = (unsigned char *)&S->obj[0];
+    unsigned i;
+    for (i = 0; i < sizeof(S->obj); i++) raw[i] = (unsigned char)obj_byte;
+    for (int r = 0; r < CELL_ROWS; r++)
+        for (int c = 0; c < CELL_COLS; c++)
+            for (i = 0; i < 20; i++)
+                S->cells[r][c][i] = (unsigned char)cell_byte;
+}
+void cc_test_call_handler(int handler, int slot, int x, int y) {
+    if (slot < 0 || slot >= OBJ_MAX) return;
+    handler_for((uint16_t)handler)(&S->obj[slot], slot,
+                                   (int16_t)x, (int16_t)y);
+}
+uint32_t cc_unknown_handler_hits(void) { return g_unknown_handler_hits; }
 void cc_test_spawn_2002d(int mode) { spawn_template_2002d(mode); }
 void cc_test_cell_event(int x, int y) { cell_event((int16_t)x, (int16_t)y); }
 void cc_test_contact(void) { contact_frame(); }
@@ -2970,6 +3842,7 @@ void cc_test_spawn_47d(int handler, int handler_seg, int p18, int speed,
 void cc_objects_step_physics(void) {
     /* Normal-state physics subset: 0xE011 (horizontal + camera) then 0xE36B
      * (jump/vertical).  Cross-frame interactions/fire/exit are Phase 2/3. */
+    input_commit();
     cc_horizontal();
     cc_jump_vertical();
 }
@@ -3190,6 +4063,16 @@ static void apply_startup_state(void) {
     S->rng_lo = g_startup.f_2a6;
     S->rng_hi = g_startup.f_2a8;
     S->cooldown = g_startup.f_2e0;
+    S->g_260 = g_startup.f_260;
+    S->g_50dc = g_startup.f_50dc;
+    S->g_50de = g_startup.f_50de;
+    S->g_50e0 = g_startup.f_50e0;
+    S->g_a0f0 = g_startup.f_a0f0;
+    S->g_a0fa = g_startup.f_a0fa;
+    S->g_2cc = g_startup.f_2cc; S->g_2ce = g_startup.f_2ce;
+    S->g_2d4 = g_startup.f_2d4; S->g_2d6 = g_startup.f_2d6;
+    S->g_2d8 = g_startup.f_2d8; S->g_2fa = g_startup.f_2fa;
+    S->g_2fc = g_startup.f_2fc; S->g_2fe = g_startup.f_2fe;
     S->fire_impulse = g_startup.f_2da;
     S->g_a100 = 0;
     S->power_shot = g_startup.f_a0ff;
@@ -3293,8 +4176,19 @@ static void apply_level_state(int level, int use_start, int fresh) {
     S->g_2b8 = st->f_2b8;
     S->g_511e = st->f_511e;
     S->g_5122 = st->f_5122;
+    S->g_50dc = st->f_50dc;
+    S->g_50de = st->f_50de;
+    S->g_50e0 = st->f_50e0;
+    S->g_a0f0 = st->f_a0f0;
+    S->g_a0fa = st->f_a0fa;
     S->g_30d = st->f_30d;
     S->status_30b = st->f_30b;
+    if (fresh) {
+        S->g_2cc = st->f_2cc; S->g_2ce = st->f_2ce;
+        S->g_2d4 = st->f_2d4; S->g_2d6 = st->f_2d6;
+        S->g_2d8 = st->f_2d8; S->g_2fa = st->f_2fa;
+        S->g_2fc = st->f_2fc; S->g_2fe = st->f_2fe;
+    }
     S->checkpoint_50a0 = st->f_50a0;
     S->g_a0cc = st->f_a0cc;
     S->g_50a2 = st->f_50a2;
@@ -3345,24 +4239,144 @@ static void apply_level_state(int level, int use_start, int fresh) {
     }
 }
 
+
+/* ------------------------------------------------------- transition overlay
+ * Generated by tools/export_level_overlay.py from the real loader.  The
+ * destination loader writes only these cell/object bytes; everything else is
+ * preserved from the source level.  A few entries are replayed at runtime:
+ * RNG-selected spawn fields and map-command shapes that read carried globals.
+ */
+static const unsigned char *g_level_overlay = 0;
+void cc_set_level_overlay(const unsigned char *data) { g_level_overlay = data; }
+
+static uint16_t ov_rd16(const unsigned char *p) {
+    return (uint16_t)(p[0] | ((uint16_t)p[1] << 8));
+}
+static uint32_t ov_rd32(const unsigned char *p) {
+    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) |
+           ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
+}
+static void ov_obj_byte(int slot, int off, unsigned char value) {
+    unsigned char *raw = (unsigned char *)&S->obj[slot];
+    raw[off] = value;
+}
+
+static void apply_level_overlay(int level) {
+    const unsigned char *base = g_level_overlay;
+    const unsigned char *p, *bits, *values;
+    const unsigned char *cell_tag_p, *obj_lit_p, *obj_tag_p, *glob_p, *draw_p;
+    uint16_t cell_tag_n, obj_lit_n, obj_tag_n, glob_n, draw_n;
+    uint16_t draws[1024];
+    uint16_t vi = 0, i;
+    struct { uint16_t bit; uint8_t tag; uint16_t payload; } ct[256];
+    struct { uint8_t slot, off, tag; uint16_t payload; } ot[256];
+    uint16_t ct_n = 0, ot_n = 0;
+
+    if (!base || level < 0 || level >= OBJ_LEVELS) return;
+    if (ov_rd32(base) != 0x4F4C4343u) return;  /* "CCLO" */
+    p = base + ov_rd32(base + 8 + level * 4);
+    bits = p;
+    values = p + 2500;
+    for (i = 0; i < 20000; i++) {
+        if (bits[i >> 3] & (1u << (i & 7))) {
+            unsigned cell = i / 20, boff = i % 20;
+            S->cells[cell / 40][cell % 40][boff] = values[vi++];
+        }
+    }
+    p = values + vi;
+    cell_tag_n = ov_rd16(p); p += 2;
+    cell_tag_p = p; p += (unsigned)cell_tag_n * 5;
+    for (i = 0; i < cell_tag_n && ct_n < 256; i++) {
+        ct[ct_n].bit = ov_rd16(cell_tag_p + i * 5);
+        ct[ct_n].tag = cell_tag_p[i * 5 + 2];
+        ct[ct_n].payload = ov_rd16(cell_tag_p + i * 5 + 3);
+        ct_n++;
+    }
+    obj_lit_n = ov_rd16(p); p += 2;
+    obj_lit_p = p; p += (unsigned)obj_lit_n * 3;
+    for (i = 0; i < obj_lit_n; i++)
+        ov_obj_byte(obj_lit_p[i * 3], obj_lit_p[i * 3 + 1],
+                    obj_lit_p[i * 3 + 2]);
+    obj_tag_n = ov_rd16(p); p += 2;
+    obj_tag_p = p; p += (unsigned)obj_tag_n * 5;
+    for (i = 0; i < obj_tag_n && ot_n < 256; i++) {
+        ot[ot_n].slot = obj_tag_p[i * 5];
+        ot[ot_n].off = obj_tag_p[i * 5 + 1];
+        ot[ot_n].tag = obj_tag_p[i * 5 + 2];
+        ot[ot_n].payload = ov_rd16(obj_tag_p + i * 5 + 3);
+        ot_n++;
+    }
+    glob_n = ov_rd16(p); p += 2;
+    glob_p = p; p += (unsigned)glob_n * 5;
+    for (i = 0; i < glob_n; i++) {
+        uint16_t off = ov_rd16(glob_p + i * 5);
+        uint8_t size = glob_p[i * 5 + 2];
+        uint16_t val = ov_rd16(glob_p + i * 5 + 3);
+        (void)size;
+        if (off == 0x02A6 || off == 0x02A8) continue;  /* live RNG */
+        cc_global_set(off, val);
+    }
+    draw_n = ov_rd16(p); p += 2;
+    draw_p = p;
+    if (draw_n > 1024) draw_n = 1024;
+    for (i = 0; i < draw_n; i++) {
+        uint16_t n = ov_rd16(draw_p + i * 4);
+        uint16_t add = ov_rd16(draw_p + i * 4 + 2);
+        draws[i] = (uint16_t)(cc_rng_next(n) + add);
+    }
+    for (i = 0; i < ct_n; i++) {
+        unsigned cell = ct[i].bit / 20, boff = ct[i].bit % 20;
+        unsigned char value;
+        if (ct[i].tag == 2) {
+            value = (unsigned char)cc_global_get(ct[i].payload);
+        } else if (ct[i].tag == 1) {
+            uint16_t di = ct[i].payload;
+            value = (unsigned char)(di < draw_n ? draws[di] : 0);
+        } else {
+            continue;
+        }
+        S->cells[cell / 40][cell % 40][boff] = value;
+    }
+    for (i = 0; i < ot_n; i++) {
+        unsigned char value;
+        if (ot[i].tag == 2) {
+            value = (unsigned char)cc_global_get(ot[i].payload);
+        } else if (ot[i].tag == 1) {
+            uint16_t di = ot[i].payload;
+            uint16_t v = di < draw_n ? draws[di] : 0;
+            value = (ot[i].off & 1) ? (unsigned char)(v >> 8)
+                                    : (unsigned char)v;
+        } else {
+            continue;
+        }
+        ov_obj_byte(ot[i].slot, ot[i].off, value);
+    }
+}
+
 static void load_level(int level, int new_game) {
     if (level < 0 || level >= OBJ_LEVELS) level = 0;
     if (new_game) apply_startup_state();
-    memcpy_(S->obj, g_obj_levels[level], sizeof(S->obj));
-    {
-        unsigned i;
-        unsigned char *dst = (unsigned char *)S->cells;
-        for (i = 0; i < sizeof(S->cells); i++) dst[i] = 0;
-        if (g_cells_asset) {
-            memcpy_(S->cells,
-                    g_cells_asset + (unsigned)level * CELL_ROWS * CELL_COLS * 20,
-                    sizeof(S->cells));
+    /* Fresh loads use the baked image.  Real transitions preserve the source
+     * memory and replay only the bytes the loader actually writes; level 2 has
+     * no overlay yet (decorative RNG cells), so it keeps the fresh image. */
+    if (new_game || level == 2 || !g_level_overlay) {
+        memcpy_(S->obj, g_obj_levels[level], sizeof(S->obj));
+        {
+            unsigned i;
+            unsigned char *dst = (unsigned char *)S->cells;
+            for (i = 0; i < sizeof(S->cells); i++) dst[i] = 0;
+            if (g_cells_asset) {
+                memcpy_(S->cells,
+                        g_cells_asset + (unsigned)level * CELL_ROWS * CELL_COLS * 20,
+                        sizeof(S->cells));
+            }
         }
     }
     S->obj_cursor = g_level_cursor[level];
     S->a0f8 = 0;
     S->cur_level = (int16_t)level;
     apply_level_state(level, S->spawn_col_override == 0xffff, new_game);
+    if (!new_game && level != 2) apply_level_overlay(level);
     if (level >= 2) S->g_a0cc = (uint16_t)count_crystal_cells();
 }
 
@@ -3505,10 +4519,24 @@ int32_t cc_global_get(int off) {
         case 0xA0B4: return S->walk_phase;
         case 0xA0B8: return S->g_a0b8;
         case 0x02BA: return S->walk_speed;
+        case 0x02CC: return S->g_2cc;
+        case 0x02CE: return S->g_2ce;
+        case 0x02D4: return S->g_2d4;
+        case 0x02D6: return S->g_2d6;
+        case 0x02D8: return S->g_2d8;
+        case 0x02FA: return S->g_2fa;
+        case 0x02FC: return S->g_2fc;
+        case 0x02FE: return S->g_2fe;
         case 0x02CA: return S->impulse;
         case 0x02C8: return S->c8;
         case 0x02C6: return S->c6;
         case 0x02E0: return S->cooldown;
+        case 0x0260: return S->g_260;
+        case 0x50DC: return S->g_50dc;
+        case 0x50DE: return S->g_50de;
+        case 0x50E0: return S->g_50e0;
+        case 0xA0F0: return S->g_a0f0;
+        case 0xA0FA: return S->g_a0fa;
         case 0x0306: return S->jump_flag;
         case 0x030A: return S->anim_suppress;
         case 0x030B: return S->status_30b;
@@ -3616,10 +4644,24 @@ void cc_global_set(int off, int32_t v) {
         case 0xA0B4: S->walk_phase = (uint16_t)v; break;
         case 0xA0B8: S->g_a0b8 = (uint16_t)v; break;
         case 0x02BA: S->walk_speed = (uint16_t)v; break;
+        case 0x02CC: S->g_2cc = (uint16_t)v; break;
+        case 0x02CE: S->g_2ce = (uint16_t)v; break;
+        case 0x02D4: S->g_2d4 = (uint16_t)v; break;
+        case 0x02D6: S->g_2d6 = (uint16_t)v; break;
+        case 0x02D8: S->g_2d8 = (uint16_t)v; break;
+        case 0x02FA: S->g_2fa = (uint16_t)v; break;
+        case 0x02FC: S->g_2fc = (uint16_t)v; break;
+        case 0x02FE: S->g_2fe = (uint16_t)v; break;
         case 0x02CA: S->impulse = (uint16_t)v; break;
         case 0x02C8: S->c8 = (uint16_t)v; break;
         case 0x02C6: S->c6 = (uint16_t)v; break;
         case 0x02E0: S->cooldown = (uint16_t)v; break;
+        case 0x0260: S->g_260 = (uint16_t)v; break;
+        case 0x50DC: S->g_50dc = (uint16_t)v; break;
+        case 0x50DE: S->g_50de = (uint16_t)v; break;
+        case 0x50E0: S->g_50e0 = (uint16_t)v; break;
+        case 0xA0F0: S->g_a0f0 = (uint8_t)v; break;
+        case 0xA0FA: S->g_a0fa = (uint8_t)v; break;
         case 0x0306: S->jump_flag = (uint8_t)v; break;
         case 0x030A: S->anim_suppress = (uint8_t)v; break;
         case 0x030B: S->status_30b = (uint8_t)v; break;
@@ -3770,6 +4812,12 @@ static int is_real_handler(uint16_t off) {
         case 0x1fb9: case 0x2241: case 0x2850: case 0x2877:
         case 0x831: case 0x1fc2: case 0x2176: case 0x323c: case 0x3be8:
         case 0x3d23: case 0x3e70: case 0x3f13: case 0x4a4b: case 0x4a82:
+        case 0x298a: case 0x2d37: case 0x3416: case 0x2acf: case 0x2bd4:
+        case 0x403a: case 0x55ec: case 0x62f2: case 0x6232: case 0x4c92:
+        case 0x5c8f: case 0x4eeb: case 0x52e7: case 0x2f83: case 0x4ad3:
+        case 0x36b0: case 0x3a2e: case 0x3f6c: case 0x2e25:
+        case 0x3904: case 0x4145: case 0x47b9: case 0x32f6:
+        case 0x48fe: case 0x4fd4: case 0x6458:
         case 0x5855: case 0x5bbe: case 0x6681: case 0x672b: case 0x69d3:
         case 0x6afa: case 0x6d31: case 0x6ff6: case 0x70e4:
             return 1;

@@ -16,11 +16,17 @@ There is no root Makefile; the build lives in `wasm/`.
 | `make test-gameplay` | Level-2 fixture smoke test |
 | `make test-physics` | Exact player/camera/platform-carry regression (committed fixtures) |
 | `make test-combat` | Committed combat/cell/globals/RNG/sound oracle fixtures (fast) |
+| `make test-handlers` | Committed per-handler oracle fixtures (all 46 behaviours) |
+| `make test-loader` | Committed exact loader-transition fixtures (hub -> each cave) |
+| `make test-caves` | Committed full-frame integration fixtures for all 16 caves |
 | `make test-cells` | Committed cell-event/contact/exit fixtures + transition/render checks |
 | `make test-oracle-cells` | Regenerate `notes/cell_fixtures.json` with Unicorn, then compare |
 | `make test-oracle-physics` | Regenerate physics fixtures from the real routines, then compare (needs venv deps) |
 | `make test-oracle-objects` | Compare C object/cell state with the Unicorn oracle, levels 2 and 3 (needs venv deps) |
 | `make test-oracle-combat` | Regenerate `notes/combat_fixtures.json` from the real routines and compare (needs venv deps) |
+| `make test-oracle-handlers` | Regenerate `notes/handler_fixtures.json` with Unicorn, then compare |
+| `make test-oracle-loader` | Regenerate `notes/loader_fixtures.json` with Unicorn, then compare |
+| `make test-oracle-caves` | Regenerate `notes/cave_fixtures.json` with Unicorn, then compare |
 | `make startup` | Regenerate `notes/startup.json` + `wasm/startup_data.h` (needs venv deps) |
 | `make assets` | Copy portable assets from `../out/portable/` into `wasm/assets/` |
 | `make data` | Regenerate `wasm/startup_data.h` + `out/portable/` |
@@ -46,7 +52,8 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 5. `python3 tools/make_startup_data.py` — generates `wasm/startup_data.h`
 6. `python3 tools/check_oracle.py` — structural regression checks
 7. `python3 tools/render_oracle.py 0..18` — regenerate static oracle PNGs
-8. `wasm: make data` — exports `out/portable/{gfx,levels,cells,palette,mni,commands,objects}`
+8. `python3 tools/export_level_overlay.py` — generates `out/portable/level_overlay.bin`
+9. `wasm: make data` — exports `out/portable/{gfx,levels,cells,palette,mni,commands,objects,level_overlay}`
 
 ## Level Model (important)
 
@@ -72,8 +79,7 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - **MNI**: ProGraphx 8x8 font/sprite; `CC1-F1/F2` are 50-glyph banks
 - **Sound**: Crystal Caves Sound (modified inverse-frequency, PC speaker); not decoded yet
 - **Borland Turbo Pascal** binary; TP runtime helpers live in segment `0x2BB5`
-- **Normal frame order**: `0xE011 → 0xE36B → 0xEBF2 → 0xEAEA → 0xD72A`;
-  `0xE5D3` hazard contact remains deferred.
+- **Normal frame order**: `0xE011 → 0xE36B → 0xE5D3 → 0xEBF2 → 0xEAEA → 0xD72A`.
 - **Player fire** is `0xCF6C`, called from `0xEBF2`. The attack is object slot 2
   (`DS:0x4638`); `0x4652=p1a` selects normal/power, `0x4660=ready/hit lock`.
 - **TP RNG** is at `0x2BB5:0x980`, state `DS:0x2A6/0x2A8`. The high word uses
@@ -90,10 +96,13 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 
 - Static level rendering is **bit-exact on all 19 levels** (Python oracle + wasm).
 - Loader/object snapshots and structural oracle checks are done.
-- The 0xD72A update loop and 21 of the 46 handler-table entries are ported; level-2 object state
-  (10 frames) and level-3 object state (120 frames) match the Unicorn oracle.
+- The 0xD72A update loop and **all 46 handler-table entries** are ported
+  (including the dynamic `0x4EEB` phase). `notes/handler_fixtures.json`
+  covers 235 scenarios / 376 frames; `make test-handlers` passes.
 - Full mutable 20-byte cells are exported as `out/portable/cells.bin` and
   verified byte-for-byte by `test_oracle_objects.js`.
+- All 16 caves pass committed full-frame integration fixtures
+  (`notes/cave_fixtures.json`, 370 frames; `make test-caves`).
 - Exact player/camera physics is validated frame-for-frame: 16 scenarios /
   670 frames. The vertical table is `DS:0xA111` indexed by `[0x5134]`; one
   game frame is 8 PIT ticks at divisor `0x2147` ≈ 17.51 Hz.
@@ -104,11 +113,16 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   hub-door and cave-exit state machines, and dynamic cell rendering.
   `notes/cell_fixtures.json` covers direct cell branches plus full-frame
   contact/exit runs (17 scenarios).
-- Known limitation: level transitions use the destination level's fresh
-  cell/object image. The original loader overlays onto the source level's
-  memory, so unused leftover cell/object bytes can differ after a transition.
-  Exact transition-state replay needs the loader map-command occupancy rules.
-- Still missing: 25 handlers, HUD, menus, sound, save/high scores, and exact loader transition overlays.
+- Transitions to caves 3–18 now replay the exact loader occupancy overlay
+  (`out/portable/level_overlay.bin`) generated from the real loader, including
+  preserved source bytes, `[0x2d6]`-dependent shapes and RNG-selected spawn
+  fields. `notes/loader_fixtures.json` / `make test-loader` pass for
+  hub -> each cave.
+- Known limitation: transitions **to the hub (level 2)** still use the fresh
+  hub image; the hub's decorative random background is regenerated with the
+  live RNG and is not yet replayed by the overlay.
+- Still missing: HUD, menus, sound, save/high scores, and exact hub-transition
+  random decorations.
 
 ## Tooling Entrypoints
 
@@ -124,6 +138,11 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 | `tools/emulate_render.py` | Full EGA render oracle (real blitters + ports) |
 | `tools/oracle_frame.py` | Low-level physics/collision sub-routine oracle |
 | `tools/emulate_game.py` | Full update-loop + handler oracle (video/sound stubbed) |
+| `tools/handler_fixtures.py` / `notes/handler_fixtures.json` | Per-handler oracle fixtures (`make test-handlers`) |
+| `tools/loader_fixtures.py` / `notes/loader_fixtures.json` | Exact transition fixtures (`make test-loader`) |
+| `tools/export_level_overlay.py` / `out/portable/level_overlay.bin` | Loader occupancy overlay asset |
+| `tools/analyze_loader_tags.py` / `notes/loader_tags.json` | Regenerate source-dependent loader tags |
+| `tools/cave_fixtures.py` / `notes/cave_fixtures.json` | All-cave full-frame fixtures (`make test-caves`) |
 | `tools/trace_handlers.py` | Handler inventory (`notes/handlers.md/json/disasm`) |
 | `tools/disasm.py` | 16-bit disassembler/xref helper (needs capstone) |
 | `tools/export_assets.py` | Portable asset export |
@@ -141,6 +160,10 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - `wasm/startup_data.h` — generated startup/table/level-start data
 - `notes/startup.json`, `notes/physics_fixtures.json`, `notes/physics.md`
 - `notes/combat_fixtures.json` — committed combat oracle trace (`make test-combat`)
+- `notes/handler_fixtures.json` — committed per-handler trace (`make test-handlers`)
+- `notes/loader_fixtures.json` — committed transition trace (`make test-loader`)
+- `notes/cave_fixtures.json` — committed all-cave full-frame trace (`make test-caves`)
+- `out/portable/level_overlay.bin` — loader transition occupancy asset
 - `notes/cell_fixtures.json` — committed cell/contact/exit oracle trace (`make test-cells`)
 - `notes/handlers.*`, `notes/oracle_catalog.json`, `notes/oracle_objects.json`, `notes/level_table.json`, `notes/gameplay.md`
 

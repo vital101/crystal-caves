@@ -12,8 +12,8 @@ EMCC   ?= emcc
 PYTHON ?= $(if $(wildcard ../.venv/bin/python),../.venv/bin/python,python3)
 OUT    ?= render.wasm
 
-EXPORTS = cc_alloc cc_set_assets cc_set_palette cc_render_level cc_render_view cc_render_cells cc_render_view_cells cc_set_cells cc_cell_byte cc_cell_set cc_framebuffer cc_view_framebuffer cc_view_width cc_view_height cc_tex_width cc_tex_height \
-	  cc_objects_init cc_level_exit cc_load_arg cc_objects_step cc_objects_step_full cc_objects_step_physics cc_objects_step_objects cc_test_cell_event cc_test_contact cc_test_spawn_2002d cc_test_spawn_47d cc_obj_count cc_obj_get cc_obj_set cc_obj_state cc_obj_x cc_obj_y \
+EXPORTS = cc_alloc cc_set_assets cc_set_palette cc_render_level cc_render_view cc_render_cells cc_render_view_cells cc_set_cells cc_set_level_overlay cc_cell_byte cc_cell_set cc_framebuffer cc_view_framebuffer cc_view_width cc_view_height cc_tex_width cc_tex_height \
+	  cc_objects_init cc_level_exit cc_load_arg cc_objects_step cc_objects_step_full cc_objects_step_physics cc_objects_step_objects cc_test_cell_event cc_test_contact cc_test_call_handler cc_test_fill_source cc_unknown_handler_hits cc_test_spawn_2002d cc_test_spawn_47d cc_obj_count cc_obj_get cc_obj_set cc_obj_state cc_obj_x cc_obj_y \
 	  cc_obj_kind cc_obj_shape cc_obj_tile cc_obj_p10 cc_obj_p12 cc_obj_p14 cc_obj_p16 cc_obj_p18 cc_obj_p1a cc_obj_ready cc_obj_vx cc_obj_vy cc_obj_speed cc_obj_p24 cc_obj_cursor cc_obj_set_cursor cc_obj_handler cc_cur_level \
 	  cc_input_set cc_set_player cc_player_x cc_player_y cc_cam_x cc_cam_y cc_move_dir cc_collide_player \
 	  cc_draw_object cc_draw_object_view cc_sound_set_callback cc_sound_log_clear cc_sound_log_count cc_sound_log_total cc_sound_log_at \
@@ -31,7 +31,7 @@ $(OUT): render.c objects.c objects.h objects_data.h cells_data.h startup_data.h
 	  -Wl,--export-memory -Wl,--initial-memory=16777216 -Wl,-z,stack-size=65536 \
 	  $(foreach s,$(EXPORTS),-Wl,--export=$(s)) -o $(OUT) render.c objects.c
 
-assets: assets/gfx.bin assets/levels.bin assets/palette.json assets/cells.bin
+assets: assets/gfx.bin assets/levels.bin assets/palette.json assets/cells.bin assets/level_overlay.bin
 
 assets/gfx.bin: ../out/portable/gfx.bin
 	@mkdir -p assets
@@ -45,11 +45,15 @@ assets/palette.json: ../out/portable/palette.json
 assets/cells.bin: ../out/portable/cells.bin
 	@mkdir -p assets
 	cp $< $@
+assets/level_overlay.bin: ../out/portable/level_overlay.bin
+	@mkdir -p assets
+	cp $< $@
 
 # Regenerate the portable intermediate from the committed extracted assets.
 data:
 	$(PYTHON) ../tools/make_startup_data.py
 	$(PYTHON) ../tools/export_assets.py
+	$(PYTHON) ../tools/export_level_overlay.py
 
 # Recover the exact 0xC3E startup state (Unicorn; writes notes/startup.json).
 startup:
@@ -92,6 +96,30 @@ test-physics: clang
 test-combat: clang
 	node test_combat.js
 
+# Full-frame per-cave integration fixtures (Phase 4).
+test-caves: clang
+	node test_handlers.js ../notes/cave_fixtures.json
+
+test-oracle-caves: clang
+	$(PYTHON) ../tools/cave_fixtures.py
+	node test_handlers.js ../notes/cave_fixtures.json
+
+# Exact loader transition fixtures (Phase 4).
+test-loader: clang
+	node test_loader.js
+
+test-oracle-loader: clang
+	$(PYTHON) ../tools/loader_fixtures.py
+	node test_loader.js
+
+# Per-handler oracle fixtures (Phase 4).
+test-handlers: clang
+	node test_handlers.js
+
+test-oracle-handlers: clang
+	$(PYTHON) ../tools/handler_fixtures.py
+	node test_handlers.js
+
 # Cell/contact/exit fixtures and functional level transitions.
 test-cells: clang
 	node test_cells.js
@@ -121,9 +149,9 @@ test-oracle-objects: clang
 	$(PYTHON) ../tools/emulate_game.py 3 120 --json > oracle_level3.json
 	node test_oracle_objects.js oracle_level3.json
 
-test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat test-cells
+test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat test-handlers test-loader test-caves test-cells
 
 clean:
 	rm -f $(OUT) app.js app.wasm out_wasm_level*.png oracle_level*.json
 
-.PHONY: clang emcc assets data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-cells test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-objects test-all clean
+.PHONY: clang emcc assets data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-all clean

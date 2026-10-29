@@ -11,6 +11,7 @@ extern "C" {
 
 /* Optional full mutable 20-byte cell image (19 x 25 x 40 x 20; cells.bin). */
 void cc_set_cells(const unsigned char *cells);
+void cc_set_level_overlay(const unsigned char *data);
 int cc_cell_byte(int col, int row, int off);
 void cc_cell_set(int col, int row, int off, int value);
 
@@ -26,6 +27,13 @@ void cc_objects_step(void);
 /* Advance only the object update loop (no player physics/camera).  Used by
  * deterministic oracle fixtures. */
 void cc_objects_step_objects(void);
+
+/* Loader test hook: poison all source object/cell bytes. */
+void cc_test_fill_source(int obj_byte, int cell_byte);
+
+/* Handler test hook: call a handler directly with original (y,x,slot) args. */
+void cc_test_call_handler(int handler, int slot, int x, int y);
+uint32_t cc_unknown_handler_hits(void);
 
 /* Combat test hook: invoke the 0x2002D slot-3 effect spawn. */
 void cc_test_cell_event(int x, int y);

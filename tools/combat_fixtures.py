@@ -24,7 +24,9 @@ from oracle_physics import PhysicsOracle  # noqa: E402
 # Gameplay globals the C port currently stores, in capture-name form.
 C_GLOBALS = [
     "a0f1", "a0f2", "a0f6", "a0f8", "a0fc", "a0fd", "a0ea", "a0b4", "a0b8",
-    "2ba", "2ca", "2c8", "2c6", "2e0", "306", "30a", "30b", "30c",
+    "2ba", "2ca", "2c8", "2c6", "2e0", "260", "306", "30a", "30b", "30c",
+    "50dc", "50de", "50e0", "a0f0", "a0fa", "2cc", "2ce", "2d4", "2d6",
+    "2d8", "2fa", "2fc", "2fe",
     "461b", "461d", "461f", "4619", "4627", "4629", "460d",
     "5118", "5126", "5128", "5124", "512e", "5130", "5132", "5134",
     "513c", "513d", "5140", "5142", "509c", "509e", "4660", "4652",

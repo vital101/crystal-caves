@@ -32,7 +32,7 @@ from unicorn import (  # noqa: E402
 from unicorn.x86_const import (  # noqa: E402
     UC_X86_REG_CS, UC_X86_REG_DS, UC_X86_REG_ES, UC_X86_REG_SS,
     UC_X86_REG_SP, UC_X86_REG_BP, UC_X86_REG_IP, UC_X86_REG_AX,
-    UC_X86_REG_FLAGS,
+    UC_X86_REG_DI, UC_X86_REG_FLAGS,
 )
 
 RET_SENTINEL = E.RET_SENTINEL
@@ -131,6 +131,7 @@ class PhysicsOracle:
         mu.reg_write(UC_X86_REG_CS, 0)
         self.stopped = None
         self.sound_events = []
+        self.handler_calls = []
         self._install_hooks()
         self.reset()
         self.start = self.dump()
@@ -147,6 +148,11 @@ class PhysicsOracle:
                 bp = uc.reg_read(UC_X86_REG_BP)
                 self.sound_events.append(
                     E.u16(uc, uc.reg_read(UC_X86_REG_SS), (bp + 6) & 0xFFFF))
+                return
+            if address in (0xD87C, 0xD8D8):
+                di = uc.reg_read(UC_X86_REG_DI) & 0xFFFF
+                off = E.u16(uc, E.DATA_SEG, (di + 0x4607) & 0xFFFF)
+                self.handler_calls.append((off & 0xFFFF, di // 0x2D))
                 return
             cs = uc.reg_read(UC_X86_REG_CS)
             ip = uc.reg_read(UC_X86_REG_IP)
@@ -193,6 +199,7 @@ class PhysicsOracle:
         self.mu.mem_write(E.DATA_SEG << 4, self.ds)
         self.stopped = None
         self.sound_events = []
+        self.handler_calls = []
 
     def state(self, off):
         return s16(self.mu, E.DATA_SEG, off)
@@ -335,6 +342,12 @@ class PhysicsOracle:
             self.stopped = "error: %s" % exc
         if self.stopped not in (None, "ret"):
             raise RuntimeError("routine %04X stopped: %s" % (entry, self.stopped))
+
+    def call_handler(self, handler_off, slot, x, y):
+        """Call one object handler directly with the original (y,x,slot) args."""
+        self.sound_events = []
+        self.handler_calls.append((handler_off & 0xFFFF, slot))
+        self.call_far(0x1F9A0 + (handler_off & 0xFFFF), [y, x, slot])
 
     def spawn_2002d(self, mode):
         self.sound_events = []

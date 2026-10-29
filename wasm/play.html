@@ -37,6 +37,7 @@
   const gfx = await fetch('assets/gfx.bin?v=' + Date.now()).then(r => r.arrayBuffer());
   const levels = await fetch('assets/levels.bin?v=' + Date.now()).then(r => r.arrayBuffer());
   const cells = await fetch('assets/cells.bin?v=' + Date.now()).then(r => r.arrayBuffer());
+  const overlay = await fetch('assets/level_overlay.bin?v=' + Date.now()).then(r => r.arrayBuffer());
   const pal = await fetch('assets/palette.json?v=' + Date.now()).then(r => r.json());
 
   const { instance } = await WebAssembly.instantiate(wasm, {});
@@ -56,6 +57,9 @@
   pal.colors.forEach(([r, g, b], i) => { palU32[i] = (r << 16) | (g << 8) | b; });
   e.cc_set_assets(gfxP, levelsP);
   e.cc_set_cells(cellsP);
+  const ovP = e.cc_alloc(overlay.byteLength);
+  new Uint8Array(e.memory.buffer, ovP, overlay.byteLength).set(new Uint8Array(overlay));
+  e.cc_set_level_overlay(ovP);
   e.cc_set_palette(palP);
 
   const KEY_MAP = {

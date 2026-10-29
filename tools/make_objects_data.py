@@ -103,7 +103,7 @@ def main():
         "",
         "#include <stdint.h>",
         "",
-        "typedef struct {",
+        "typedef struct __attribute__((packed)) {",
         "    uint16_t state, p02, p04;",
         "    int16_t  x, y, x_prev, y_prev;",       # signed: positions may be negative
         "    uint16_t tile;",

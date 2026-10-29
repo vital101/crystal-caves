@@ -19,7 +19,7 @@ Verified today:
 - Level-3 object state matches the Unicorn oracle for 120 frames.
 - Full mutable 20-byte cells are exported as `out/portable/cells.bin` and
   verified byte-for-byte against the oracle.
-- 21/46 object handlers are implemented; 25 remain.
+- All 46 object handlers are implemented (Phase 4).
 - The full `0x20406` interaction (touch, transform, slash gate, normal and
   power slash matrices) and the `0x20247`/`0x831` effect object are ported and
   covered by `notes/combat_fixtures.json`.
@@ -40,15 +40,15 @@ Verified today:
   and `make test-oracle-cells` pass.
 - Dynamic cell rendering is implemented (`cc_render_cells`,
   `cc_render_view_cells`); collected crystals and opened doors redraw.
-- Known transition limitation: the original loader overlays cells/objects on
-  the source level's memory. The port now loads the destination level's fresh
-  image, so *unused* leftover bytes can differ after a transition. The loader
-  map-command occupancy rules remain to be ported.
+- Phase 4 is complete: all 46 handlers, all-cave full-frame fixtures and exact
+  hub -> cave transition overlays pass.
+- Known transition limitation: cave transitions replay the exact loader
+  overlay; transitions to the hub (level 2) still use the fresh hub image
+  because its decorative RNG background is not overlaid yet.
 
 Important remaining unknowns:
 
-- Exact loader cell/object overlay for transitions (map-command occupancy).
-- 23 object handlers remain (see Phase 4 list).
+- Exact hub-transition random decorations.
 - HUD, menus, story/finale transitions, sound and save/high scores.
 
 ## Critical path
@@ -375,7 +375,14 @@ Known caveat:
   oracle-exact.  Exact transition-state replay needs the loader map-command
   occupancy rules; this is the first Phase 4 item.
 
-## Phase 4 — Remaining handlers and all 16 caves
+## Phase 4 — Remaining handlers and all 16 caves (COMPLETE, hub decoration caveat)
+
+Status: COMPLETE. All 46 handler-table entries are ported (plus dynamic
+`0x4EEB`), `make test-handlers` passes 235 scenarios / 376 frames, and
+`make test-caves` passes all 16 caves (370 frames).  Cave transitions replay
+the exact loader occupancy overlay (`make test-loader`); hub transitions still
+use the fresh hub image because its decorative random background is not
+overlaid yet.
 
 Remaining handlers (25; `0x6681`, `0x672B`, `0x69D3` are now ported):
 
@@ -507,7 +514,13 @@ make test-physics            # committed physics fixtures (fast)
 make test-oracle-physics     # regenerate physics fixtures (Unicorn)
 make test-oracle-objects     # requires tools/requirements.txt + .venv
 make test-combat             # committed combat fixtures (fast)
+make test-handlers           # committed per-handler fixtures (fast)
+make test-loader             # committed exact hub -> cave transition fixtures
+make test-caves              # committed all-cave full-frame fixtures
 make test-cells              # committed cell/contact/exit fixtures
+make test-oracle-handlers    # regenerate handler fixtures (Unicorn)
+make test-oracle-loader      # regenerate transition fixtures (Unicorn)
+make test-oracle-caves       # regenerate all-cave fixtures (Unicorn)
 make test-oracle-cells       # regenerate cell fixtures
 make startup                 # regenerate notes/startup.json + startup_data.h
 ```
@@ -524,6 +537,9 @@ PASS: 10 frames match oracle object state (level 2)
 PASS: 120 frames match oracle object state (level 3)
 PASS: 16 physics scenarios, 670 frames match oracle
 PASS: 74 combat scenarios, 624 frames match oracle
+PASS: 235 handler scenarios, 376 frames match oracle
+PASS: 16 loader transitions match oracle
+PASS: 16 all-cave scenarios, 370 frames match oracle
 PASS: 17 cell scenarios, 20 frames match oracle
 PASS: hub door and cave exit transitions load the correct levels
 PASS: mutable cell renderer matches baked; crystal clear changed 150 pixels

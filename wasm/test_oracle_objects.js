@@ -6,24 +6,13 @@ const path = require("path");
 const DIR = __dirname;
 const fixture = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
 const fields = [
-  ["state", "cc_obj_state"],
-  ["x", "cc_obj_x"],
-  ["y", "cc_obj_y"],
-  ["tile", "cc_obj_tile"],
-  ["p10", "cc_obj_p10"],
-  ["p12", "cc_obj_p12"],
-  ["p14", "cc_obj_p14"],
-  ["p16", "cc_obj_p16"],
-  ["p18", "cc_obj_p18"],
-  ["p1a", "cc_obj_p1a"],
-  ["shape", "cc_obj_shape"],
-  ["p1e", "cc_obj_vx"],
-  ["p20", "cc_obj_vy"],
-  ["p22", "cc_obj_speed"],
-  ["p24", "cc_obj_p24"],
-  ["kind", "cc_obj_kind"],
-  ["ready", "cc_obj_ready"],
-  ["handler_off", "cc_obj_handler"],
+  ["state", 0x00], ["p02", 0x02], ["p04", 0x04],
+  ["x", 0x06], ["y", 0x08], ["x_prev", 0x0a], ["y_prev", 0x0c],
+  ["tile", 0x0e], ["p10", 0x10], ["p12", 0x12], ["p14", 0x14],
+  ["p16", 0x16], ["p18", 0x18], ["p1a", 0x1a], ["shape", 0x1c],
+  ["p1e", 0x1e], ["p20", 0x20], ["p22", 0x22], ["p24", 0x24],
+  ["kind", 0x26], ["ready", 0x28], ["handler_off", 0x29],
+  ["handler_seg", 0x2b],
 ];
 
 (async () => {
@@ -72,9 +61,9 @@ const fields = [
     }
     for (const ob of want.objects) {
       if (ob.index === 1) continue;
-      for (const [jf, cf] of fields) {
+      for (const [jf, off] of fields) {
         const a = ob[jf] | 0;
-        const b = e[cf](ob.index) | 0;
+        const b = e.cc_obj_get(ob.index, off) | 0;
         if ((a & 0xFFFF) !== (b & 0xFFFF)) {
           console.error(`frame ${f + 1} slot ${ob.index} ${jf}: C=${b} oracle=${a}`);
           if (++failures > 30) process.exit(1);

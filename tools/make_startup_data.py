@@ -21,6 +21,7 @@ STARTUP_FIELDS = [
     ("a0ea", "uint16_t"), ("a0b4", "uint16_t"), ("a0b8", "uint16_t"),
     ("2ba", "uint16_t"), ("2ca", "uint16_t"), ("2c8", "uint16_t"),
     ("2c6", "uint16_t"), ("2e0", "uint16_t"),
+    ("260", "uint16_t"),
     ("306", "uint8_t"), ("30a", "uint8_t"), ("30b", "uint8_t"),
     ("30c", "uint8_t"),
     ("461b", "uint16_t"), ("461d", "uint16_t"), ("461f", "uint16_t"),
@@ -53,6 +54,11 @@ STARTUP_FIELDS = [
     ("a0c2", "uint16_t"), ("a0c8", "uint16_t"),
     ("a0ca", "uint16_t"), ("a0e4", "uint16_t"),
     ("a0ce", "uint16_t"), ("a10b", "uint8_t"),
+    ("50dc", "uint16_t"), ("50de", "uint16_t"), ("50e0", "uint16_t"),
+    ("a0f0", "uint8_t"), ("a0fa", "uint8_t"),
+    ("2cc", "uint16_t"), ("2ce", "uint16_t"), ("2d4", "uint16_t"),
+    ("2d6", "uint16_t"), ("2d8", "uint16_t"), ("2fa", "uint16_t"),
+    ("2fc", "uint16_t"), ("2fe", "uint16_t"),
     ("a0be", "uint16_t"), ("a0fb", "uint8_t"), ("a126", "uint8_t"),
 ]
 
@@ -79,6 +85,11 @@ LEVEL_FIELDS = [
     ("a0c2", "uint16_t"), ("a0c8", "uint16_t"),
     ("a0ca", "uint16_t"), ("a0e4", "uint16_t"),
     ("a0ce", "uint16_t"), ("a10b", "uint8_t"),
+    ("50dc", "uint16_t"), ("50de", "uint16_t"), ("50e0", "uint16_t"),
+    ("a0f0", "uint8_t"), ("a0fa", "uint8_t"),
+    ("2cc", "uint16_t"), ("2ce", "uint16_t"), ("2d4", "uint16_t"),
+    ("2d6", "uint16_t"), ("2d8", "uint16_t"), ("2fa", "uint16_t"),
+    ("2fc", "uint16_t"), ("2fe", "uint16_t"),
     ("a0fb", "uint8_t"), ("a126", "uint8_t"),
 ]
 

@@ -35,6 +35,7 @@ import sys
 from unicorn import (
     Uc, UC_ARCH_X86, UC_MODE_16,
     UC_HOOK_CODE, UC_HOOK_INTR, UC_HOOK_MEM_FETCH_UNMAPPED,
+    UC_HOOK_MEM_WRITE,
 )
 from unicorn.x86_const import (
     UC_X86_REG_AX, UC_X86_REG_BX, UC_X86_REG_CX, UC_X86_REG_DX,
@@ -180,8 +181,15 @@ def dump_cells(mu):
     return grid
 
 
-def run_level(level, boot_seed=True, verbose=False, startup=True):
-    module = load_module()
+def level_arg(level):
+    if level == 0:
+        return 0xFFFF
+    if level == 1:
+        return 0xFFFE
+    return level - 2
+
+
+def make_machine(module, startup=True):
     mu = Uc(UC_ARCH_X86, UC_MODE_16)
     mu.mem_map(0, 0x110000)
     mu.mem_write(0, module)
@@ -194,21 +202,17 @@ def run_level(level, boot_seed=True, verbose=False, startup=True):
     for site in DRAW_SITES:
         mu.mem_write(site, b"\x83\xc4\x08\x90\x90")
     mu.mem_write(RET_SENTINEL, b"\xf4")
-
     mu.reg_write(UC_X86_REG_SS, STACK_SEG)
     mu.reg_write(UC_X86_REG_DS, DATA_SEG)
     mu.reg_write(UC_X86_REG_ES, DATA_SEG)
     mu.reg_write(UC_X86_REG_CS, 0)
+    return mu
 
-    # Prologue chain compares the argument against 0xFFFF, 0xFFFE, 0, 1, ...
-    # so levels 0 and 1 use sentinels and levels 2+ pass (level - 2).
-    if level == 0:
-        arg = 0xFFFF
-    elif level == 1:
-        arg = 0xFFFE
-    else:
-        arg = level - 2
 
+def run_loader(mu, module, arg, boot_seed=True, trace_writes=False):
+    mu.reg_write(UC_X86_REG_DS, DATA_SEG)
+    mu.reg_write(UC_X86_REG_ES, DATA_SEG)
+    mu.reg_write(UC_X86_REG_CS, 0)
     sp = STACK_PTR
     sp -= 2
     w16(mu, STACK_SEG, sp, arg & 0xFFFF)
@@ -225,8 +229,13 @@ def run_level(level, boot_seed=True, verbose=False, startup=True):
             w16(mu, DATA_SEG, addr, val)
     w16(mu, DATA_SEG, 0xa0be, arg & 0xFFFF)
 
-    stats = {"steps": 0, "skipped": {}, "ints": {}, "stopped": None}
+    stats = {"steps": 0, "skipped": {}, "ints": {}, "stopped": None,
+             "far_calls": {}}
     spawns = []
+    writes = []
+    global_writes = []
+    rng_calls = []
+    rng_count = [0]
     tail = collections.deque(maxlen=48)
 
     def read_stack_word(off):
@@ -245,6 +254,12 @@ def run_level(level, boot_seed=True, verbose=False, startup=True):
             return
 
         cs = uc.reg_read(UC_X86_REG_CS)
+        ip = uc.reg_read(UC_X86_REG_IP)
+        if cs == 0x2BB5 and ip == 0x980:
+            sp = uc.reg_read(UC_X86_REG_SP)
+            ss = uc.reg_read(UC_X86_REG_SS)
+            rng_count[0] += 1
+            rng_calls.append(u16(uc, ss, (sp + 4) & 0xFFFF))
         if address == SPAWN and cs == 0:
             args = [read_stack_word(4 + 2 * i) for i in range(14)]
             ret_ip = read_stack_word(0)
@@ -269,6 +284,8 @@ def run_level(level, boot_seed=True, verbose=False, startup=True):
             raw = bytes(mu.mem_read(address, 5))
             off = int.from_bytes(raw[1:3], "little")
             seg = int.from_bytes(raw[3:5], "little")
+            key = "%04X:%04X" % (seg, off)
+            stats["far_calls"][key] = stats["far_calls"].get(key, 0) + 1
             if seg in SKIP_SEGS:
                 key = "%04X:%04X" % (seg, off)
                 stats["skipped"][key] = stats["skipped"].get(key, 0) + 1
@@ -297,15 +314,62 @@ def run_level(level, boot_seed=True, verbose=False, startup=True):
         stats["tail"] = ["%04X:%04X" % t for t in tail]
         uc.emu_stop()
 
+    def hook_write(uc, access, address, size, value, user):
+        lo = DATA_SEG << 4
+        if lo <= address < lo + 0x10000:
+            off = address - lo
+            # Only object records, cell records and gameplay globals matter to
+            # the transition overlay; the loader also writes large video and
+            # scratch buffers.
+            is_obj = OBJ_BASE <= off < OBJ_BASE + OBJ_SLOTS * OBJ_STRIDE
+            is_cell = CELL_BASE <= off < CELL_BASE + 40 * CELL_COL_STRIDE + 25 * CELL_ROW_STRIDE + 20
+            logical = False
+            if is_cell:
+                delta = off - CELL_BASE
+                for col in range(40):
+                    rem = delta - CELL_COL_STRIDE * (col + 1)
+                    if rem < 0:
+                        break
+                    row1, _byte = divmod(rem, CELL_ROW_STRIDE)
+                    if 1 <= row1 <= 25:
+                        logical = True
+                        break
+            is_global = off < 0x1000 or 0xA000 <= off < 0xA200 or (is_cell and not logical)
+            if not (is_obj or logical or is_global):
+                return
+            ss = uc.reg_read(UC_X86_REG_SS)
+            sp = uc.reg_read(UC_X86_REG_SP)
+            bp = uc.reg_read(UC_X86_REG_BP)
+            args = tuple(u16(uc, ss, (bp + 6 + 2*i) & 0xFFFF) for i in range(10))
+            retip = u16(uc, ss, (bp + 2) & 0xFFFF)
+            if is_obj or logical:
+                writes.append((off, size, value, rng_count[0], retip, args))
+            else:
+                global_writes.append((off, size, value))
+
     mu.hook_add(UC_HOOK_CODE, hook_code)
     mu.hook_add(UC_HOOK_INTR, hook_intr)
     mu.hook_add(UC_HOOK_MEM_FETCH_UNMAPPED, hook_bad_fetch)
+    if trace_writes:
+        mu.hook_add(UC_HOOK_MEM_WRITE, hook_write)
 
+    stats["tail_ref"] = tail
     try:
         mu.emu_start(LOADER, 0x110000, count=20_000_000)
     except Exception as e:
         stats["stopped"] = "error: %s" % e
+        stats["tail"] = ["%04X:%04X" % t for t in tail]
+    stats["tail"] = ["%04X:%04X" % t for t in tail]
+    stats["rng_calls"] = rng_calls
+    stats["global_writes"] = global_writes
+    return stats, spawns, writes
 
+
+def run_level(level, boot_seed=True, verbose=False, startup=True):
+    module = load_module()
+    mu = make_machine(module, startup=startup)
+    arg = level_arg(level)
+    stats, spawns, _writes = run_loader(mu, module, arg, boot_seed=boot_seed)
     return {
         "level": level,
         "arg": arg & 0xFFFF,
@@ -316,6 +380,58 @@ def run_level(level, boot_seed=True, verbose=False, startup=True):
         "objects": dump_objects(mu),
         "cells": dump_cells(mu),
         "cursor": u16(mu, DATA_SEG, 0x5120),
+    }
+
+
+def dump_globals(mu):
+    import emulate_startup as _S
+    out = {}
+    for name, off, width in _S.GLOBALS:
+        out[name] = mu.mem_read((DATA_SEG << 4) + off, width)[0] if width == 1 \
+            else u16(mu, DATA_SEG, off)
+    return out
+
+
+def fill_source(mu, obj_byte=0xA5, cell_byte=0xA5):
+    """Poison object/cell state so transition leftovers are observable."""
+    for i in range(OBJ_SLOTS):
+        base = OBJ_BASE + i * OBJ_STRIDE
+        mu.mem_write((DATA_SEG << 4) + base, bytes([obj_byte]) * OBJ_STRIDE)
+    for row in range(MAP_ROWS):
+        for col in range(MAP_COLS):
+            off = CELL_BASE + (col + 1) * CELL_COL_STRIDE + (row + 1) * CELL_ROW_STRIDE
+            mu.mem_write((DATA_SEG << 4) + off, bytes([cell_byte]) * 20)
+
+
+def run_transition(source_level, dest_level, prefill=True, trace_writes=True,
+                   mutate=None):
+    module = load_module()
+    src = make_machine(module, startup=True)
+    _stats, _spawns, _w = run_loader(src, module, level_arg(source_level))
+    if prefill:
+        fill_source(src)
+    if mutate is not None:
+        mutate(src)
+    # A fresh machine keeps the CPU/stack state pristine; only the DS image
+    # (source level + mutations) is carried into the destination load.
+    src_ds = bytes(src.mem_read(DATA_SEG << 4, 0x10000))
+    mu = make_machine(module, startup=False)
+    mu.mem_write(DATA_SEG << 4, src_ds)
+    stats, spawns, writes = run_loader(
+        mu, module, level_arg(dest_level), trace_writes=trace_writes)
+    return {
+        "source": source_level,
+        "dest": dest_level,
+        "arg": level_arg(dest_level) & 0xFFFF,
+        "stats": stats,
+        "spawns": spawns,
+        "writes": writes,
+        "objects": dump_objects(mu),
+        "cells": dump_cells(mu),
+        "cursor": u16(mu, DATA_SEG, 0x5120),
+        "globals": dump_globals(mu),
+        "rng": [u16(mu, DATA_SEG, 0x02A6), u16(mu, DATA_SEG, 0x02A8)],
+        "exe_sha256": sha256_file(EXE),
     }
 
 
