@@ -139,6 +139,43 @@ def check_manifest_present():
     print("ok  manifest hash present")
 
 
+def check_startup_data():
+    """Startup defaults + 0xA111 table + per-level start state."""
+    src = os.path.join(NOTE, "startup.json")
+    hdr = os.path.join(ROOT, "wasm", "startup_data.h")
+    if not os.path.exists(src):
+        fail("missing notes/startup.json (run tools/emulate_startup.py)")
+        return
+    if not os.path.exists(hdr):
+        fail("missing wasm/startup_data.h (run tools/make_startup_data.py)")
+        return
+    data = json.load(open(src))
+    want_table = [0, 0, 8, 8, 8, 4, 4, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 8, 8, 8]
+    if data.get("table") != want_table:
+        fail("startup.json: 0xA111 table %s != %s" % (data.get("table"), want_table))
+    s = data.get("startup_globals", {})
+    for name, val in (("5132", 1), ("5134", 1), ("509c", 5), ("509e", 3),
+                      ("2ba", 0), ("2ca", 0), ("306", 0), ("a0fd", 0),
+                      ("a0ea", 0xFFFF), ("2e0", 0x14)):
+        if s.get(name) != val:
+            fail("startup.json: startup %s=%s != %s" % (name, s.get(name), val))
+    anchors = {2: (32, 64, 0, 16), 3: (288, 224, 128, 124)}
+    for lv, (px, py, cx, cy) in anchors.items():
+        g = data["levels"][str(lv)]["globals"]
+        got = (g["4611"], g["4613"], g["512e"], g["5130"])
+        if got != (px, py, cx, cy):
+            fail("startup.json: L%02d start %s != %s" % (lv, got, (px, py, cx, cy)))
+    text = open(hdr).read()
+    for sym in ("g_vert_speed", "g_startup", "g_level_start_state", "Manifest:"):
+        if sym not in text:
+            fail("startup_data.h: missing %s" % sym)
+    if "0, 0, 8, 8, 8, 4, 4, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 8, 8, 8" not in text:
+        fail("startup_data.h: gravity table mismatch")
+    if text.count("/* level ") != 19:
+        fail("startup_data.h: expected 19 level entries")
+    print("ok  startup data + 0xA111 table + level starts")
+
+
 def main():
     print("== Oracle structural checks ==")
     check_oracle_vs_Y()
@@ -148,6 +185,7 @@ def main():
     check_signed_coords()
     check_tables()
     check_manifest_present()
+    check_startup_data()
     if failures:
         print("\n%d FAILURE(S)" % len(failures))
         sys.exit(1)

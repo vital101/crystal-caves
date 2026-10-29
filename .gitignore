@@ -12,6 +12,7 @@ __pycache__/
 wasm/render.wasm
 wasm/assets/
 wasm/out_wasm_level*.png
+wasm/oracle_level*.json
 
 # Debug artifacts
 out/block20_strip.png

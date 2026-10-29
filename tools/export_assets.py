@@ -11,6 +11,7 @@ Produces out/portable/:
   levels.bin      same maps, 6 B/cell binary (layer1, layer2, layer3 order)
   commands.json   decoded regular + special command tables (for faithful replay)
   objects.json    object-record template + index (from setup_level init)
+  cells.bin       full mutable 20-byte cell records (levels x rows x cols)
 
 Cell source: the golden-oracle emulator dumps (notes/oracle_objects.json,
 produced by tools/emulate_load.py) via tools/build_cells.py.  Block 0 is
@@ -80,6 +81,16 @@ def main():
                 binmaps += bytes(v & 0xFF for v in cell)
     open(os.path.join(OUT, "levels.bin"), "wb").write(binmaps)
 
+    # Full 20-byte runtime cell records (w0..w9).  Handlers mutate these.
+    oracle = json.load(open(N("oracle_objects.json")))
+    cellbytes = bytearray()
+    for lvl in range(19):
+        grid = oracle[str(lvl)]["cells"]
+        for row in range(H):
+            for col in range(W):
+                cellbytes += bytes.fromhex(grid[row][col])
+    open(os.path.join(OUT, "cells.bin"), "wb").write(cellbytes)
+
     # command tables (faithful replay)
     json.dump({"regular": json.load(open(N("regular_cmds.json"))),
                "special": json.load(open(N("special_cmds.json")))},
@@ -131,7 +142,8 @@ def main():
         "levels": {"file": "levels.json", "bin": "levels.bin", "count": 19,
                    "width": W, "height": H, "bin_cell_bytes": 6,
                    "cell": "[block1,shape1,block2,shape2,block3,shape3] "
-                           "(draw order 1,2,3; block 0 already substituted with 20)"},
+                           "(draw order 1,2,3; block 0 already substituted with 20)",
+                   "full_cells": "cells.bin", "full_cell_bytes": 20},
         "palette": {"file": "palette.json", "entries": 16},
         "commands": {"file": "commands.json"},
         "tile_space": "640x400 (40x25 cells of 16x16)",

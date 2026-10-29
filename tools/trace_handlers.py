@@ -77,7 +77,7 @@ GLOBAL_NAMES = {
     0x508C: "map_cells",
     0x5120: "spawn_cursor",
     0x5122: "base_shape",
-    0x5134: "frame_counter",
+    0x5134: "jump_phase",
     0x5136: "anim_counter",
     0x513E: "sound_enable",
     0x513F: "sound_busy",

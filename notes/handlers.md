@@ -501,7 +501,7 @@ segment offsets; load offset = `0x1F9A0 + offset`.
 - flags: anim, map_cell
 - fields read: p1a, p1e, p22, x, y
 - fields written: p1a, p1e, x
-- globals read: frame_counter, map_cell+0x11, player_x, player_y
+- globals read: jump_phase, map_cell+0x11, player_x, player_y
 - globals written: player_x, player_y
 - calls: 0x0310 (anim_next(+0x10, max +0x16)), 0x0043, 0x0043
 

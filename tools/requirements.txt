@@ -1,0 +1,5 @@
+# Python tooling dependencies for the reverse-engineering / oracle tools.
+# Build and static-render checks do not need these; emulate_load,
+# emulate_render, oracle_frame, disasm, trace_handlers and decode_* do.
+capstone>=5.0
+unicorn>=2.0

@@ -74,6 +74,8 @@ const W = 640, H = 400;
   let nz = 0;
   for (let i = 0; i < W * H * 4; i += 4) if (fb[i] | fb[i + 1] | fb[i + 2]) nz++;
   console.log(`Framebuffer: ${(100 * nz / (W * H)).toFixed(1)}% non-black`);
+  if (drawn === 0) throw new Error("no objects were drawn");
+  if (nz === 0) throw new Error("framebuffer is empty");
 
 })().catch((err) => {
   console.error(err);

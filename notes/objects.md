@@ -99,9 +99,14 @@ Frequency hints: `0x1FB9` (17 sites) = generic collectible/bg sprite,
 ## Status
 - C1 (record layout + init): **done**.
 - C2 (spawn + type table): **done** (handler taxonomy extracted).
-- C3 (per-type behaviour + update loop): in progress — handlers are TP
-  procedures in seg 0x1F9A, to be disassembled next.
-- C4 (player + physics/collision): pending.
+- C3 (update loop + hub handlers): **done for the hub slice**. The real 0xD72A
+  loop and handlers 3F13/6FF6/70E4/3D23/6AFA/6D31 match the Unicorn oracle.
+  Remaining handler semantics: see `notes/gameplay.md`.
+- C4 (player + physics/collision): **done**. Exact startup DS (`0xC3E`) is
+  captured by `tools/emulate_startup.py`; the vertical table is `DS:0xA111`
+  indexed by `[0x5134]`. Exact physics/camera/platform carry is validated by
+  `tools/oracle_physics.py` + `tools/physics_fixtures.py` and
+  `wasm/test_physics.js` (16 scenarios / 670 frames).
 
 ## Object update loop (discovery)
 

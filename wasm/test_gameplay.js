@@ -29,6 +29,10 @@ const SPAWN_COUNTS = {
     {}
   );
   const e = instance.exports;
+  const cells = fs.readFileSync(path.join(DIR, "..", "out", "portable", "cells.bin"));
+  const cp = e.cc_alloc(cells.length);
+  new Uint8Array(e.memory.buffer, cp, cells.length).set(cells);
+  e.cc_set_cells(cp);
 
   e.cc_objects_init(level);
   console.log(`Level ${level}:`);
@@ -53,13 +57,21 @@ const SPAWN_COUNTS = {
     if (e.cc_obj_state(s) !== 2 && e.cc_obj_kind(s) !== 0) active++;
   }
   console.log(`  active objects: ${active}`);
+  console.log(`  handler coverage: ${e.cc_handler_coverage_num()}%`);
+  if (level === 2 && e.cc_handler_coverage_num() !== 100) {
+    throw new Error(`level 2 handler coverage ${e.cc_handler_coverage_num()}% != 100%`);
+  }
+  if (active === 0) throw new Error("no active objects loaded");
+  if (level === 2 && (px !== 32 || py !== 64)) {
+    throw new Error(`level 2 start ${px},${py} != 32,64 (main hub Y cell)`);
+  }
 
   // Score / collectibles / lives must be zero-stubs.
   console.log(`  score=${e.cc_score()} total=${e.cc_collectibles_total()} left=${e.cc_collectibles_left()} lives=${e.cc_lives()} complete=${e.cc_level_complete()}`);
   if (e.cc_score() !== 0) throw new Error("score should be 0 stub");
   if (e.cc_collectibles_total() !== 0) throw new Error("collectibles_total should be 0 stub");
   if (e.cc_collectibles_left() !== 0) throw new Error("collectibles_left should be 0 stub");
-  if (e.cc_lives() !== 0) throw new Error("lives should be 0 stub");
+  if (e.cc_lives() !== 3) throw new Error("lives should start at 3");
   if (e.cc_level_complete() !== 0) throw new Error("level_complete should be 0 stub");
 
   // Step with right input; score/collectibles must remain 0 (no collection).

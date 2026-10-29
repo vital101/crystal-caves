@@ -15,12 +15,23 @@ const DIR = __dirname;
     {}
   );
   const e = instance.exports;
+  const cells = fs.readFileSync(path.join(DIR, "..", "out", "portable", "cells.bin"));
+  const cp = e.cc_alloc(cells.length);
+  new Uint8Array(e.memory.buffer, cp, cells.length).set(cells);
+  e.cc_set_cells(cp);
 
   e.cc_objects_init(level);
+  const startX = e.cc_player_x();
+  const startY = e.cc_player_y();
 
   // Show initial state
   console.log(`level ${level}: cursor=${e.cc_obj_cursor()}`);
-  console.log(`  player=(${e.cc_player_x()},${e.cc_player_y()}) cam=(${e.cc_cam_x()},${e.cc_cam_y()})`);
+  console.log(`  player=(${startX},${startY}) cam=(${e.cc_cam_x()},${e.cc_cam_y()})`);
+
+  // The oracle catalog records the level's Y-cell start; level 0 is (5,5).
+  if (level === 0 && (startX !== 80 || startY !== 80)) {
+    throw new Error(`level 0 start ${startX},${startY} != 80,80`);
+  }
 
   // Count active objects
   let active = 0;
@@ -28,6 +39,7 @@ const DIR = __dirname;
     if (e.cc_obj_state(s) !== 2 && e.cc_obj_kind(s) !== 0) active++;
   }
   console.log(`  active objects: ${active}`);
+  if (active === 0) throw new Error("no active objects loaded");
 
   // Simulate input: press right for first half, then release
   for (let f = 1; f <= frames; f++) {
@@ -63,9 +75,17 @@ const DIR = __dirname;
     }
   }
 
-  // Final collision check
-  console.log(`\nFinal: collide(mode=1,r=16)=${e.cc_collide_player(1, 16)}`);
-  console.log(`       collide(mode=2,r=16)=${e.cc_collide_player(2, 16)}`);
+  // Final collision check. Slot 1 is the player and must never be returned.
+  const c1 = e.cc_collide_player(1, 16);
+  const c2 = e.cc_collide_player(2, 16);
+  console.log(`\nFinal: collide(mode=1,r=16)=${c1}`);
+  console.log(`       collide(mode=2,r=16)=${c2}`);
+  if (c1 === 1 || c2 === 1) throw new Error("collision returned the player slot");
+
+  if (level === 0 && e.cc_player_x() <= startX) {
+    throw new Error(`right input did not move player: ${startX} -> ${e.cc_player_x()}`);
+  }
+  console.log("PASS: object init/input/collision checks");
 
 })().catch((err) => {
   console.error(err);

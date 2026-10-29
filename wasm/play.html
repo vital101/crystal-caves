@@ -15,17 +15,18 @@
 </head>
 <body>
 <h2>Crystal Caves Ep.1 — WASM Playable</h2>
-<canvas id="game" width="640" height="400"></canvas>
-<div id="hud">Level: <span id="lvl">0</span></div>
+<canvas id="game" width="320" height="200" style="width:960px;height:600px"></canvas>
+<div id="hud">Level: <input id="levelNum" type="number" min="0" max="18" value="2" style="width:4em"> <button id="loadLevel">Load</button> <span id="lvl"></span></div>
 <div id="msg"></div>
 <div id="diag">initializing...</div>
-<button id="render">Render Level</button>
+<button id="render">Reload Level</button>
+<button id="run">Pause</button>
 <button id="step">Step Frame</button>
 <button id="saveFrame">Save Frame (PNG)</button>
 <div class="hint">Arrows: move / jump &nbsp;•&nbsp; Z or Space: fire</div>
 <script>
 (async () => {
-  const W = 640, H = 400;
+  const W = 320, H = 200;
   const cv = document.getElementById('game');
   const ctx = cv.getContext('2d');
   const msg = document.getElementById('msg');
@@ -35,6 +36,7 @@
   const wasm = await fetch('render.wasm?v=' + Date.now()).then(r => r.arrayBuffer());
   const gfx = await fetch('assets/gfx.bin?v=' + Date.now()).then(r => r.arrayBuffer());
   const levels = await fetch('assets/levels.bin?v=' + Date.now()).then(r => r.arrayBuffer());
+  const cells = await fetch('assets/cells.bin?v=' + Date.now()).then(r => r.arrayBuffer());
   const pal = await fetch('assets/palette.json?v=' + Date.now()).then(r => r.json());
 
   const { instance } = await WebAssembly.instantiate(wasm, {});
@@ -48,16 +50,18 @@
   };
   const gfxP = copyIn(gfx);
   const levelsP = copyIn(levels);
+  const cellsP = copyIn(cells);
   const palP = e.cc_alloc(64);
   const palU32 = new Uint32Array(e.memory.buffer, palP, 16);
   pal.colors.forEach(([r, g, b], i) => { palU32[i] = (r << 16) | (g << 8) | b; });
   e.cc_set_assets(gfxP, levelsP);
+  e.cc_set_cells(cellsP);
   e.cc_set_palette(palP);
 
   const KEY_MAP = {
     'ArrowLeft': 0x338E, 'ArrowRight': 0x338F,
-    'ArrowUp': 0x338D, 'ArrowDown': 0x338C,
-    ' ': 0x338A, 'z': 0x338A, 'Z': 0x338A,
+    'ArrowUp': 0x338B, 'ArrowDown': 0x338C,
+    ' ': 0x3390, 'z': 0x3390, 'Z': 0x3390,
   };
   window.addEventListener('keydown', (ev) => {
     const id = KEY_MAP[ev.key];
@@ -72,7 +76,7 @@
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
     const cctx = canvas.getContext('2d');
-    const fb = e.cc_framebuffer();
+    const fb = e.cc_view_framebuffer();
     const img = cctx.createImageData(W, H);
     img.data.set(new Uint8ClampedArray(e.memory.buffer, fb, W * H * 4));
     cctx.putImageData(img, 0, 0);
@@ -82,25 +86,25 @@
     link.click();
   });
 
-  let level = 0;
+  let level = 2;
   e.cc_objects_init(level);
-  lvlEl.textContent = level;
+  lvlEl.textContent = level === 2 ? "2 (Main Mineshaft)" : String(level);
 
   function renderFrame() {
-    e.cc_render_level(level, e.cc_framebuffer());
-
-    /* Draw active objects on top. */
     const camX = e.cc_cam_x(), camY = e.cc_cam_y();
+    e.cc_render_view(level, camX, camY);
+
+    /* Draw active objects on top of the 320x200 viewport. */
     for (let s = 0; s < e.cc_obj_count(); s++) {
       if (e.cc_obj_state(s) === 2 || e.cc_obj_kind(s) === 0) continue;
       const blk = e.cc_obj_tile(s), sh = e.cc_obj_shape(s);
       if (!blk || !sh) continue;
       const ox = e.cc_obj_x(s) - camX;
       const oy = e.cc_obj_y(s) - camY;
-      e.cc_draw_object(blk, sh, ox, oy);
+      e.cc_draw_object_view(blk, sh, ox, oy);
     }
 
-    const fb = e.cc_framebuffer();
+    const fb = e.cc_view_framebuffer();
     const img = new ImageData(new Uint8ClampedArray(e.memory.buffer, fb, W * H * 4), W, H);
     ctx.putImageData(img, 0, 0);
 
@@ -121,19 +125,56 @@
       const i = 16 * W * 4 + x * 4;
       r16.push(`x${x}=(${u8[i]},${u8[i+1]},${u8[i+2]})`);
     }
-    diag.textContent = `fb=0x${fb.toString(16)} row0black=${row0black} row16nonblack=${row16nonblack}/640`;
+    diag.textContent = `level=${level} cam=(${camX},${camY}) fb=0x${fb.toString(16)} row0black=${row0black} row16nonblack=${row16nonblack}/${W}`;
     console.log('DIAG:', diag.textContent, 'row16:', r16.join(' '));
   }
 
-  document.getElementById('render').addEventListener('click', () => {
+  function loadLevel(n) {
+    level = Math.max(0, Math.min(18, n | 0));
+    document.getElementById('levelNum').value = level;
     e.cc_objects_init(level);
+    lvlEl.textContent = level === 2 ? "2 (Main Mineshaft)" : String(level);
     renderFrame();
+  }
+  document.getElementById('render').addEventListener('click', () => loadLevel(level));
+  document.getElementById('loadLevel').addEventListener('click', () => {
+    loadLevel(parseInt(document.getElementById('levelNum').value, 10) || 0);
   });
 
+  let running = true;
+  const runBtn = document.getElementById('run');
+  runBtn.addEventListener('click', () => {
+    running = !running;
+    runBtn.textContent = running ? 'Pause' : 'Run';
+  });
   document.getElementById('step').addEventListener('click', () => {
     e.cc_objects_step();
     renderFrame();
   });
+
+  /* Original timing: PIT divisor 0x2147 (~140.06 Hz), 8 ticks per frame. */
+  const STEP_MS = 1000 * 8 * 0x2147 / 1193182;
+  let last = 0, accum = 0;
+  function frameLoop(now) {
+    if (!last) last = now;
+    let dt = now - last;
+    last = now;
+    if (dt > 250) dt = 250;
+    if (running) {
+      accum += dt;
+      let steps = 0;
+      while (accum >= STEP_MS && steps < 4) {
+        e.cc_objects_step();
+        accum -= STEP_MS;
+        steps++;
+      }
+      if (steps) renderFrame();
+    } else {
+      accum = 0;
+    }
+    requestAnimationFrame(frameLoop);
+  }
+  requestAnimationFrame(frameLoop);
 
   // Initial render
   renderFrame();

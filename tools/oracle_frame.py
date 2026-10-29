@@ -2,8 +2,9 @@
 """Oracle frame harness (reusable).
 
 Loads a level once into Unicorn, then runs the original player-physics /
-camera / collision routines with controlled state.  This is the validation
-foundation for Phase 3.
+camera / collision routines with controlled state.  For exact physics use
+tools/oracle_physics.py, which seeds the complete 0xC3E startup image;
+FrameOracle keeps the older loader-only convenience setup.
 
 Example:
     import oracle_frame as OF

@@ -33,7 +33,9 @@
     "width": 40,
     "height": 25,
     "bin_cell_bytes": 6,
-    "cell": "[block1,shape1,block2,shape2,block3,shape3] (draw order 1,2,3; block 0 already substituted with 20)"
+    "cell": "[block1,shape1,block2,shape2,block3,shape3] (draw order 1,2,3; block 0 already substituted with 20)",
+    "full_cells": "cells.bin",
+    "full_cell_bytes": 20
   },
   "palette": {
     "file": "palette.json",

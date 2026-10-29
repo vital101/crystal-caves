@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Golden-oracle level loader.
 
-Runs the *original* level-load routine (0xB1A9) inside a Unicorn 16-bit
-emulator and dumps the resulting object array and cell map.  This settles all
+Runs the original new-game initializer (0xC3E) and level-load routine
+(0xB1A9) inside a Unicorn 16-bit emulator and dumps the resulting object
+array, cell map and (optionally) startup globals.  Running 0xC3E first is
+required: it supplies gameplay defaults and the level-2 hub door cell IDs.  This settles all
 questions about spawn counts, `[`-prefix handling and per-level prologues
 without re-deriving the command interpreter by hand.
 
@@ -178,11 +180,17 @@ def dump_cells(mu):
     return grid
 
 
-def run_level(level, boot_seed=True, verbose=False):
+def run_level(level, boot_seed=True, verbose=False, startup=True):
     module = load_module()
     mu = Uc(UC_ARCH_X86, UC_MODE_16)
     mu.mem_map(0, 0x110000)
     mu.mem_write(0, module)
+    # Exact new-game state (0xC3E) before the loader.  Without this the
+    # loader-only image misses door IDs and gameplay defaults.
+    if startup:
+        import emulate_startup as _S
+        ds0, _ = _S.run_startup()
+        mu.mem_write(DATA_SEG << 4, ds0)
     for site in DRAW_SITES:
         mu.mem_write(site, b"\x83\xc4\x08\x90\x90")
     mu.mem_write(RET_SENTINEL, b"\xf4")
@@ -257,20 +265,16 @@ def run_level(level, boot_seed=True, verbose=False):
                 "ch": ch,
             })
 
-        ins = next(md.disasm(bytes(mu.mem_read(address, 16)), address & 0xFFFF), None)
-        if ins is None:
-            return
-        if ins.mnemonic == "lcall" and len(ins.operands) >= 2 \
-                and ins.operands[0].type == CS_OP_IMM \
-                and ins.operands[1].type == CS_OP_IMM:
-            seg = ins.operands[0].imm
-            off = ins.operands[1].imm
+        if bytes(mu.mem_read(address, 1))[0] == 0x9A:
+            raw = bytes(mu.mem_read(address, 5))
+            off = int.from_bytes(raw[1:3], "little")
+            seg = int.from_bytes(raw[3:5], "little")
             if seg in SKIP_SEGS:
                 key = "%04X:%04X" % (seg, off)
                 stats["skipped"][key] = stats["skipped"].get(key, 0) + 1
                 n = retf_argbytes(module, seg, off)
                 uc.reg_write(UC_X86_REG_SP, (uc.reg_read(UC_X86_REG_SP) + n) & 0xFFFF)
-                uc.reg_write(UC_X86_REG_IP, (address + ins.size) & 0xFFFF)
+                uc.reg_write(UC_X86_REG_IP, (address + 5) & 0xFFFF)
                 return
 
     def hook_intr(uc, intno, user):

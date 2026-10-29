@@ -25,6 +25,8 @@
 #define CELL_BYTES    6
 #define TILE_W        640
 #define TILE_H        400
+#define SCREEN_W      320
+#define SCREEN_H      200
 
 /* --- tiny freestanding runtime ------------------------------------------ */
 void *memset(void *d, int c, unsigned n) {
@@ -56,6 +58,7 @@ static const unsigned char *g_gfx = 0;
 static const unsigned char *g_levels = 0;
 static unsigned int g_palette[PALETTE_SIZE];
 static unsigned char g_rgba[TILE_W * TILE_H * 4];
+static unsigned char g_view[SCREEN_W * SCREEN_H * 4];
 
 void cc_set_assets(const unsigned char *gfx, const unsigned char *levels) {
     g_gfx = gfx;
@@ -75,7 +78,8 @@ static const unsigned char *shape_ptr(int block, int shape) {
                   + (unsigned)(shape - 1) * SHAPE_BYTES;
 }
 
-static void blit(const unsigned char *shape, int px, int py) {
+static void blit_to(unsigned char *buf, int bw, int bh,
+                    const unsigned char *shape, int px, int py) {
     if (shape == 0) return;
     /* GFX shape format (confirmed against the original blitters and
      * validated bit-exact against the emulated EGA framebuffer):
@@ -84,25 +88,29 @@ static void blit(const unsigned char *shape, int px, int py) {
      * plane bits (p0=blue .. p3=intensity); MSB = leftmost pixel. */
     for (int y = 0; y < SHAPE_H; y++) {
         int fy = py + y;
-        if (fy < 0 || fy >= TILE_H) continue;
+        if (fy < 0 || fy >= bh) continue;
         const unsigned char *row = shape + y * (GROUPS * 5);
         for (int g = 0; g < GROUPS; g++) {
             const unsigned char *grp = row + g * 5;
             const unsigned char mask = grp[0];
             for (int bit = 0; bit < 8; bit++) {
                 int bx = px + g * 8 + bit;
-                if (bx < 0 || bx >= TILE_W) continue;
+                if (bx < 0 || bx >= bw) continue;
                 const unsigned char m = (unsigned char)(0x80u >> bit);
                 if (!(mask & m)) continue;          /* transparent pixel */
                 int ci = ((grp[1] & m) ? 1 : 0) | ((grp[2] & m) ? 2 : 0)
                        | ((grp[3] & m) ? 4 : 0) | ((grp[4] & m) ? 8 : 0);
                 unsigned int c = g_palette[ci];
-                unsigned char *d = &g_rgba[(fy * TILE_W + bx) * 4];
+                unsigned char *d = &buf[(fy * bw + bx) * 4];
                 d[0] = (c >> 16) & 0xFF; d[1] = (c >> 8) & 0xFF;
                 d[2] = c & 0xFF; d[3] = 0xFF;
             }
         }
     }
+}
+
+static void blit(const unsigned char *shape, int px, int py) {
+    blit_to(g_rgba, TILE_W, TILE_H, shape, px, py);
 }
 
 /* Draw one object sprite (block/shape are 1-based) at screen position (px,py).
@@ -114,11 +122,20 @@ void cc_draw_object(int block, int shape, int px, int py) {
     if (s) blit(s, px, py);
 }
 
+void cc_draw_object_view(int block, int shape, int px, int py) {
+    const unsigned char *s = shape_ptr(block, shape);
+    if (s) blit_to(g_view, SCREEN_W, SCREEN_H, s, px, py);
+}
+
+unsigned char *cc_view_framebuffer(void) { return g_view; }
+int cc_view_width(void)  { return SCREEN_W; }
+int cc_view_height(void) { return SCREEN_H; }
+
 /* Render a baked level: layer 1, then 2, then 3 (SetCell helper CS:0x0000;
  * layers 2 and 3 are skipped when their shape is 0). */
-void cc_render_level(int level, unsigned char *out_rgba) {
+static void render_level_buf(int level) {
     memset(g_rgba, 0, sizeof(g_rgba));
-    if (!g_gfx || !g_levels) { memcpy(out_rgba, g_rgba, sizeof(g_rgba)); return; }
+    if (!g_gfx || !g_levels) return;
     if (level < 0 || level >= LEVELS) level = 0;
 
     const unsigned char *cells =
@@ -136,5 +153,24 @@ void cc_render_level(int level, unsigned char *out_rgba) {
             if ((s = shape_ptr(b3, s3))) blit(s, px, py);
         }
     }
+}
+
+void cc_render_level(int level, unsigned char *out_rgba) {
+    render_level_buf(level);
     memcpy(out_rgba, g_rgba, sizeof(g_rgba));
+}
+
+/* Render the 320x200 camera viewport from a baked level. */
+void cc_render_view(int level, int cam_x, int cam_y) {
+    int x0 = cam_x, y0 = cam_y;
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x0 > TILE_W - SCREEN_W) x0 = TILE_W - SCREEN_W;
+    if (y0 > TILE_H - SCREEN_H) y0 = TILE_H - SCREEN_H;
+    render_level_buf(level);
+    for (int y = 0; y < SCREEN_H; y++) {
+        memcpy(&g_view[y * SCREEN_W * 4],
+               &g_rgba[((y + y0) * TILE_W + x0) * 4],
+               SCREEN_W * 4);
+    }
 }
