@@ -48,7 +48,7 @@ LEVEL_FIELDS = [
     ("4619", "uint16_t"), ("461b", "uint16_t"), ("461d", "uint16_t"),
     ("461f", "uint16_t"), ("4627", "uint16_t"), ("4629", "uint16_t"),
     # Per-level prologue state that affects combat/fire and RNG.
-    ("2da", "uint16_t"), ("30b", "uint8_t"),
+    ("2da", "uint16_t"), ("2f2", "uint16_t"), ("30b", "uint8_t"),
     ("2a6", "uint16_t"), ("2a8", "uint16_t"),
     ("50a0", "uint16_t"),
 ]

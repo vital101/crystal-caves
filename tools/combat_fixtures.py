@@ -144,6 +144,12 @@ def inputs(n, **kw):
     return [dict(kw) for _ in range(n)]
 
 
+# Level 3 slot 8 is the 0x5855 three-record group; slot 7 is its companion.
+R5855_SEED = {
+    "player": {"x": 200, "y": 32},
+    "globals": {"512e": 128, "5130": 16},
+}
+
 SCENARIOS = [
     {
         "name": "noop_objects_l3", "level": 3, "mode": "objects",
@@ -156,6 +162,89 @@ SCENARIOS = [
             "cursor": 40,
         },
         "frames": inputs(10),
+    },
+    {
+        "name": "fire_normal_l2", "level": 2, "mode": "full",
+        "frames": [{"fire": True}] + inputs(10),
+    },
+    {
+        "name": "fire_normal_left_l2", "level": 2, "mode": "full",
+        "seed": {"player": {"x": 64, "y": 64}, "globals": {"4629": 0xFFFF}},
+        "frames": [{"fire": True}] + inputs(10),
+    },
+    {
+        "name": "fire_power_l2", "level": 2, "mode": "full",
+        "seed": {"globals": {"a0ff": 1, "a0c4": 0}},
+        "frames": [{"fire": True}] + inputs(10),
+    },
+    {
+        "name": "fire_power_left_l2", "level": 2, "mode": "full",
+        "seed": {"player": {"x": 64, "y": 64},
+                 "globals": {"4629": 0xFFFF, "a0ff": 1, "a0c4": 0}},
+        "frames": [{"fire": True}] + inputs(10),
+    },
+    {
+        "name": "fire_empty_l2", "level": 2, "mode": "full",
+        "seed": {"globals": {"509c": 0}},
+        "frames": inputs(5, fire=True),
+    },
+    {
+        "name": "fire_cooldown_l2", "level": 2, "mode": "full",
+        "seed": {"globals": {"2e0": 0}},
+        "frames": inputs(10, fire=True),
+    },
+    {
+        "name": "fire_hitlock_l2", "level": 2, "mode": "full",
+        "seed": {"globals": {"4660": 0}},
+        "frames": inputs(10, fire=True),
+    },
+    {
+        "name": "fire_held_l2", "level": 2, "mode": "full",
+        "frames": inputs(30, fire=True),
+    },
+    {
+        "name": "slash_expiry_l2", "level": 2, "mode": "full",
+        "frames": [{"fire": True}] + inputs(30),
+    },
+    {
+        "name": "fire_terrain_l2", "level": 2, "mode": "full",
+        "seed": {"player": {"x": 600, "y": 80},
+                 "globals": {"512e": 440, "5130": 16}},
+        "frames": [{"fire": True}] + inputs(12),
+    },
+    {
+        "name": "timers_l2", "level": 2, "mode": "full",
+        "seed": {"globals": {"a0ea": 0, "a0b8": 1}},
+        "frames": inputs(20),
+    },
+    {
+        "name": "power_expiry_l2", "level": 2, "mode": "full",
+        "seed": {"globals": {"a0ff": 1, "a0c4": 0xFFFF, "a0f8": 1,
+                             "4660": 1}},
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_direct_l2", "level": 2, "mode": "full",
+        "seed": {
+            "globals": {"a0f8": 1},
+            "objects": {"2": {"kind": 2, "state": 0, "ready": 0,
+                              "x": 200, "y": 80, "tile": 6, "p10": 1,
+                              "p12": 0x25, "p14": 0x2B, "p16": 6,
+                              "p18": 0, "p1a": 1, "shape": 0x25,
+                              "p1e": 1, "p20": 0, "p22": 4,
+                              "handler_off": 0x2850, "handler_seg": 0x1F9A}},
+        },
+        "frames": inputs(6),
+    },
+    {
+        "name": "r5855_hit_l3", "level": 3, "mode": "objects",
+        "seed": dict(R5855_SEED, rng=[0, 0]),
+        "frames": inputs(5),
+    },
+    {
+        "name": "r5855_miss_l3", "level": 3, "mode": "objects",
+        "seed": dict(R5855_SEED, rng=[0, 1]),
+        "frames": inputs(3),
     },
 ]
 

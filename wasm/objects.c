@@ -137,11 +137,8 @@ typedef struct {
     uint16_t g_5124;             /* [0x5124] interaction/death state */
     uint16_t g_a0ea;             /* [0xa0ea] hit/invulnerability state */
     uint8_t  g_a0f6;             /* [0xa0f6] interaction lock */
-    uint16_t g_460d;             /* [0x460d] last-hit object */
     uint16_t g_509e;             /* [0x509e] lives/crystal counter in border cell */
     uint16_t g_509c;             /* [0x509c] HUD counter in border cell */
-    uint8_t  g_4660;             /* [0x4660] player-hit lock */
-    uint16_t g_4652;             /* [0x4652] projectile state */
 
     /* Phase 2 exact combat/fire state. */
     uint16_t score_lo;           /* [0x50a5] */
@@ -150,6 +147,8 @@ typedef struct {
     uint16_t rng_hi;             /* [0x02a8] */
     uint16_t cooldown;           /* [0x02e0] frames since fire */
     uint16_t fire_impulse;       /* [0x02da] per-level firing impulse */
+    uint16_t g_2f2;              /* [0x02f2] status object index */
+    uint8_t  g_a100;             /* [0xa100] pending timer event */
     uint8_t  power_shot;         /* [0xa0ff] power-shot active */
     uint16_t power_timer;        /* [0xa0c4] power-shot expiry */
     uint16_t checkpoint_50a0;    /* [0x50a0] restart checkpoint */
@@ -190,6 +189,21 @@ static void score_add(uint16_t lo_add, uint16_t hi_add) {
 }
 
 void cc_set_cells(const unsigned char *cells) { g_cells_asset = cells; }
+
+/* Mutable cell record access.  Logical (col,row) maps to the original
+ * 0x508C + (col+1)*500 + (row+1)*20 index. */
+static unsigned char *cell_rec(int col, int row) {
+    if (col < 0 || col >= CELL_COLS || row < 0 || row >= CELL_ROWS) return 0;
+    return S->cells[row][col];
+}
+static int cell_byte_cur(int col, int row, int off) {
+    unsigned char *c = cell_rec(col, row);
+    return c ? c[off] : 0;
+}
+static void cell_put(int col, int row, int off, int value) {
+    unsigned char *c = cell_rec(col, row);
+    if (c) c[off] = (unsigned char)value;
+}
 
 /* Current-level solid flag: mutable oracle cells when available, otherwise
  * the baked solid bitmap from cells_data.h. */
@@ -363,6 +377,19 @@ static void player_anim_next(void) {
 /* 0x1F9A:0x357 anim_select_shape(1): p1e==1 ? p14 : p12 -> shape. */
 static void player_select_shape(void) {
     S->shape_player = (S->move_dir == 1) ? S->shape_a : S->shape_b;
+}
+
+/* Mirror aliased player globals into object slot 1 after a full frame. */
+static void sync_player_object(void) {
+    ObjectEntry *p = &S->obj[1];
+    p->x = S->player_x;
+    p->y = S->player_y;
+    p->shape = S->shape_player;
+    p->vx = (int16_t)S->move_dir;
+    p->tile = S->player_block;
+    p->p10 = S->anim_timer;
+    p->p12 = S->shape_b;
+    p->p14 = S->shape_a;
 }
 
 /* 0x6BE: walk acceleration phase -> speed 2 for phases 1-2, 4 afterwards. */
@@ -691,9 +718,11 @@ static void h_1fb9(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)o; (void)idx; (void)x; (void)y;
 }
 
-/* 0x1F9A:0x2850 (kind 2): prologue object, permanently ready==1. */
+static void h_251d(ObjectEntry *o, int idx, int16_t x, int16_t y);
+
+/* 0x1F9A:0x2850 (kind 2): ready gate around the slash update 0x251D. */
 static void h_2850(ObjectEntry *o, int idx, int16_t x, int16_t y) {
-    (void)o; (void)idx; (void)x; (void)y;
+    if (o->ready == 0) h_251d(o, idx, x, y);
 }
 
 /* 0x1F9A:0x2877 (kind 3): inert in the update loop. */
@@ -949,7 +978,7 @@ static void damage_life(void) {
     if ((int16_t)S->g_509e > 1) {
         S->g_a0ea = 0;
         S->g_509e--;
-        S->g_460d = 1;
+        S->obj[1].p02 = 1;
     } else if (S->g_5124 == 0) {
         S->g_5124 = 1;
         S->g_509e--;
@@ -1010,13 +1039,13 @@ static void player_interact(ObjectEntry *o, int16_t x, int16_t y) {
         case 0x10: case 0x0e:
             S->g_a0ea = 0xffff;
             S->g_5124 = 1;
-            S->g_460d = 0;
+            S->obj[1].p02 = 0;
             break;
         case 0x24:
             S->g_5124 = 0;
             S->g_a0ea = 0xffff;
             S->g_509e++;
-            S->g_460d = 0;
+            S->obj[1].p02 = 0;
             break;
         case 0x16:
             if (S->g_5124 == 1)
@@ -1026,7 +1055,7 @@ static void player_interact(ObjectEntry *o, int16_t x, int16_t y) {
             S->g_5124 = 0;
             S->g_a0ea = 0xffff;
             S->g_509e++;
-            S->g_460d = 0;
+            S->obj[1].p02 = 0;
             o->ready = 1;
             spawn_effect(0x18, (int16_t)(x / 16), (int16_t)(y / 16));
             play_sound(8);
@@ -1121,9 +1150,36 @@ static void h_2176(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     player_interact(o, o->x, o->y);
 }
 
-/* 0x1F9A:0x5855 (kind 48): three-record moving group.  The full direction
- * flip / random spawn path is not ported yet; the common path (animate every
- * other frame, move all three records) is exact. */
+/* 0x1F9A:0x1E74 helper: proximity test against the player using the object
+ * record's current x/y.  mode 1: |dy| < r1 and |dx| < r2; mode 2:
+ * |dx| < 8 and |dy| < r1.  Returns -1/1 for direction, 0 for no match. */
+static int16_t proximity_obj_dir(int mode, int16_t r1, int16_t r2, int slot) {
+    ObjectEntry *p;
+    int16_t d;
+    if (slot < 0 || slot >= OBJ_MAX) return 0;
+    p = &S->obj[slot];
+    if (mode == 1) {
+        d = (int16_t)(p->y - S->player_y);
+        if (d < 0) d = (int16_t)-d;
+        if (d >= r1) return 0;
+        d = (int16_t)(p->x - S->player_x);
+        if (d < 0) d = (int16_t)-d;
+        if (d >= r2) return 0;
+        return ((int16_t)(p->x - S->player_x) > 0) ? -1 : 1;
+    }
+    if (mode == 2) {
+        d = (int16_t)(p->x - S->player_x);
+        if (d < 0) d = (int16_t)-d;
+        if (d >= 8) return 0;
+        d = (int16_t)(p->y - S->player_y);
+        if (d < 0) d = (int16_t)-d;
+        if (d >= r1) return 0;
+        return ((int16_t)(p->y - S->player_y) > 0) ? -1 : 1;
+    }
+    return 0;
+}
+
+/* 0x1F9A:0x5855 (kind 48): three-record moving group. */
 static void h_5855(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     ObjectEntry *n1 = (idx + 1 < OBJ_MAX) ? &S->obj[idx + 1] : o;
     ObjectEntry *n2 = (idx + 2 < OBJ_MAX) ? &S->obj[idx + 2] : o;
@@ -1136,6 +1192,24 @@ static void h_5855(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         anim_next(o);
         anim_next(n1);
         anim_next(n2);
+    }
+
+    /* 0x1F9A:0x595C: if the player is close in the travel direction and the
+     * previous slot is active, Random(100) < 5 respawns it at the middle
+     * record's position. */
+    if (idx > 0) {
+        int16_t dir = proximity_obj_dir(1, 6, 0x130, idx);
+        ObjectEntry *prev = &S->obj[idx - 1];
+        if (dir == o->vx && prev->ready != 0) {
+            if (cc_rng_next(100) < 5) {
+                play_sound(0x10);
+                prev->vx = dir;
+                prev->ready = 0;
+                prev->state = 0;
+                prev->x = n1->x;
+                prev->y = n1->y;
+            }
+        }
     }
 
     if (o->vx == -1) {
@@ -1196,10 +1270,116 @@ static void h_3be8(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     player_interact(o, o->x, o->y);
 }
 
-/* 0x1F9A:0x251D: only reached for kind 2/0x2b while [0xa0f8] is set. */
+/* Clear a dug cell: +0x06/+0x10/+0x11 and w0=0xFFA1, then redraw/sound. */
+static void dig_cell(int col, int row) {
+    if (cell_byte_cur(col, row, 0x10) == 0) return;
+    cell_put(col, row, 0x06, 0);
+    cell_put(col, row, 0x11, 0);
+    cell_put(col, row, 0x10, 0);
+    cell_put(col, row, 0x00, 0xA1);
+    cell_put(col, row, 0x01, 0xFF);
+    mark_redraw((int16_t)(col * 16), (int16_t)(row * 16));
+    play_sound(0x11);
+}
+
+/* 0x1F9A:0x251D: slot-2 slash update (also the a0f8 direct path for kind 2). */
 static void h_251d(ObjectEntry *o, int idx, int16_t x, int16_t y) {
-    (void)idx; (void)x; (void)y;
+    /* Handler args arrive as (y_new, x_new); the slash hitbox tests the
+     * bottom edge cells (x, y+9) and (x+0xF, y+9). */
+    int col = x / 16;
+    int row = (y + 9) / 16;
+    int col2 = (x + 0xF) / 16;
+    int row2 = (y + 9) / 16;
+    (void)idx;
+
     o->p18 = (uint16_t)(o->p18 + 1);
+    anim_next(o);
+
+    if (cell_byte_cur(col, row, 0x11) != 0 ||
+        cell_byte_cur(col2, row2, 0x11) != 0) {
+        o->kind = 0x2B;
+        o->handler = 0x2241;
+        o->handler_seg = 0x1F9A;
+        o->p18 = 0;
+        dig_cell(col, row);
+        dig_cell(col2, row2);
+        return;
+    }
+
+    o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
+    if (o->p1a == 1 && o->p18 > 6 && o->speed < 0xE)
+        o->speed = (uint16_t)(o->speed + 2);
+}
+
+/* Border-indexed cell helpers: the original's col/row already include the
+ * +1 border, so logical = raw - 1. */
+static int cell_border_byte(int col, int row, int off) {
+    return cell_byte_cur(col - 1, row - 1, off);
+}
+static void cell_border_put(int col, int row, int off, int value) {
+    cell_put(col - 1, row - 1, off, value);
+}
+static int cell_w0_is_dig(int col, int row) {
+    return cell_border_byte(col, row, 0x00) == 0xA1 &&
+           cell_border_byte(col, row, 0x01) == 0xFF;
+}
+
+/* 0x1F9A:0x2241: dug-block placement and animation. */
+
+static void h_2241(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    (void)idx; (void)x; (void)y;
+    if (o->p18 == 0) {
+        int col = o->x / 16 + 1;
+        int row = (o->y + 8) / 16 + 1;
+        int i = 0;
+
+        play_sound(0x1C);
+        o->tile = 1;
+        o->shape = 0x1D;
+        o->p14 = 0x1D;
+        o->p12 = 0x1D;
+        o->p10 = 0;
+        o->p16 = 4;
+        o->p18 = 1;
+
+        if (o->vx == -1) {
+            for (;;) {
+                if (cell_border_byte(col, row, 0x11) != 0) break;
+                if (cell_w0_is_dig(col + 1, row)) break;
+                if (i >= 2) break;
+                col--;
+                i++;
+            }
+            o->x = (int16_t)(col * 16);
+            if (cell_w0_is_dig(col + 1, row)) {
+                cell_border_put(col + 1, row, 0x00, 0);
+                cell_border_put(col + 1, row, 0x01, 0);
+            }
+            o->vx = 0;
+        } else if (o->vx == 1) {
+            for (;;) {
+                if (cell_border_byte(col, row, 0x11) != 0) break;
+                if (cell_w0_is_dig(col - 1, row)) break;
+                if (i >= 3) break;
+                col++;
+                i++;
+            }
+            o->x = (int16_t)((col - 2) * 16);
+            if (cell_w0_is_dig(col - 1, row)) {
+                cell_border_put(col - 1, row, 0x00, 0);
+                cell_border_put(col - 1, row, 0x01, 0);
+            }
+            o->vx = 0;
+        }
+    }
+
+    if (o->p18 == 1) {
+        if (o->p10 < o->p16) o->p10 = (uint16_t)(o->p10 + 1u);
+        else o->p18 = (uint16_t)(o->p18 + 1u);
+    } else if (o->p18 == 2) {
+        if (o->p10 > 1) o->p10 = (uint16_t)(o->p10 - 1u);
+        else o->ready = 1;
+    }
 }
 
 typedef void (*handler_fn)(ObjectEntry *, int, int16_t, int16_t);
@@ -1207,6 +1387,7 @@ typedef void (*handler_fn)(ObjectEntry *, int, int16_t, int16_t);
 static handler_fn handler_for(uint16_t off) {
     switch (off) {
         case 0x1fb9: return h_1fb9;
+        case 0x2241: return h_2241;
         case 0x2850: return h_2850;
         case 0x2877: return h_2877;
         case 0x831: return h_831;
@@ -1268,7 +1449,7 @@ static void step_objects(void) {
             continue;
         }
 
-        if (o->kind == 2) {
+        if (o->kind == 2 || o->kind == 0x2B) {
             if (S->a0f8 && !o->ready) h_251d(o, s, (int16_t)x_new, (int16_t)y_new);
             if (!o->ready && !visible_obj(0x20, o->x, o->y)) o->ready = 1;
             continue;
@@ -1329,6 +1510,110 @@ static void step_objects(void) {
     }
 }
 
+/* 0xCF6C: player fire.  The attack is object slot 2 (DS:0x4638). */
+static void cc_fire(void) {
+    ObjectEntry *a = &S->obj[2];
+
+    if (S->g_509c <= 0 && S->power_shot == 0) {
+        play_sound(0x1E);
+        if (!S->input_left && !S->input_right) {
+            S->shape_player = (S->move_dir == 1) ? 0x1B : 0x1C;
+            S->anim_timer = 1;
+        }
+    }
+
+    if (S->g_509c <= 0 && S->power_shot == 0 && S->g_5140 == 0) return;
+    if (S->obj[2].ready == 0) return;
+    if ((int16_t)S->cooldown <= 6) return;
+
+    a->vx = (int16_t)S->move_dir;
+    if (S->power_shot) {
+        play_sound(0x0F);
+        a->speed = 8;
+        a->p16 = 4;
+        a->p1a = 2;
+        if (a->vx == 1) {
+            a->x = (int16_t)(S->player_x + 8);
+            a->shape = 0x1D;
+            S->shape_player = 0x1B;
+        } else {
+            a->x = S->player_x;
+            a->shape = 0x21;
+            S->shape_player = 0x1C;
+        }
+    } else {
+        play_sound(0x0E);
+        a->speed = 4;
+        a->p16 = 6;
+        a->p1a = 1;
+        if (a->vx == 1) {
+            a->x = (int16_t)(S->player_x + 8);
+            a->shape = 0x25;
+            S->shape_player = 0x1B;
+        } else {
+            a->x = S->player_x;
+            a->shape = 0x2B;
+            S->shape_player = 0x1C;
+        }
+    }
+    S->anim_timer = 1;
+    if (S->power_shot == 0 && S->g_5140 == 0) S->g_509c--;
+
+    a->y = S->player_y;
+    a->x_prev = a->x;
+    a->y_prev = a->y;
+    a->kind = 2;
+    S->cooldown = 0;
+    S->anim_suppress = 1;
+    S->obj[2].ready = 0;
+    a->state = 0;
+    a->p18 = 0;
+    a->handler = 0x2850;
+    a->handler_seg = 0x1F9A;
+    a->tile = 6;
+    S->impulse = S->fire_impulse;
+}
+
+/* 0xEBF2 fire/timer prefix.  The spawner/exit branches are deliberately not
+ * executed in Phase 2; combat fixtures assert they are unreachable. */
+static void cc_fire_timers(void) {
+    S->cooldown = (uint16_t)(S->cooldown + 1u);
+    if ((int16_t)S->cooldown > 0x7D00) S->cooldown = 0x19;
+
+    if (S->power_shot != 0 && (int16_t)S->power_timer <= -1 &&
+        S->obj[2].ready != 0)
+        S->power_shot = 0;
+
+    if (S->input_fire) cc_fire();
+}
+
+/* 0xEAEA: status/invulnerability timers. */
+static void cc_status_timers(void) {
+    if (S->a0f8 != 0 && (int16_t)S->power_timer <= -1) S->a0f8 = 0;
+    if (S->g_a100 != 0 && (int16_t)S->power_timer <= -1) S->g_a100 = 0;
+
+    if (S->status_30b != 0 && S->g_2f2 < OBJ_MAX) {
+        ObjectEntry *o = &S->obj[S->g_2f2];
+        if (o->state == 2) {
+            o->ready = 0;
+            o->state = 0;
+            o->x = S->player_x;
+            o->y = S->player_y;
+        }
+    }
+
+    if ((int16_t)S->g_a0b8 > 0) {
+        S->g_a0b8 = (uint16_t)(S->g_a0b8 + 1u);
+        if ((int16_t)S->g_a0b8 > 9) S->g_a0b8 = 0;
+    }
+
+    if ((int16_t)S->g_a0ea > -1) {
+        S->g_a0ea = (uint16_t)(S->g_a0ea + 1u);
+        if ((int16_t)S->g_a0ea > 0x13) S->g_a0ea = 0xFFFF;
+        if ((S->g_a0ea % 7) == 0) S->obj[1].p02 = 1;
+    }
+}
+
 void cc_objects_step_objects(void) {
     step_objects();
 }
@@ -1346,12 +1631,14 @@ void cc_objects_step(void) {
     step_objects();
 }
 
-/* Full normal frame used by the game shell and combat fixtures.  Phase 2.2
- * inserts 0xEBF2 (fire/timers) and 0xEAEA (status timers) between physics
- * and the object loop; until then this is the physics+objects subset. */
+/* Full normal frame (0xE011, 0xE36B, 0xEBF2, 0xEAEA, 0xD72A). */
 void cc_objects_step_full(void) {
     cc_objects_step_physics();
+    cc_fire_timers();
+    cc_status_timers();
+    sync_player_object();
     step_objects();
+    sync_player_object();
 }
 
 /* ---------------------------------------------------------------- collision
@@ -1415,7 +1702,6 @@ static void apply_startup_state(void) {
     S->player_block = g_startup.f_4619;
     S->shape_player = g_startup.f_4627;
     S->move_dir = g_startup.f_4629;
-    S->g_460d = g_startup.f_460d;
     S->g_5118 = g_startup.f_5118;
     S->g_5126 = g_startup.f_5126;
     S->g_5128 = g_startup.f_5128;
@@ -1430,8 +1716,6 @@ static void apply_startup_state(void) {
     S->g_5142 = g_startup.f_5142;
     S->g_509c = g_startup.f_509c;
     S->g_509e = g_startup.f_509e;
-    S->g_4660 = g_startup.f_4660;
-    S->g_4652 = g_startup.f_4652;
 
     S->score_lo = g_startup.f_50a5;
     S->score_hi = g_startup.f_50a7;
@@ -1439,6 +1723,7 @@ static void apply_startup_state(void) {
     S->rng_hi = g_startup.f_2a8;
     S->cooldown = g_startup.f_2e0;
     S->fire_impulse = g_startup.f_2da;
+    S->g_a100 = 0;
     S->power_shot = g_startup.f_a0ff;
     S->power_timer = g_startup.f_a0c4;
     S->checkpoint_50a0 = g_startup.f_50a0;
@@ -1489,6 +1774,7 @@ static void apply_level_state(int level, int use_start) {
     /* Prologue state is reloaded with every level.  RNG is only seeded on a
      * fresh game load; transitions preserve the live LCG state. */
     S->fire_impulse = st->f_2da;
+    S->g_2f2 = st->f_2f2;
     S->status_30b = st->f_30b;
     S->checkpoint_50a0 = st->f_50a0;
     if (use_start) {
@@ -1691,7 +1977,7 @@ int32_t cc_global_get(int off) {
         case 0x4619: return S->player_block;
         case 0x4627: return S->shape_player;
         case 0x4629: return S->move_dir;
-        case 0x460D: return S->g_460d;
+        case 0x460D: return S->obj[1].p02;
         case 0x5118: return S->g_5118;
         case 0x5126: return S->g_5126;
         case 0x5128: return S->g_5128;
@@ -1706,11 +1992,12 @@ int32_t cc_global_get(int off) {
         case 0x5142: return S->g_5142;
         case 0x509C: return S->g_509c;
         case 0x509E: return S->g_509e;
-        case 0x4660: return S->g_4660;
-        case 0x4652: return S->g_4652;
+        case 0x4660: return S->obj[2].ready;
+        case 0x4652: return S->obj[2].p1a;
         case 0x02A6: return S->rng_lo;
         case 0x02A8: return S->rng_hi;
         case 0x02DA: return S->fire_impulse;
+        case 0x02F2: return S->g_2f2;
         case 0x50A5: return S->score_lo;
         case 0x50A7: return S->score_hi;
         case 0x50A0: return S->checkpoint_50a0;
@@ -1725,8 +2012,8 @@ int32_t cc_global_get(int off) {
 }
 void cc_global_set(int off, int32_t v) {
     switch (off & 0xFFFF) {
-        case 0x4611: S->player_x = (int16_t)v; break;
-        case 0x4613: S->player_y = (int16_t)v; break;
+        case 0x4611: S->player_x = (int16_t)v; S->obj[1].x = (int16_t)v; break;
+        case 0x4613: S->player_y = (int16_t)v; S->obj[1].y = (int16_t)v; break;
         case 0xA0F1: S->blocked_l = (uint8_t)v; break;
         case 0xA0F2: S->blocked_r = (uint8_t)v; break;
         case 0xA0F6: S->g_a0f6 = (uint8_t)v; break;
@@ -1745,13 +2032,13 @@ void cc_global_set(int off, int32_t v) {
         case 0x030A: S->anim_suppress = (uint8_t)v; break;
         case 0x030B: S->status_30b = (uint8_t)v; break;
         case 0x030C: S->paused_30c = (uint8_t)v; break;
-        case 0x461B: S->anim_timer = (uint16_t)v; break;
-        case 0x461D: S->shape_b = (uint16_t)v; break;
-        case 0x461F: S->shape_a = (uint16_t)v; break;
-        case 0x4619: S->player_block = (uint16_t)v; break;
-        case 0x4627: S->shape_player = (uint16_t)v; break;
-        case 0x4629: S->move_dir = (uint16_t)v; break;
-        case 0x460D: S->g_460d = (uint16_t)v; break;
+        case 0x461B: S->anim_timer = (uint16_t)v; S->obj[1].p10 = (uint16_t)v; break;
+        case 0x461D: S->shape_b = (uint16_t)v; S->obj[1].p12 = (uint16_t)v; break;
+        case 0x461F: S->shape_a = (uint16_t)v; S->obj[1].p14 = (uint16_t)v; break;
+        case 0x4619: S->player_block = (uint16_t)v; S->obj[1].tile = (uint16_t)v; break;
+        case 0x4627: S->shape_player = (uint16_t)v; S->obj[1].shape = (uint16_t)v; break;
+        case 0x4629: S->move_dir = (uint16_t)v; S->obj[1].vx = (int16_t)v; break;
+        case 0x460D: S->obj[1].p02 = (uint16_t)v; break;
         case 0x5118: S->g_5118 = (uint16_t)v; break;
         case 0x5126: S->g_5126 = (uint16_t)v; break;
         case 0x5128: S->g_5128 = (uint16_t)v; break;
@@ -1766,11 +2053,12 @@ void cc_global_set(int off, int32_t v) {
         case 0x5142: S->g_5142 = (uint8_t)v; break;
         case 0x509C: S->g_509c = (uint16_t)v; break;
         case 0x509E: S->g_509e = (uint16_t)v; break;
-        case 0x4660: S->g_4660 = (uint8_t)v; break;
-        case 0x4652: S->g_4652 = (uint16_t)v; break;
+        case 0x4660: S->obj[2].ready = (uint8_t)v; break;
+        case 0x4652: S->obj[2].p1a = (uint16_t)v; break;
         case 0x02A6: S->rng_lo = (uint16_t)v; break;
         case 0x02A8: S->rng_hi = (uint16_t)v; break;
         case 0x02DA: S->fire_impulse = (uint16_t)v; break;
+        case 0x02F2: S->g_2f2 = (uint16_t)v; break;
         case 0x50A5: S->score_lo = (uint16_t)v; break;
         case 0x50A7: S->score_hi = (uint16_t)v; break;
         case 0x50A0: S->checkpoint_50a0 = (uint16_t)v; break;
@@ -1785,14 +2073,43 @@ void cc_global_set(int off, int32_t v) {
 }
 
 /* ---------------------------------------------------------------- RNG
- * 0x2BB5:0x980 / LCG at 0x2C51F.  Multiplier CS:[0xA05]=0x8405, +1.
- * Returns (state >> 16) % n; n == 0 returns 0. */
+ * 0x2BB5:0x980 / generator at 0x2C51F.  The high word is computed by the
+ * original's byte-wise multiply sequence, not a plain 32-bit multiply; the
+ * two differ from the second draw onward.  Reproduce the register operations
+ * exactly.  Returns (high word) % n; n == 0 returns 0. */
+static uint16_t rng_next_hi(void) {
+    uint16_t ax = S->rng_lo;
+    uint16_t bx = S->rng_hi;
+    uint16_t cx = (uint16_t)(ax << 3);
+    uint32_t prod = (uint32_t)ax * 0x8405u;
+    uint16_t dx = (uint16_t)(prod >> 16);
+    uint8_t dh, ch;
+    ax = (uint16_t)prod;
+
+    ch = (uint8_t)((cx >> 8) + (cx & 0xFF));
+    cx = (uint16_t)((ch << 8) | (cx & 0xFF));
+    dx = (uint16_t)(dx + cx);
+    dx = (uint16_t)(dx + bx);
+
+    bx = (uint16_t)(bx << 2);
+    dx = (uint16_t)(dx + bx);
+    dh = (uint8_t)((dx >> 8) + (bx & 0xFF));
+    dx = (uint16_t)((dh << 8) | (dx & 0xFF));
+
+    bx = (uint16_t)(bx << 5);
+    dh = (uint8_t)((dx >> 8) + (bx & 0xFF));
+    dx = (uint16_t)((dh << 8) | (dx & 0xFF));
+
+    ax = (uint16_t)(ax + 1);
+    if (ax == 0) dx = (uint16_t)(dx + 1);
+
+    S->rng_lo = ax;
+    S->rng_hi = dx;
+    return dx;
+}
 uint16_t cc_rng_next(uint16_t n) {
-    uint32_t s = ((uint32_t)S->rng_hi << 16) | S->rng_lo;
-    s = s * 0x8405u + 1u;
-    S->rng_lo = (uint16_t)s;
-    S->rng_hi = (uint16_t)(s >> 16);
-    return n ? (uint16_t)((s >> 16) % n) : 0;
+    uint16_t hi = rng_next_hi();
+    return n ? (uint16_t)(hi % n) : 0;
 }
 void cc_rng_seed(uint16_t lo, uint16_t hi) {
     S->rng_lo = lo;
@@ -1808,7 +2125,7 @@ uint16_t cc_obj_handler(int i)  { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].han
  * fallback.  Used to track handler porting progress (Phase 5). */
 static int is_real_handler(uint16_t off) {
     switch (off) {
-        case 0x1fb9: case 0x2850: case 0x2877:
+        case 0x1fb9: case 0x2241: case 0x2850: case 0x2877:
         case 0x831: case 0x1fc2: case 0x2176: case 0x323c: case 0x3be8:
         case 0x3d23: case 0x3e70: case 0x3f13: case 0x4a4b: case 0x4a82:
         case 0x5855: case 0x5bbe: case 0x6afa: case 0x6d31: case 0x6ff6: case 0x70e4:
@@ -1828,7 +2145,7 @@ int cc_handler_coverage_num(void) {
 }
 
 /* C4 exports. */
-void     cc_set_player(int32_t x, int32_t y) { S->player_x = x; S->player_y = y; }
+void     cc_set_player(int32_t x, int32_t y) { S->player_x = (int16_t)x; S->player_y = (int16_t)y; S->obj[1].x = (int16_t)x; S->obj[1].y = (int16_t)y; }
 int32_t  cc_player_x(void) { return S->player_x; }
 int32_t  cc_player_y(void) { return S->player_y; }
 int32_t  cc_cam_x(void)    { return S->cam_x; }
@@ -1886,7 +2203,7 @@ int32_t cc_phys_get(int f) {
         case CC_PHYS_LIVES: return S->g_509e;
         case CC_PHYS_AMMO: return S->g_509c;
         case CC_PHYS_INVULN: return S->g_a0ea;
-        case CC_PHYS_HIT_LOCK: return S->g_4660;
+        case CC_PHYS_HIT_LOCK: return S->obj[2].ready;
         case CC_PHYS_EXIT_STATE: return S->g_5124;
         default: return 0;
     }
@@ -1924,7 +2241,7 @@ void cc_phys_set(int f, int32_t v) {
         case CC_PHYS_LIVES: S->g_509e = (uint16_t)v; break;
         case CC_PHYS_AMMO: S->g_509c = (uint16_t)v; break;
         case CC_PHYS_INVULN: S->g_a0ea = (uint16_t)v; break;
-        case CC_PHYS_HIT_LOCK: S->g_4660 = (uint8_t)v; break;
+        case CC_PHYS_HIT_LOCK: S->obj[2].ready = (uint8_t)v; break;
         case CC_PHYS_EXIT_STATE: S->g_5124 = (uint16_t)v; break;
         default: break;
     }

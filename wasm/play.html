@@ -148,7 +148,7 @@
     runBtn.textContent = running ? 'Pause' : 'Run';
   });
   document.getElementById('step').addEventListener('click', () => {
-    e.cc_objects_step();
+    e.cc_objects_step_full();
     renderFrame();
   });
 
@@ -164,7 +164,7 @@
       accum += dt;
       let steps = 0;
       while (accum >= STEP_MS && steps < 4) {
-        e.cc_objects_step();
+        e.cc_objects_step_full();
         accum -= STEP_MS;
         steps++;
       }

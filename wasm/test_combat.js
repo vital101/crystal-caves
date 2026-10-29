@@ -41,14 +41,37 @@ function cloneBaseline(base) {
 
 function applySeed(want, seed) {
   if (seed.player) {
-    if (seed.player.x !== undefined) want.player[0] = seed.player.x;
-    if (seed.player.y !== undefined) want.player[1] = seed.player.y;
+    if (seed.player.x !== undefined) {
+      want.player[0] = seed.player.x;
+      want.objects[1].x = seed.player.x;
+    }
+    if (seed.player.y !== undefined) {
+      want.player[1] = seed.player.y;
+      want.objects[1].y = seed.player.y;
+    }
   }
   for (const [name, value] of Object.entries(seed.globals || {})) {
     want.globals[name] = value;
+    // Globals that alias fields in object slots 1/2.
+    const alias = {
+      "4611": [1, "x"], "4613": [1, "y"], "4619": [1, "tile"],
+      "461b": [1, "p10"], "461d": [1, "p12"], "461f": [1, "p14"],
+      "4627": [1, "shape"], "4629": [1, "p1e"],
+      "4652": [2, "p1a"], "4660": [2, "ready"],
+    }[name];
+    if (alias) want.objects[alias[0]][alias[1]] = value;
   }
+  const objToGlobal = {
+    "1": {"x": "4611", "y": "4613", "tile": "4619", "p10": "461b",
+          "p12": "461d", "p14": "461f", "shape": "4627", "p1e": "4629"},
+    "2": {"p1a": "4652", "ready": "4660"},
+  };
   for (const [slot, fields] of Object.entries(seed.objects || {})) {
     Object.assign(want.objects[Number(slot)], fields);
+    for (const [name, value] of Object.entries(fields)) {
+      const g = (objToGlobal[slot] || {})[name];
+      if (g) want.globals[g] = value;
+    }
   }
   for (const [col, row, off, value] of seed.cell_bytes || []) {
     const bytes = hexToBytes(want.cells[row][col]);
