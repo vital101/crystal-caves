@@ -171,7 +171,9 @@ def _install_hooks(mu, module, stop_addr, state):
                 n = E.retf_argbytes(module, seg, off)
                 sp = uc.reg_read(UC_X86_REG_SP)
                 uc.reg_write(UC_X86_REG_SP, (sp + n) & 0xFFFF)
-                uc.reg_write(UC_X86_REG_IP, (address + 5) & 0xFFFF)
+                cs = uc.reg_read(UC_X86_REG_CS)
+                uc.reg_write(UC_X86_REG_IP,
+                             ((address + 5) - (cs << 4)) & 0xFFFF)
                 state["skipped"][f"{seg:04X}:{off:04X}"] = (
                     state["skipped"].get(f"{seg:04X}:{off:04X}", 0) + 1
                 )

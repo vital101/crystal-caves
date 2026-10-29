@@ -274,7 +274,9 @@ def run_level(level, boot_seed=True, verbose=False, startup=True):
                 stats["skipped"][key] = stats["skipped"].get(key, 0) + 1
                 n = retf_argbytes(module, seg, off)
                 uc.reg_write(UC_X86_REG_SP, (uc.reg_read(UC_X86_REG_SP) + n) & 0xFFFF)
-                uc.reg_write(UC_X86_REG_IP, (address + 5) & 0xFFFF)
+                cs = uc.reg_read(UC_X86_REG_CS)
+                uc.reg_write(UC_X86_REG_IP,
+                             ((address + 5) - (cs << 4)) & 0xFFFF)
                 return
 
     def hook_intr(uc, intno, user):

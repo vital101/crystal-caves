@@ -127,7 +127,9 @@ class PhysicsOracle:
                     n = E.retf_argbytes(self.module, seg, off)
                     sp = uc.reg_read(UC_X86_REG_SP)
                     uc.reg_write(UC_X86_REG_SP, (sp + n) & 0xFFFF)
-                    uc.reg_write(UC_X86_REG_IP, (address + 5) & 0xFFFF)
+                    cs = uc.reg_read(UC_X86_REG_CS)
+                    uc.reg_write(UC_X86_REG_IP,
+                                 ((address + 5) - (cs << 4)) & 0xFFFF)
 
         def hook_intr(uc, intno, user):
             ip = uc.reg_read(UC_X86_REG_IP)

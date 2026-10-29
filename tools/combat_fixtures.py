@@ -418,6 +418,375 @@ SCENARIOS = [
                                                  3, 0x30, 40]}],
     },
     {
+        "name": "slash_group1_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 26, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_2f_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 47, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_09_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 9, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_05_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 5, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_30_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 48, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_39_kill_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 57, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 45, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_39_hit_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 57, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 1, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_35_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 53, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_33_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 51, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 47, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_2c_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 44, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_default_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 11, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_p04_default_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 11, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 1}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_p04_2f_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 47, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 1, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 1}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_p04_30_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 48, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 1}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_p04_39_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 57, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 1, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 1}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_p04_35_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 53, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 1}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash2_excluded_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 22, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 2, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash2_2c_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 44, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 2, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash2_35_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 53, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 2, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash2_2f_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 47, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 2, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash2_33_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 51, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 47, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 2, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash2_30_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 48, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 2, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash2_39_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 57, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 2, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash2_default_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 11, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 2, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_group23_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 35, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_group17_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 23, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_group0c_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 12, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_group32_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 50, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_group36_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 54, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_group3a_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 58, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_group31_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 49, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_2f_side_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 47, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}, "51": {"kind": 47, "state": 0, "ready": 0, "x": 160, "y": 80, "p04": 0}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_33_nonspecial_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 51, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 17, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_35_p04_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 53, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 9, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}, "49": {"kind": 53, "state": 0, "ready": 0, "x": 128, "y": 80, "shape": 9, "p04": 2}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_clearlock_15_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 21, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_clearlock_1d_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 29, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_clearlock_12_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 18, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_clearlock_37_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 55, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash_clearlock_19_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 25, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 1, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash2_clearlock_37_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 55, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 0, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 2, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
+        "name": "slash2_33_nonspecial_l2", "level": 2, "mode": "objects",
+        "seed": {
+            "player": {"x": 400, "y": 300},
+            "globals": {"512e": 0, "5130": 16},
+            "objects": {"50": {"kind": 51, "state": 0, "ready": 0, "x": 144, "y": 80, "tile": 6, "p10": 1, "p12": 0, "p14": 17, "p16": 1, "p18": 1, "p1a": 0, "shape": 25, "p1e": 1, "p20": 0, "p22": 0, "handler_off": 15984, "handler_seg": 8090, "p04": 0}, "2": {"kind": 0, "state": 0, "ready": 0, "x": 144, "y": 80, "p1a": 2, "p1e": 1}},
+        },
+        "frames": inputs(3),
+    },
+    {
         "name": "r5855_hit_l3", "level": 3, "mode": "objects",
         "seed": dict(R5855_SEED, rng=[0, 0]),
         "frames": inputs(5),
