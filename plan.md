@@ -415,31 +415,304 @@ Acceptance:
 - All 16 caves pass object/cell oracle fixtures.
 - No inert handler fallback remains for active objects.
 
-## Phase 5 — HUD, text, and game shell
+## Phase 5 — HUD, text, and game shell (COMPLETE, known shell caveats)
 
-Tasks:
+Status: COMPLETE.  The title/credits/title flow, main menu, PCX screens, text
+windows, oracle-exact HUD, story/finale transitions, help/pause/quit/warp,
+save/restore 0–9, high scores and config persistence are implemented.
+`notes/hud_fixtures.json`, `make test-hud` and `make test-shell` pass.
 
-- Decode HUD layout and semantics around the HUD code near `0x1CE3B`:
-  - lives/health, score, crystals,
-  - message windows,
-  - gravity-reversed/status indicators.
-- Load and render MNI fonts (`mni_f1.bin`, `mni_f2.bin`) for HUD/messages.
-- Implement HUD redraw in the 320×200 viewport.
-- Decode/display PCX screens: title (`CC1.TTL`), Apogee logo (`CC1.APG`),
-  credits (`CC1.CDT`), ending (`CC1.END`).
-- Implement title/new game/story/instructions/ordering/about/foreign orders/
-  high scores/BBS/video screens.
-- Implement help menu, sound toggle, key redefine, gamepad/joystick,
-  video toggle, save/restore 0–9, quit current game/title/main level, warp 1–16.
-- Use browser-appropriate substitutions for DOS-only options while preserving
-  the original screens/text.
+Known caveats: text-window frame styling is faithful but not yet oracle-diffed
+per pixel; in-game message triggers cover last-crystal, gravity and power-shot
+(other blocks are available through `cc_shell_message`); key redefine stores
+browser key codes; joystick uses the Gamepad API.  Sound remains Phase 6.
 
-Acceptance:
+Goal: complete the non-gameplay shell around the already-exact gameplay core:
+status HUD, text windows, PCX screens, title/menu flow, story/finale
+transitions, help/config screens, save/restore, high scores, and persistent
+browser settings.
 
-- Title-to-game-to-finale flow works.
-- HUD values update correctly.
-- All menus and options are reachable.
-- Save/restore and high scores persist in `localStorage`.
+### Verified starting points
+
+- HUD is `0x0FC5:0xD1E0` (linear `0x1CE30`), called from the main loop at
+  linear `0xFA29` when `[0xA0FE] != 0`.
+- HUD draws an 8-pixel status row at **`y = 1`** using the glyph blitter
+  `0x28B5:0x1A4D`; x positions include `[0x512E] & 7` (camera sub-pixel).
+- HUD uses three font pointers: `DS:0x337C` (F1), `DS:0x3380` (F2),
+  `DS:0x3384` (SPL).  Icons are at F1 offsets `0x233`, `0xA3`, `0xCB`,
+  `0x323`; digits use SPL.
+- HUD counters: `[0x509E]` health/lives, `[0x509C]` ammo, `[0x50A2]`
+  crystals, `[0x50A5]/[0x50A7]` score, `[0xA0C4]/[0xA0C6]` power-shot timer,
+  `[0xA0F9]` status icon, `[0xA0FB]` all-caves flag.
+- Text renderer is at linear `0x10314`; window line buffer is `DS:0x163C`
+  with stride `0x100`; glyph blit is `0x28B5:0x445`; font selection is by
+  character code (F1 for `0x17..0x48`, F2 for `0x49..0x7A`, SPL for digits).
+- MNI files are 50 glyphs of 40 bytes after a 3-byte header; glyph = 8 rows ×
+  5 bytes `[mask,p0..p3]`; the remaining 45 bytes are unused.
+- Main menu is at linear `0x17564`; its text block starts at linear `0x1745D`;
+  option dispatch is by **scan code**, not ASCII: N/Space/Enter = new game,
+  R = restore, S = story, I = instructions, O = ordering, H = high scores,
+  F = foreign orders, C = BBS, V = video, A = about, Q/Esc = quit.
+- Title routine is at linear `0x17F20`; it loads `cc1.ttl` through
+  `0x1D6E:0x1915` and calls the main menu.
+- PCX screens are 320×200, 4-plane, 40 bytes/line, RLE; header palettes are
+  EGA AA/AB variants.
+- Current `cc_objects_step_full()` still stubs the `[0xA0FB]` finale and
+  `[0xA126]` story/message paths.
+- Existing shell is only `wasm/play.html` (dev level selector, no
+  HUD/menus/persistence).
+
+### Locked decisions
+
+- HUD and text windows are **pixel-exact** against oracle captures.
+- PCX screens are displayed from build-time decoded indexed pixels; use the
+  standard EGA palette for consistency with the rest of the port.
+- Shell state lives in C for determinism/testability; JS handles canvas,
+  keyboard/gamepad, DOM, localStorage, and audio enable/disable.
+- DOS-only features are browser substitutions: original screens/text are
+  preserved, but no DOS file I/O, BBS dialing, or ordering network calls.
+- Phase 5 ships a minimal versioned save/config/high-score layer; Phase 7
+  hardens/migrates it.  Do not create two formats.
+- Do not port the original shell control flow literally.  The original uses
+  overlapping TP segments (CS bases `0x0FC5`/`0x1000`) and overlaid text
+  buffers; recover observable behavior through an oracle and implement a
+  clean state machine.
+
+### P5.0 — Shell oracle, text/window fixtures, and asset export
+
+Do this first; otherwise HUD/menu pixel work is guesswork.
+
+- Add `tools/oracle_shell.py`:
+  - Reuse the `emulate_startup`/`emulate_load` machine and the EGA plane
+    hooks from `emulate_render.py`.
+  - Add a minimal INT 21h file shim (`open`/`read`/`close`/`seek`) mapping
+    `CC1.*` to extracted files so the real PCX/MNI loaders can run.
+  - Add scripted INT 16h keyboard input and INT 10h video-mode/palette hooks.
+  - Capture title/Apogee/credits/ending screens, the HUD status line for
+    seeded counters, text windows for the main menu/instructions/story/help/
+    high scores/pause/errors, and menu flow after scripted keys.
+  - Dump window buffers (`DS:0x163C`), fonts, palette, and framebuffers.
+- Add `tools/export_shell_assets.py`:
+  - Decode PCX RLE to `out/portable/screens.bin` (indexed 320×200) plus
+    `screens.json`.
+  - Export `mni_f1.bin`, `mni_f2.bin`, `mni_spl.bin` (document the 3-byte
+    header and 45 trailing bytes).
+  - Extract every length-prefixed text block with an ID and line array (main
+    menu, help, instructions, story pages, ordering, foreign, BBS, about,
+    video, high scores, pause, quit, warp, save/restore, key redefine,
+    errors).  Confirm block starts with a scanner using the
+    `END OF WINDOW` sentinel.
+  - Export the scan-code → key-name table, menu key mappings, high-score
+    defaults, and config defaults.
+  - Add all assets to `out/portable/manifest.json` and `make data`.
+- Add `wasm/test_shell.js` and committed `notes/shell_fixtures.json`; add
+  `make test-shell` / `make test-oracle-shell`.
+- Extend the loader overlay/replay to level 2 if needed; the Phase 4
+  hub-decoration caveat must not leak into title→new-game or cave→hub
+  acceptance.
+
+Exit: assets round-trip; a trivial HUD fixture matches the oracle; PCX decode
+matches; the test harness runs.
+
+### P5.1 — Font/text primitives and HUD
+
+- Add `wasm/text.c` / `wasm/text.h`:
+  - `cc_fonts_set(f1, f2, spl)`, `cc_glyph_ptr(bank,index)`,
+    `cc_draw_glyph(x,y,bank,index)`, `cc_draw_text_line`.
+  - Reproduce TP integer formatting (`0x2BB5:0xB26`) exactly: width, space
+    padding, truncation, low-word wrap.
+  - Reproduce the character→font mapping and special glyphs/icons.
+- Add `cc_hud_render()` as a direct port of `0x0FC5:0xD1E0`:
+  - score width 7, ammo width 3, crystals width 4, health width 1,
+  - hearts, status icon, power-shot `*` plus 2 digits,
+  - `[0x512E]&7` sub-pixel x offset,
+  - `y=1` status row and exact draw order.
+- Add `[0xA0FE]` (HUD active) to `cc_state_t`/startup data; call HUD after
+  map/objects render, before presenting.
+- Draw HUD into `g_view` in `render.c`; keep `cc_render_view_cells` and
+  object drawing unchanged.
+- Add `wasm/test_hud.js` with oracle fixtures:
+  - health `0..3`, `9/10/99`,
+  - score `0/9/10/9999999`, low-word wrap,
+  - ammo `0..999`, crystals `0..9999`,
+  - power timer inactive/`0..17`, `*` glyphs,
+  - `[0xA0F9]` and `[0xA0FB]` on/off,
+  - camera sub-pixel `0..7`.
+
+Acceptance: HUD is pixel-exact for every fixture and updates during play.
+
+### P5.2 — Text-window engine and static screens
+
+- Port the text renderer at linear `0x10314` / glyph blit `0x28B5:0x445` or
+  implement an equivalent C renderer with identical geometry.
+- Implement the original window flow:
+  - line buffer at `DS:0x163C`, stride `0x100`,
+  - centered/positioned line drawing, border/background colors, `[0x2B5C]`
+    scroll offset,
+  - press-any-key prompts and page advance,
+  - `END OF WINDOW` sentinel.
+- Add `cc_text_window(id)` and `cc_text_page(id, page)`.
+- Add `cc_draw_screen(screen_id)` for APG/TTL/CDT/END.
+- Add the in-game message dispatcher for gameplay flags (`[0xA126]`,
+  `[0xA0F5]`, `[0xA10D]`, power-up/switch/lever/mushroom/air-generator
+  messages) rather than only static menus.
+- Add pixel tests for representative windows: main menu, instructions page 1,
+  story page 1, help, high scores, pause, a save/restore error, and each
+  in-game message type.
+
+Acceptance: all text screens match the oracle within 0 pixels; page
+navigation and press-any-key behavior are correct.
+
+### P5.3 — Screens, title, main menu, and story/finale flow
+
+- Add `wasm/shell.c` / `wasm/shell.h`:
+  - states: `LOGO`, `TITLE`, `MAIN_MENU`, `SUBMENU`, `STORY_INTRO`, `GAME`,
+    `STORY_FINALE`, `ENDING`, `HIGH_SCORE_ENTRY`, `HELP`, `PAUSE`,
+    `QUIT_MENU`, `SAVE`, `RESTORE`, `KEY_REDEFINE`, `WARP`.
+  - `cc_shell_init`, `cc_shell_step`, `cc_shell_key`, `cc_shell_screen`.
+  - Route keys by state; never leak menu keys into gameplay.
+- Implement the title sequence and menu options using extracted text blocks:
+  - Apogee logo → title → main menu (with original timer/key behavior),
+  - N/Space/Enter new game, R restore, S story, I instructions, O ordering,
+    H high scores, F foreign orders, C BBS, V video, A about, Q/Esc quit,
+  - all submenus use original text and press-any-key flow.
+- Implement story transitions:
+  - new game → intro level arg `0xFFFF` story pages → hub,
+  - all 16 caves complete → finale arg `0xFFFE` story pages → `CC1.END` →
+    high scores/title.
+  - Replace the `[0xA0FB]` and `[0xA126]` stubs in `cc_objects_step_full()`
+    with shell transition hooks.
+- Tests: `test_shell_flow.js` with scripted keys: title → new game → intro →
+  hub; every menu option reachable; all caves → finale → ending → high
+  scores; static screens pixel-compared.
+
+Acceptance: title→game→finale flow works; all menus reachable; story pages
+in original order.
+
+### P5.4 — In-game help, pause, quit, warp, input config
+
+- Implement the help menu (`0x17866` block) and actions:
+  - instructions, sound toggle, joystick toggle, joystick calibration,
+    video support, key redefine, restore old game, save current game,
+    quit current game, Esc return.
+- Implement pause (`Game paused`), quit submenu (`D)os`, `T)itle`,
+  `M)ain Level`), and warp 1–16 (decode the original cheat trigger; preserve
+  the screen).
+- Key redefine screen using original labels and scan-code table; browser key
+  capture; persist in config.
+- Browser substitutions:
+  - DOS quit → return to title / informational message,
+  - BBS/foreign/ordering → original text screens with "not available in
+    browser" note; no external calls,
+  - video toggle → stored no-op,
+  - joystick → optional Gamepad API mapping; calibration screen preserved or
+    auto-calibrated.
+- Tests: help navigation, pause/resume, quit-to-title/main-level, warp, key
+  redefine round-trip, config reload.
+
+Acceptance: every help option is reachable and behaves; input/config
+persists.
+
+### P5.5 — Save/restore, high scores, config persistence
+
+- Define a versioned `cc_save_state` v1 schema:
+  - header/magic/version, level arg, player/camera, object array, full
+    20-byte cells, gameplay globals, RNG state, cave flags, score/lives/ammo/
+    crystals, checkpoint, story/progress flags.
+  - metadata (timestamp, slot) outside the deterministic snapshot.
+- Add C serialize/deserialize APIs and a JS `localStorage` adapter:
+  - slots 0–9,
+  - original hub-only save/restore restriction and messages,
+  - empty/corrupt slot error text,
+  - save full cells/objects so restore is pixel-exact without regenerating
+    hub decorations.
+- High scores:
+  - decode the 10-entry table/name-field/sort/tie rules from the high-score
+    routine (linear `0x13CC8`),
+  - defaults from the binary (`I. Jones`, `B. Blaze`, `S. Logan`, `D. Nukem`,
+    `J. Kirk`),
+  - top-ten check on finale, name entry using the text engine, persist.
+- Config:
+  - sound on/off, joystick on/off, video alternate, key bindings; defaults
+    from the original instructions (arrows, Ctrl jump, Alt fire/action);
+    persist separately.
+- Tests: hub save/restore round-trip byte-exact in memory; high-score
+  insert/sort/persist across reload; config round-trip; corrupt-slot
+  handling.
+
+Acceptance: save/restore reproduces identical state; high scores/config
+survive reload.  Phase 7 owns schema hardening/migration; Phase 5 must ship
+the single v1 implementation.
+
+### P5.6 — Integration, docs, regression
+
+- Add a real shell page (`wasm/game.html` or upgrade `play.html`); keep a dev
+  level-select page optional.
+- Canvas stays 320×200; input routing by shell state; localStorage adapter;
+  sound enable hook for Phase 6.
+- Add `make test-shell`, `make test-hud`, `make test-save`, `make test-hiscore`;
+  add them to `test-all`.
+- Update `AGENTS.md`, `plan.md`, and add `notes/shell.md` with routine maps,
+  asset formats, and test commands.
+- Remove temporary diagnostics/stub assertions.
+
+Acceptance: `make test-all` passes; title→finale flow works; no shell stubs
+remain.
+
+### Risks and mitigations
+
+- **Overlapping TP segments / overlaid buffers:** do not trust linear
+  addresses for shell control flow; use oracle captures and reimplement
+  state/layout.  Reference routines by linear file offset plus segment:offset
+  where known.
+- **MNI export formatting:** F1/F2 currently include the 3-byte header
+  correctly; add SPL and document 45 trailing bytes.  Validate every glyph
+  against the oracle renderer.
+- **PCX palette AA vs AB:** use standard EGA for pixel-exact hardware
+  behavior; note the header palette difference.  Decide explicitly if
+  VGA-style palette should be an option.
+- **HUD position:** the routine draws at `y=1`; verify it overlays the top of
+  the viewport rather than assuming a bottom status bar.  Test with the
+  oracle before integrating.
+- **Save/restore and hub decorations:** save the full mutable cell/object
+  image, not just progress flags.  This avoids depending on the unresolved
+  hub RNG decoration replay.
+- **Text engine complexity:** recover only the screen types actually used;
+  do not build a general interpreter.  Start each screen from an oracle
+  capture.
+- **Story transitions:** `[0xA0FB]`/`[0xA126]` are currently stubbed in
+  `cc_objects_step_full()`; replace them with shell callbacks instead of
+  layering new logic on top.
+- **Browser input conflicts:** Ctrl/Alt/arrows conflict with browser
+  shortcuts; implement preventDefault, a scan-code mapping layer, and key
+  redefine.
+- **Scope overlap with Phase 7:** Phase 5 implements the first
+  save/config/high-score version; Phase 7 hardens it.
+
+### Suggested order and commits
+
+1. P5.0 — oracle + assets + test skeleton.
+2. P5.1 — fonts/text primitives + HUD.
+3. P5.2 — text windows + static screens/messages.
+4. P5.3 — title/menu/story flow.
+5. P5.4 — help/pause/quit/warp/input config.
+6. P5.5 — save/restore/high scores/config.
+7. P5.6 — integration/docs/regression.
+
+Commit after P5.0, P5.1, P5.3, P5.5, and P5.6 so each step has a working
+oracle fixture.
+
+### Validation commands
+
+```sh
+cd wasm
+make test-shell
+make test-oracle-shell
+make test-hud
+make test-save
+make test-hiscore
+make test-all
+```
 
 ## Phase 6 — Sound
 
@@ -457,17 +730,21 @@ Acceptance:
 - Sound effects trigger at the correct times and obey the in-game toggle.
 - No missing/unknown sound IDs in normal gameplay.
 
-## Phase 7 — Save/high-score/config state
+## Phase 7 — Save/high-score/config hardening
+
+Phase 5 ships the first working save/config/high-score implementation and the
+v1 schema.  This phase hardens it; it must not introduce a second format.
 
 Tasks:
 
-- Define a versioned save-state schema:
+- Harden/version the Phase 5 save-state schema:
   - globals, player, object array, mutable cells, level progress, crystals,
     score, lives, flags.
-- Implement save/restore slots 0–9 in `localStorage`.
-- Implement high-score table/name entry and config persistence.
+- Add migration/validation for version changes and corrupt slots.
 - Verify save/restore mid-level and mid-hub round-trips exactly.
-- Add UI to show “not available” for DOS-only file/BBS actions.
+- Harden high-score table/name entry and config persistence.
+- Add UI to show “not available” for DOS-only file/BBS actions where the
+  Phase 5 shells do not already cover them.
 
 Acceptance:
 
@@ -500,10 +777,13 @@ Acceptance:
 
 ## Immediate next actions
 
-1. Port the loader map-command occupancy rules so transition cell/object
-   leftovers match the original exactly.
-2. Port the remaining 25 handlers in cave-sized batches.
-3. Decode HUD layout/counters and the story/finale transitions.
+1. Phase 6: reverse the Crystal Caves Sound driver and wire the existing
+   sound-ID log to WebAudio; honour the Phase 5 sound toggle.
+2. Finish the Phase 5 caveats: add a text-window frame oracle diff, wire the
+   remaining in-game message triggers, and optionally match DOS scan-code
+   redefine semantics.
+3. Resolve the Phase 4 hub-transition random decoration overlay so cave→hub
+   transitions are pixel-exact.
 
 ## Validation commands
 
@@ -518,6 +798,9 @@ make test-handlers           # committed per-handler fixtures (fast)
 make test-loader             # committed exact hub -> cave transition fixtures
 make test-caves              # committed all-cave full-frame fixtures
 make test-cells              # committed cell/contact/exit fixtures
+make test-hud                # oracle-exact HUD fixtures
+make test-shell              # shell flow/save/high-score/finale fixtures
+make test-oracle-shell       # regenerate notes/hud_fixtures.json
 make test-oracle-handlers    # regenerate handler fixtures (Unicorn)
 make test-oracle-loader      # regenerate transition fixtures (Unicorn)
 make test-oracle-caves       # regenerate all-cave fixtures (Unicorn)
@@ -543,6 +826,8 @@ PASS: 16 all-cave scenarios, 370 frames match oracle
 PASS: 17 cell scenarios, 20 frames match oracle
 PASS: hub door and cave exit transitions load the correct levels
 PASS: mutable cell renderer matches baked; crystal clear changed 150 pixels
+PASS: HUD matches the real routine (4 boundary cases)
+PASS: shell flow, story/finale, save/restore, high scores
 ```
 
 ## Relevant files
@@ -556,8 +841,16 @@ PASS: mutable cell renderer matches baked; crystal clear changed 150 pixels
 - `tools/emulate_startup.py` / `tools/make_startup_data.py` — startup pipeline.
 - `tools/oracle_physics.py` / `tools/physics_fixtures.py` — physics oracle.
 - `wasm/test_physics.js` — C-vs-oracle physics regression.
-- `wasm/render.c` — static renderer, viewport, object draw (HUD pending).
+- `wasm/render.c` — static renderer, viewport, object draw, HUD/screen hooks.
+- `wasm/text.c` / `wasm/text.h` — fonts, glyph blitter, text windows (Phase 5).
+- `wasm/shell.c` / `wasm/shell.h` — title/menu/story/help state machine (Phase 5).
 - `wasm/play.html` — playable shell, input, camera view, level selector.
+- `wasm/game.html` — full shell page (Phase 5).
+- `wasm/test_shell.js`, `wasm/test_hud.js`, `wasm/test_save.js`,
+  `wasm/test_hiscore.js` — Phase 5 regressions.
+- `tools/oracle_shell.py` — shell/HUD/text/PCX oracle (Phase 5).
+- `tools/export_shell_assets.py` — PCX/MNI/text/key/high-score export (Phase 5).
+- `notes/shell_fixtures.json`, `notes/shell.md` — Phase 5 fixtures/docs.
 - `wasm/test_oracle_objects.js` — object/cell oracle comparison.
 - `wasm/test_combat.js` — committed combat/cell/globals/RNG/sound oracle test.
 - `tools/cell_fixtures.py` / `notes/cell_fixtures.json` — committed cell/contact/exit oracle trace.
@@ -568,10 +861,11 @@ PASS: mutable cell renderer matches baked; crystal clear changed 150 pixels
 - `tools/combat_fixtures.py` / `notes/combat_fixtures.json` — planned
   committed combat oracle trace.
 - `wasm/test_combat.js` — planned C-vs-oracle combat regression.
-- `tools/export_assets.py` — portable asset export; add PCX/SND/UI assets here.
+- `tools/export_assets.py` — portable GFX/level export; shell assets live in
+  `tools/export_shell_assets.py`.
 - `out/portable/cells.bin` — mutable 20-byte cell records.
 - `notes/handlers_disasm.txt` — handler port source.
 - `notes/gameplay.md` — update-loop/helper/handler notes.
 - `notes/oracle_catalog.json`, `notes/oracle_objects.json` — ground truth.
 - `extracted/CC1-UNLZ.EXE` — original unpacked binary.
-- `extracted/CC1.TTL/APG/CDT/END`, `CC1-*.SND`, `CC1-F1/F2.MNI` — remaining assets.
+- `extracted/CC1.TTL/APG/CDT/END`, `CC1-*.SND`, `CC1-F1/F2/SPL.MNI` — remaining assets.

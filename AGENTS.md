@@ -20,6 +20,9 @@ There is no root Makefile; the build lives in `wasm/`.
 | `make test-loader` | Committed exact loader-transition fixtures (hub -> each cave) |
 | `make test-caves` | Committed full-frame integration fixtures for all 16 caves |
 | `make test-cells` | Committed cell-event/contact/exit fixtures + transition/render checks |
+| `make test-hud` | Oracle-exact HUD fixtures (real HUD routine) |
+| `make test-shell` | Shell flow, text/PCX screens, save/restore, high scores, finale |
+| `make test-oracle-shell` | Regenerate `notes/hud_fixtures.json`, then compare |
 | `make test-oracle-cells` | Regenerate `notes/cell_fixtures.json` with Unicorn, then compare |
 | `make test-oracle-physics` | Regenerate physics fixtures from the real routines, then compare (needs venv deps) |
 | `make test-oracle-objects` | Compare C object/cell state with the Unicorn oracle, levels 2 and 3 (needs venv deps) |
@@ -53,7 +56,7 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 6. `python3 tools/check_oracle.py` — structural regression checks
 7. `python3 tools/render_oracle.py 0..18` — regenerate static oracle PNGs
 8. `python3 tools/export_level_overlay.py` — generates `out/portable/level_overlay.bin`
-9. `wasm: make data` — exports `out/portable/{gfx,levels,cells,palette,mni,commands,objects,level_overlay}`
+9. `wasm: make data` — exports `out/portable/{gfx,levels,cells,palette,mni,commands,objects,level_overlay,screens,shell_text}`
 
 ## Level Model (important)
 
@@ -76,7 +79,7 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - **16-colour EGA**: 320x200 playfield; full level is 640x400 (40x25 cells of 16x16)
 - **GFX**: 23 blocks x 8003 B; shape = 16 rows x 2 groups x 5 B `[mask][p0..p3]`; mask=opaque, colour = p0 + 2*p1 + 4*p2 + 8*p3, MSB=leftmost; indices are 1-based
 - **Cell record**: 20 B = 10 words; `w2/w4` layer1 shape/block, `w3/w5` layer2, `w7/w6` layer3; byte `0x11`=solid, `0x13`=exit. Do not discard the other words at runtime — handlers mutate cells.
-- **MNI**: ProGraphx 8x8 font/sprite; `CC1-F1/F2` are 50-glyph banks
+- **MNI**: ProGraphx 8x8 font/sprite; `CC1-F1/F2/SPL` are 50-glyph banks of 40 B after a 3-byte header; lowercase text is shifted by -6 in the original font encoding
 - **Sound**: Crystal Caves Sound (modified inverse-frequency, PC speaker); not decoded yet
 - **Borland Turbo Pascal** binary; TP runtime helpers live in segment `0x2BB5`
 - **Normal frame order**: `0xE011 → 0xE36B → 0xE5D3 → 0xEBF2 → 0xEAEA → 0xD72A`.
@@ -118,11 +121,18 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   preserved source bytes, `[0x2d6]`-dependent shapes and RNG-selected spawn
   fields. `notes/loader_fixtures.json` / `make test-loader` pass for
   hub -> each cave.
+- Phase 5 is implemented: title/credits/title flow, main menu, PCX screens,
+  text windows, oracle-exact HUD (`notes/hud_fixtures.json`), story/finale
+  transitions, help/pause/quit/warp, save/restore 0–9, high scores and config
+  persistence in `localStorage`.  `make test-hud` / `make test-shell` pass.
 - Known limitation: transitions **to the hub (level 2)** still use the fresh
   hub image; the hub's decorative random background is regenerated with the
   live RNG and is not yet replayed by the overlay.
-- Still missing: HUD, menus, sound, save/high scores, and exact hub-transition
-  random decorations.
+- Known shell limitations: text-window frame styling is faithful but not yet
+  oracle-diffed per pixel; in-game message triggers cover last-crystal,
+  gravity and power-shot (other blocks are available via `cc_shell_message`);
+  key redefine stores browser key codes; joystick uses the Gamepad API.
+- Still missing: sound (Phase 6) and exact hub-transition random decorations.
 
 ## Tooling Entrypoints
 
@@ -145,7 +155,9 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 | `tools/cave_fixtures.py` / `notes/cave_fixtures.json` | All-cave full-frame fixtures (`make test-caves`) |
 | `tools/trace_handlers.py` | Handler inventory (`notes/handlers.md/json/disasm`) |
 | `tools/disasm.py` | 16-bit disassembler/xref helper (needs capstone) |
-| `tools/export_assets.py` | Portable asset export |
+| `tools/export_assets.py` | Portable level/GFX/font asset export |
+| `tools/export_shell_assets.py` | PCX screens, MNI banks, shell text/key/high-score export |
+| `tools/oracle_shell.py` | Real HUD routine oracle (`notes/hud_fixtures.json`) |
 | `tools/check_oracle.py` | Structural oracle validation |
 | `tools/build_cells.py` / `make_cells_data.py` | Cell extraction/header generation |
 | `tools/build_oracle_catalog.py` / `make_objects_data.py` | Object catalog/header generation |
@@ -154,7 +166,7 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 
 ## Outputs
 
-- `out/portable/gfx.bin`, `levels.bin`, `cells.bin`, `palette.json`, `mni_f*.bin`, `commands.json`, `objects.json`
+- `out/portable/gfx.bin`, `levels.bin`, `cells.bin`, `palette.json`, `mni_f*.bin`, `screens.bin`, `shell_text.json`, `commands.json`, `objects.json`
 - `out/emu_L*.png`, `out/oracle_L*.png` — reference renders (oracle renders come from startup+loader cells)
 - `wasm/render.wasm` — build artifact (gitignored)
 - `wasm/startup_data.h` — generated startup/table/level-start data
@@ -166,10 +178,13 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - `out/portable/level_overlay.bin` — loader transition occupancy asset
 - `notes/cell_fixtures.json` — committed cell/contact/exit oracle trace (`make test-cells`)
 - `notes/handlers.*`, `notes/oracle_catalog.json`, `notes/oracle_objects.json`, `notes/level_table.json`, `notes/gameplay.md`
+- `notes/shell.md` — Phase 5 HUD/text/menu/save notes
+- `wasm/game.html` — full shell page
+- `wasm/text.c/h`, `wasm/shell.c/h`, `wasm/render.h` — Phase 5 code
 
 ## Known Constraints
 
 - No `package.json`, `pip` project, or `cargo`; Python + clang/emcc only
-- Static levels are baked from oracle dumps; `cells.bin` now carries mutable 20-byte records, but dynamic redraw/HUD are still pending.
+- Static levels are baked from oracle dumps; `cells.bin` carries mutable 20-byte records, dynamic redraw is implemented, and the HUD is oracle-exact.
 - Oracle catalog is the regression reference; never hand-edit generated headers
 - Level layout is code-encoded — changing map heights requires editing binary/code assumptions

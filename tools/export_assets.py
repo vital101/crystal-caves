@@ -54,10 +54,12 @@ def main():
     gfx = open(os.path.join(EXTRACT, "CC1.GFX"), "rb").read()
     open(os.path.join(OUT, "gfx.bin"), "wb").write(gfx)
 
-    # fonts
-    for src, dst in (("CC1-F1.MNI", "mni_f1.bin"), ("CC1-F2.MNI", "mni_f2.bin")):
+    # fonts: 3-byte MNI header + 50 glyphs of 40 bytes
+    for src, dst in (("CC1-F1.MNI", "mni_f1.bin"),
+                     ("CC1-F2.MNI", "mni_f2.bin"),
+                     ("CC1-SPL.MNI", "mni_spl.bin")):
         raw = open(os.path.join(EXTRACT, src), "rb").read()
-        open(os.path.join(OUT, dst), "wb").write(raw[3:])  # strip 3-byte header
+        open(os.path.join(OUT, dst), "wb").write(raw[3:3 + 50 * 40])
 
     # levels: bake tile maps from the oracle cell dumps
     levels = []
@@ -136,8 +138,8 @@ def main():
                 "format": "16 rows x 2 groups x 5 bytes [mask][plane0..plane3]; "
                           "mask bit set = opaque; colour = p0 + 2*p1 + 4*p2 + 8*p3; "
                           "MSB = leftmost"},
-        "fonts": {"f1": "mni_f1.bin", "f2": "mni_f2.bin", "glyph_size": 40,
-                  "glyph_w": 8, "glyph_h": 8,
+        "fonts": {"f1": "mni_f1.bin", "f2": "mni_f2.bin", "spl": "mni_spl.bin",
+                  "glyph_size": 40, "glyph_w": 8, "glyph_h": 8, "count": 50,
                   "f1_range": [23, 72], "f2_range": [73, 122]},
         "levels": {"file": "levels.json", "bin": "levels.bin", "count": 19,
                    "width": W, "height": H, "bin_cell_bytes": 6,

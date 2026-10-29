@@ -42,7 +42,7 @@ void *memcpy(void *d, const void *s, unsigned n) {
 }
 
 /* bump allocator over a static arena (JS copies assets in via cc_alloc). */
-static unsigned char g_heap[1 << 20];
+static unsigned char g_heap[4 << 20];
 static unsigned int g_heap_top = 0;
 
 void *cc_alloc(unsigned size) {
@@ -224,4 +224,66 @@ void cc_render_view(int level, int cam_x, int cam_y) {
                &g_rgba[((y + y0) * TILE_W + x0) * 4],
                SCREEN_W * 4);
     }
+}
+
+/* ---------------------------------------------------------------- shell
+ * PCX/full-screen and text/HUD drawing helpers.  The shell and text modules
+ * draw into g_view (320x200 RGBA) through these functions so they do not
+ * depend on renderer internals. */
+static const unsigned char *g_screens = 0;
+
+void cc_set_screens(const unsigned char *screens) { g_screens = screens; }
+
+static void view_pixel(int x, int y, int color) {
+    if (x < 0 || x >= SCREEN_W || y < 0 || y >= SCREEN_H) return;
+    unsigned int c = g_palette[color & 15];
+    unsigned char *d = &g_view[(y * SCREEN_W + x) * 4];
+    d[0] = (c >> 16) & 0xFF;
+    d[1] = (c >> 8) & 0xFF;
+    d[2] = c & 0xFF;
+    d[3] = 0xFF;
+}
+
+void cc_view_clear(int color) {
+    unsigned int c = g_palette[color & 15];
+    unsigned char r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, b = c & 0xFF;
+    for (int i = 0; i < SCREEN_W * SCREEN_H; i++) {
+        g_view[i * 4 + 0] = r;
+        g_view[i * 4 + 1] = g;
+        g_view[i * 4 + 2] = b;
+        g_view[i * 4 + 3] = 0xFF;
+    }
+}
+
+void cc_view_fill_rect(int x, int y, int w, int h, int color) {
+    for (int yy = y; yy < y + h; yy++)
+        for (int xx = x; xx < x + w; xx++)
+            view_pixel(xx, yy, color);
+}
+
+void cc_view_set_pixel(int x, int y, int color) { view_pixel(x, y, color); }
+
+/* 8x8 glyph: 8 rows x 5 bytes [mask,p0..p3]. */
+void cc_view_draw_glyph(const unsigned char *glyph, int x, int y) {
+    if (!glyph) return;
+    for (int row = 0; row < 8; row++) {
+        const unsigned char *g = glyph + row * 5;
+        unsigned char mask = g[0];
+        for (int bit = 0; bit < 8; bit++) {
+            unsigned char m = (unsigned char)(0x80u >> bit);
+            if (!(mask & m)) continue;
+            int ci = ((g[1] & m) ? 1 : 0) | ((g[2] & m) ? 2 : 0)
+                   | ((g[3] & m) ? 4 : 0) | ((g[4] & m) ? 8 : 0);
+            view_pixel(x + bit, y + row, ci);
+        }
+    }
+}
+
+void cc_draw_screen(int idx) {
+    if (!g_screens) { cc_view_clear(0); return; }
+    if (idx < 0) idx = 0;
+    const unsigned char *src = g_screens + (unsigned)idx * SCREEN_W * SCREEN_H;
+    for (int y = 0; y < SCREEN_H; y++)
+        for (int x = 0; x < SCREEN_W; x++)
+            view_pixel(x, y, src[y * SCREEN_W + x]);
 }

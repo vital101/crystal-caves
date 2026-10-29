@@ -14,17 +14,12 @@
   "fonts": {
     "f1": "mni_f1.bin",
     "f2": "mni_f2.bin",
+    "spl": "mni_spl.bin",
     "glyph_size": 40,
     "glyph_w": 8,
     "glyph_h": 8,
-    "f1_range": [
-      23,
-      72
-    ],
-    "f2_range": [
-      73,
-      122
-    ]
+    "count": 50,
+    "format": "8 rows x 5 bytes [mask][plane0..plane3]; MSB=leftmost"
   },
   "levels": {
     "file": "levels.json",
@@ -44,5 +39,43 @@
   "commands": {
     "file": "commands.json"
   },
-  "tile_space": "640x400 (40x25 cells of 16x16)"
+  "tile_space": "640x400 (40x25 cells of 16x16)",
+  "screens": {
+    "file": "screens.bin",
+    "bytes_per_screen": 64000,
+    "screens": [
+      {
+        "id": "apogee",
+        "file": "CC1.APG",
+        "offset": 0,
+        "width": 320,
+        "height": 200
+      },
+      {
+        "id": "title",
+        "file": "CC1.TTL",
+        "offset": 64000,
+        "width": 320,
+        "height": 200
+      },
+      {
+        "id": "credits",
+        "file": "CC1.CDT",
+        "offset": 128000,
+        "width": 320,
+        "height": 200
+      },
+      {
+        "id": "ending",
+        "file": "CC1.END",
+        "offset": 192000,
+        "width": 320,
+        "height": 200
+      }
+    ]
+  },
+  "shell_text": {
+    "file": "shell_text.json",
+    "blocks": 49
+  }
 }

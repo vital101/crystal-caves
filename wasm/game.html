@@ -1,0 +1,314 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Crystal Caves Ep.1</title>
+<style>
+  html,body { margin:0; background:#111; color:#ddd; font-family:monospace; }
+  #wrap { display:flex; flex-direction:column; align-items:center; padding:12px; }
+  canvas { image-rendering:pixelated; width:960px; height:600px; background:#000;
+           border:1px solid #444; }
+  #bar { margin-top:8px; font-size:13px; color:#aaa; }
+  button { font:inherit; margin:0 4px; }
+  #diag { margin-top:4px; font-size:11px; color:#666; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="cv" width="320" height="200"></canvas>
+  <div id="bar">
+    <button id="png">Save PNG</button>
+    <span id="hint">Click the game, then use the keyboard. Arrows move; Z/Space fire; X/Ctrl jump; Esc/F1 help.</span>
+  </div>
+  <div id="diag">loading...</div>
+</div>
+<script>
+(() => {
+  const W = 320, H = 200;
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const diag = document.getElementById('diag');
+
+  const KEY = {
+    BACKSPACE: 8, ENTER: 13, ESC: 27, SPACE: 32, F1: 0x13B,
+  };
+  const INPUT = {
+    ArrowLeft: 0x338E, ArrowRight: 0x338F, ArrowUp: 0x338B,
+    ArrowDown: 0x338C, ' ': 0x3390, z: 0x3390, Z: 0x3390,
+    x: 0x338B, X: 0x338B, Control: 0x338B, Alt: 0x3390,
+  };
+  const STEP_MS = 1000 * 8 * 0x2147 / 1193182;
+
+  function b64encode(bytes) {
+    let s = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk)
+      s += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    return btoa(s);
+  }
+  function b64decode(str) {
+    const s = atob(str);
+    const out = new Uint8Array(s.length);
+    for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+    return out;
+  }
+
+  (async () => {
+    const load = (p) => fetch(p + '?v=' + Date.now()).then(r => r.arrayBuffer());
+    const [wasm, gfx, levels, cells, overlay, screens, f1, f2, spl, pal] =
+      await Promise.all([
+        load('render.wasm'), load('assets/gfx.bin'), load('assets/levels.bin'),
+        load('assets/cells.bin'), load('assets/level_overlay.bin'),
+        load('assets/screens.bin'), load('assets/mni_f1.bin'),
+        load('assets/mni_f2.bin'), load('assets/mni_spl.bin'),
+        fetch('assets/palette.json').then(r => r.json()),
+      ]);
+
+    const { instance } = await WebAssembly.instantiate(wasm, {});
+    const e = instance.exports;
+    const mem = () => new Uint8Array(e.memory.buffer);
+    const copyIn = (buf) => {
+      const p = e.cc_alloc(buf.byteLength);
+      mem().set(new Uint8Array(buf), p);
+      return p;
+    };
+
+    e.cc_set_assets(copyIn(gfx), copyIn(levels));
+    e.cc_set_cells(copyIn(cells));
+    const ovp = e.cc_alloc(overlay.byteLength);
+    mem().set(new Uint8Array(overlay), ovp);
+    e.cc_set_level_overlay(ovp);
+    e.cc_set_screens(copyIn(screens));
+    e.cc_text_set_fonts(copyIn(f1), copyIn(f2), copyIn(spl));
+
+    const palP = e.cc_alloc(64);
+    const pal32 = new Uint32Array(e.memory.buffer, palP, 16);
+    pal.colors.forEach(([r, g, b], i) => { pal32[i] = (r << 16) | (g << 8) | b; });
+    e.cc_set_palette(palP);
+
+    const stateSize = e.cc_state_size();
+    const stateP = e.cc_alloc(stateSize);
+
+    // ---- persistent config / high scores -------------------------------
+    const CFG_KEY = 'cc1.config.v1';
+    const HS_KEY = 'cc1.hiscores.v1';
+    let cfg = { sound: 1, joystick: 0, video: 0, keys: {} };
+    try {
+      const c = JSON.parse(localStorage.getItem(CFG_KEY) || 'null');
+      if (c) cfg = Object.assign(cfg, c);
+    } catch (_) {}
+    e.cc_shell_set_config(cfg.sound, cfg.joystick, cfg.video);
+    if (Array.isArray(cfg.keys))
+      for (let i = 0; i < 4; i++) e.cc_shell_set_key(i, cfg.keys[i] | 0);
+    function persistConfig() {
+      cfg.sound = e.cc_shell_sound_on();
+      cfg.joystick = e.cc_shell_joystick_on();
+      cfg.video = e.cc_shell_video_alt();
+      cfg.keys = [0, 1, 2, 3].map(i => e.cc_shell_key_for_action(i));
+      try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (_) {}
+    }
+    function loadHighScores() {
+      try {
+        const arr = JSON.parse(localStorage.getItem(HS_KEY) || 'null');
+        if (Array.isArray(arr)) {
+          for (let i = 0; i < arr.length && i < 10; i++)
+            if (arr[i] && typeof arr[i].score === 'number')
+              e.cc_shell_hiscore_set(i, String(arr[i].name || ''), arr[i].score);
+        }
+      } catch (_) {}
+    }
+    function persistHighScores() {
+      const arr = [];
+      for (let i = 0; i < e.cc_shell_hiscore_count(); i++) {
+        const p = e.cc_shell_hiscore_name(i);
+        const s = new Uint8Array(e.memory.buffer);
+        let name = '';
+        for (let j = 0; j < 64; j++) {
+          const ch = s[p + j];
+          if (!ch) break;
+          name += String.fromCharCode(ch);
+        }
+        arr.push({ name, score: e.cc_shell_hiscore_score(i) >>> 0 });
+      }
+      try { localStorage.setItem(HS_KEY, JSON.stringify(arr)); } catch (_) {}
+    }
+    loadHighScores();
+    e.cc_shell_init();
+    loadHighScores();
+
+    // ---- rendering ------------------------------------------------------
+    function present() {
+      const fb = e.cc_view_framebuffer();
+      const img = new ImageData(new Uint8ClampedArray(e.memory.buffer, fb, W * H * 4), W, H);
+      ctx.putImageData(img, 0, 0);
+    }
+    function renderGame() {
+      const level = e.cc_cur_level();
+      const camX = e.cc_cam_x(), camY = e.cc_cam_y();
+      e.cc_render_view_cells(level, camX, camY);
+      for (let s = 0; s < e.cc_obj_count(); s++) {
+        if (e.cc_obj_state(s) === 2 || e.cc_obj_kind(s) === 0) continue;
+        const blk = e.cc_obj_tile(s), sh = e.cc_obj_shape(s);
+        if (!blk || !sh) continue;
+        e.cc_draw_object_view(blk, sh, e.cc_obj_x(s) - camX, e.cc_obj_y(s) - camY);
+      }
+      if (e.cc_shell_hud_active()) e.cc_hud_render();
+      if (e.cc_shell_overlay()) e.cc_shell_render();
+      present();
+    }
+    function renderShell() {
+      e.cc_shell_render();
+      present();
+    }
+    function render() {
+      if (e.cc_shell_state() === 4 || e.cc_shell_overlay()) renderGame();
+      else renderShell();
+    }
+
+    // ---- save/restore handshake ----------------------------------------
+    function handleRequest() {
+      if (!e.cc_shell_request_pending()) return;
+      const kind = e.cc_shell_request_kind();
+      const slot = e.cc_shell_request_slot();
+      const key = 'cc1.save.' + slot;
+      let ok = 0;
+      if (kind === 1) {
+        const n = e.cc_state_save(stateP, stateSize);
+        if (n > 0) {
+          try {
+            localStorage.setItem(key, b64encode(mem().subarray(stateP, stateP + n)));
+            ok = 1;
+          } catch (_) {}
+        }
+      } else if (kind === 2) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const bytes = b64decode(raw);
+            mem().set(bytes, stateP);
+            ok = e.cc_state_load(stateP, bytes.length) ? 1 : 0;
+          }
+        } catch (_) {}
+      }
+      e.cc_shell_request_done(ok);
+      render();
+    }
+
+    // ---- input ----------------------------------------------------------
+    let running = true;
+    function sendShellKey(ch) { e.cc_shell_key(ch); }
+    window.addEventListener('keydown', (ev) => {
+      const st = e.cc_shell_state();
+      if (ev.key === 'F1') { ev.preventDefault(); sendShellKey(KEY.F1); return; }
+      if (ev.key === 'Escape') { ev.preventDefault(); sendShellKey(KEY.ESC); return; }
+      if (ev.key === 'Enter') { ev.preventDefault(); sendShellKey(KEY.ENTER); return; }
+      if (ev.key === 'Backspace') { ev.preventDefault(); sendShellKey(KEY.BACKSPACE); return; }
+      if (st === 16) { /* keyboard redefine */
+        ev.preventDefault();
+        e.cc_shell_key(ev.keyCode);
+        if (e.cc_shell_state() === 6) persistConfig();
+        return;
+      }
+      if (st === 4) { /* game */
+        const custom = [
+          e.cc_shell_key_for_action(0), e.cc_shell_key_for_action(1),
+          e.cc_shell_key_for_action(2), e.cc_shell_key_for_action(3)
+        ];
+        const flags = [0x338E, 0x338F, 0x338B, 0x3390];
+        let handled = false;
+        for (let i = 0; i < 4; i++) {
+          if (custom[i] && ev.keyCode === custom[i]) {
+            e.cc_input_set(flags[i], 1); handled = true; break;
+          }
+        }
+        if (handled) { ev.preventDefault(); return; }
+        const flag = INPUT[ev.key];
+        if (flag !== undefined) { ev.preventDefault(); e.cc_input_set(flag, 1); return; }
+        if (ev.key === 'p' || ev.key === 'P') { e.cc_shell_key(112); return; }
+        return;
+      }
+      const flag = INPUT[ev.key];
+      if (flag !== undefined) ev.preventDefault();
+      const code = ev.key.length === 1 ? ev.key.charCodeAt(0) : 0;
+      if (st === 3 || st === 14) sendShellKey(code || KEY.ENTER);
+      else sendShellKey(code || (ev.key === ' ' ? KEY.ENTER : 0));
+      if (e.cc_shell_state() === 11 || e.cc_shell_state() === 12) persistHighScores();
+      if (e.cc_shell_state() === 6) persistConfig();
+    });
+    window.addEventListener('keyup', (ev) => {
+      if (e.cc_shell_state() !== 4) return;
+      const custom = [
+        e.cc_shell_key_for_action(0), e.cc_shell_key_for_action(1),
+        e.cc_shell_key_for_action(2), e.cc_shell_key_for_action(3)
+      ];
+      const flags = [0x338E, 0x338F, 0x338B, 0x3390];
+      for (let i = 0; i < 4; i++) {
+        if (custom[i] && ev.keyCode === custom[i]) {
+          ev.preventDefault(); e.cc_input_set(flags[i], 0); return;
+        }
+      }
+      const flag = INPUT[ev.key];
+      if (flag !== undefined) {
+        ev.preventDefault();
+        e.cc_input_set(flag, 0);
+      }
+    });
+
+    document.getElementById('png').onclick = () => {
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
+      const cc = c.getContext('2d');
+      const fb = e.cc_view_framebuffer();
+      cc.putImageData(new ImageData(new Uint8ClampedArray(e.memory.buffer, fb, W * H * 4), W, H), 0, 0);
+      const a = document.createElement('a'); a.download = 'crystal-caves.png'; a.href = c.toDataURL(); a.click();
+    };
+
+    // ---- main loop ------------------------------------------------------
+    let last = 0, accum = 0;
+    function frame(now) {
+      if (!last) last = now;
+      let dt = now - last; last = now;
+      if (dt > 250) dt = 250;
+      handleRequest();
+      if (e.cc_shell_state() === 4 && navigator.getGamepads) {
+        const pads = navigator.getGamepads();
+        let gp = null;
+        for (const p of pads) { if (p) { gp = p; break; } }
+        if (gp) {
+          const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
+          e.cc_input_set(0x338E, ax < -0.4 ? 1 : 0);
+          e.cc_input_set(0x338F, ax > 0.4 ? 1 : 0);
+          e.cc_input_set(0x338B, (gp.buttons[0] && gp.buttons[0].pressed) || ay < -0.5 ? 1 : 0);
+          e.cc_input_set(0x3390, gp.buttons[2] && gp.buttons[2].pressed ? 1 : 0);
+        }
+      }
+      if (e.cc_shell_state() === 4) {
+        e.cc_shell_step();
+        accum += dt;
+        let steps = 0;
+        while (accum >= STEP_MS && steps < 4) {
+          e.cc_objects_step_full();
+          e.cc_shell_step();
+          accum -= STEP_MS;
+          steps++;
+          if (e.cc_shell_state() !== 4) break;
+        }
+        if (steps) renderGame();
+      } else {
+        e.cc_shell_step();
+        if (e.cc_shell_overlay()) renderGame();
+        else renderShell();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    diag.textContent = 'ready — ' + e.cc_shell_state();
+    renderShell();
+    requestAnimationFrame(frame);
+  })().catch((err) => {
+    diag.textContent = 'error: ' + err.message;
+    console.error(err);
+  });
+})();
+</script>
+</body>
+</html>

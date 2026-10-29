@@ -19,6 +19,7 @@ void cc_cell_set(int col, int row, int off, int value);
 void cc_objects_init(int level);
 void cc_level_exit(int arg);
 void cc_load_arg(int arg);
+int32_t cc_cur_level(void);
 
 /* Advance every object slot once (original update loop, 0xD72A).
  * C4: also processes input and updates the camera. */
@@ -136,8 +137,14 @@ uint16_t  cc_g_a0c4(void);
 uint8_t   cc_g_a0ff(void);
 uint16_t  cc_collectibles_total(void);
 uint16_t  cc_collectibles_left(void);
-uint16_t  cc_lives(void);
+uint16_t cc_lives(void);
 int       cc_level_complete(void);
+
+/* Phase 5: complete deterministic state snapshot (gameplay + cells + flags).
+ * The format is versioned and must remain stable. */
+int cc_state_size(void);
+int cc_state_save(unsigned char *out, int cap);
+int cc_state_load(const unsigned char *in, int len);
 
 #ifdef __cplusplus
 }

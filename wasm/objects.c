@@ -38,6 +38,7 @@
 #include "objects_data.h"
 #include "cells_data.h"
 #include "startup_data.h"
+#include "shell.h"
 
 /* freestanding: no libc */
 static void *memcpy_(void *d, const void *s, unsigned n) {
@@ -2097,6 +2098,7 @@ static void cell_event(int16_t x, int16_t y) {
             play_sound(9);
             if (S->g_a104) { S->g_a104 = 0; helper_a110_clear(); }
             S->power_shot = 1;
+            cc_shell_notify_power_shot();
             cell_word_put(col, row, 0x0E, 0);
             mark_redraw(x, y);
             S->power_timer = S->g_a0c2;
@@ -2180,6 +2182,7 @@ static void cell_event(int16_t x, int16_t y) {
         if (w7 == 0x2D && w6 == 0x0D) {
             if (S->g_513c) {
                 S->g_a10d = 1;
+                cc_shell_notify_gravity();
                 S->g_513c = 0;
                 S->power_timer = S->g_a0ca;
                 S->g_a0c6 = 0;
@@ -3764,6 +3767,7 @@ static void cc_fire_timers(void) {
             S->g_a107 = 0;
         }
         S->g_a0f5 = 1;
+        cc_shell_notify_last_crystal();
         cell_put(S->exit_col, S->exit_row, 0x11, 0);
         cell_put(S->exit_col, (int16_t)(S->exit_row + 1), 0x11, 0);
         cell_put(S->exit_col, S->exit_row, 0x11, 0);
@@ -3963,6 +3967,7 @@ void cc_objects_step_full(void) {
         door_entry_frame();
     } else if (S->g_a0fb) {
         /* 0xD710: story/finale transition. */
+        cc_shell_finale_done();
         S->g_a0fb = 0;
         S->g_a110 = 1;
     } else if (S->g_a126) {
@@ -4944,4 +4949,57 @@ void cc_phys_set(int f, int32_t v) {
         case CC_PHYS_EXIT_STATE: S->g_5124 = (uint16_t)v; break;
         default: break;
     }
+}
+
+/* ---------------------------------------------------------------- save state
+ * Versioned deterministic snapshot.  This is the Phase 5 v1 format; Phase 7
+ * owns migration/hardening.  Host pointers and the sound event log are not
+ * part of the snapshot. */
+#define CC_SAVE_MAGIC   0x31534343u /* "CCS1" */
+#define CC_SAVE_VERSION 1u
+#define CC_SAVE_HDR     8
+
+static cc_state_t g_save_tmp;
+
+int cc_state_size(void) {
+    return CC_SAVE_HDR + (int)sizeof(cc_state_t);
+}
+
+int cc_state_save(unsigned char *out, int cap) {
+    int need = cc_state_size();
+    if (!out || cap < need) return 0;
+    memcpy_(&g_save_tmp, S, sizeof(cc_state_t));
+    g_save_tmp.sound_callback = 0;
+    g_save_tmp.sound_log_count = 0;
+    g_save_tmp.sound_log_total = 0;
+    for (unsigned i = 0; i < sizeof(g_save_tmp.sound_log); i++)
+        g_save_tmp.sound_log[i] = 0;
+    out[0] = (unsigned char)(CC_SAVE_MAGIC & 0xFF);
+    out[1] = (unsigned char)((CC_SAVE_MAGIC >> 8) & 0xFF);
+    out[2] = (unsigned char)((CC_SAVE_MAGIC >> 16) & 0xFF);
+    out[3] = (unsigned char)((CC_SAVE_MAGIC >> 24) & 0xFF);
+    out[4] = (unsigned char)(CC_SAVE_VERSION & 0xFF);
+    out[5] = (unsigned char)((CC_SAVE_VERSION >> 8) & 0xFF);
+    out[6] = (unsigned char)((sizeof(cc_state_t)) & 0xFF);
+    out[7] = (unsigned char)((sizeof(cc_state_t) >> 8) & 0xFF);
+    memcpy_(out + CC_SAVE_HDR, &g_save_tmp, sizeof(cc_state_t));
+    return need;
+}
+
+int cc_state_load(const unsigned char *in, int len) {
+    if (!in || len < CC_SAVE_HDR) return 0;
+    unsigned int magic = (unsigned int)in[0] | ((unsigned int)in[1] << 8)
+                       | ((unsigned int)in[2] << 16) | ((unsigned int)in[3] << 24);
+    unsigned int ver = (unsigned int)in[4] | ((unsigned int)in[5] << 8);
+    unsigned int sz = (unsigned int)in[6] | ((unsigned int)in[7] << 8);
+    if (magic != CC_SAVE_MAGIC || ver != CC_SAVE_VERSION ||
+        sz != sizeof(cc_state_t) || len < CC_SAVE_HDR + (int)sz)
+        return 0;
+    void (*cb)(uint16_t) = S->sound_callback;
+    memcpy_(&g_save_tmp, in + CC_SAVE_HDR, sizeof(cc_state_t));
+    memcpy_(S, &g_save_tmp, sizeof(cc_state_t));
+    S->sound_callback = cb;
+    S->sound_log_count = 0;
+    S->sound_log_total = 0;
+    return 1;
 }

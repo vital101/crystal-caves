@@ -1,0 +1,33 @@
+{
+  "screen_bytes": 64000,
+  "screens": [
+    {
+      "id": "apogee",
+      "file": "CC1.APG",
+      "offset": 0,
+      "width": 320,
+      "height": 200
+    },
+    {
+      "id": "title",
+      "file": "CC1.TTL",
+      "offset": 64000,
+      "width": 320,
+      "height": 200
+    },
+    {
+      "id": "credits",
+      "file": "CC1.CDT",
+      "offset": 128000,
+      "width": 320,
+      "height": 200
+    },
+    {
+      "id": "ending",
+      "file": "CC1.END",
+      "offset": 192000,
+      "width": 320,
+      "height": 200
+    }
+  ]
+}
