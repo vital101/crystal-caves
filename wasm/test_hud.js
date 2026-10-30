@@ -32,7 +32,16 @@ const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'notes', 
   for (const c of fixtures.cases) {
     e.cc_view_clear(0);
     for (const [off, val] of Object.entries(c.globals)) e.cc_global_set(Number(off), val);
+    e.cc_hud_tick();
+    const ticked = { a0c4: e.cc_global_get(0xA0C4) & 0xFFFF,
+                     a0c6: e.cc_global_get(0xA0C6) & 0xFFFF };
     e.cc_hud_render();
+    const afterRender = { a0c4: e.cc_global_get(0xA0C4) & 0xFFFF,
+                          a0c6: e.cc_global_get(0xA0C6) & 0xFFFF };
+    if (afterRender.a0c4 !== ticked.a0c4 || afterRender.a0c6 !== ticked.a0c6) {
+      console.log(`HUD ${c.name}: render mutated timers ${ticked.a0c4}/${ticked.a0c6} -> ${afterRender.a0c4}/${afterRender.a0c6}`);
+      fail++;
+    }
     const fb = e.cc_view_framebuffer();
     const u8 = new Uint8Array(e.memory.buffer, fb, 320 * 200 * 4);
     let diff = 0, first = -1;
@@ -60,5 +69,36 @@ const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'notes', 
       console.log(`PASS HUD ${c.name}`);
     }
   }
+
+  // Cadence: one tick per game step, independent of how many times the HUD is
+  // rendered between steps (the original HUD runs once per game frame).
+  const resetPower = (pt, sub) => {
+    e.cc_global_set(0xA0FB, 0);
+    e.cc_global_set(0xA0C4, pt);
+    e.cc_global_set(0xA0C6, sub);
+  };
+  const power = () => [e.cc_global_get(0xA0C4) & 0xFFFF,
+                       e.cc_global_get(0xA0C6) & 0xFFFF];
+  resetPower(12, 0);
+  e.cc_hud_render();
+  e.cc_hud_render();
+  let p = power();
+  if (p[0] !== 12 || p[1] !== 0) {
+    console.log(`HUD cadence: render-only advanced ${p[0]}/${p[1]}, want 12/0`);
+    fail++;
+  }
+  for (let step = 0; step < 18; step++) {
+    e.cc_hud_tick();
+    e.cc_hud_render();
+    e.cc_hud_render();
+  }
+  p = power();
+  if (p[0] !== 11 || p[1] !== 0) {
+    console.log(`HUD cadence: 18 ticks gave ${p[0]}/${p[1]}, want 11/0`);
+    fail++;
+  } else {
+    console.log('PASS HUD cadence (18 ticks, extra renders ignored)');
+  }
+
   if (fail) process.exit(1);
 })();

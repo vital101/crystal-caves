@@ -17,6 +17,7 @@ void cc_cell_set(int col, int row, int off, int value);
 
 /* Load the oracle-captured 60-slot object image for `level`. */
 void cc_objects_init(int level);
+void cc_warp_level(int level);
 void cc_level_exit(int arg);
 void cc_load_arg(int arg);
 int32_t cc_cur_level(void);
@@ -78,6 +79,7 @@ uint16_t cc_obj_kind(int i);
 uint16_t cc_obj_shape(int i);
 uint16_t cc_obj_tile(int i);
 uint16_t cc_obj_p10(int i);
+uint16_t cc_obj_draw_shape(int i);
 uint16_t cc_obj_p12(int i);
 uint16_t cc_obj_p14(int i);
 uint16_t cc_obj_p16(int i);

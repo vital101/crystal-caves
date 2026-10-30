@@ -36,6 +36,7 @@ frame state can be compared directly with the oracle.
 | `0xF38` | visibility test against camera; margin is `0x20` in the update loop |
 | `0x47D` | object spawn (14 word args, `retf 0x1C`) |
 | `0x28B5:0x191F` | object sprite blitter |
+| `0xF5xx` / `0xF7A1` | object draw: sprite shape = `base_shape + p10 - 1`; player uses `shape_player + anim_timer - 1` |
 | `0x26C5:0` | redraw cell |
 | `0x2BB5:0x25D` | memory copy (TP runtime) |
 

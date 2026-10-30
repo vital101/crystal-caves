@@ -151,6 +151,58 @@ def walk_forward(mod, start, stop=0x100000):
     return lines, p
 
 
+# A few message wrappers pad their line buffers with empty rows that are not
+# present in the static table.  Keep those rows so the exported block uses the
+# same height/position as the original window.
+WRAPPER_PADDING = {
+    "message_gravity": (4, 1),
+    "message_saved": (1, 2),
+}
+
+
+def apply_wrapper_padding(blocks):
+    by_id = {b["id"]: b for b in blocks}
+    for bid, (index, count) in WRAPPER_PADDING.items():
+        b = by_id.get(bid)
+        if b and index <= len(b["lines"]):
+            b["lines"][index:index] = [""] * count
+    return blocks
+
+
+def walk_sentinel_table(mod, start):
+    """Re-read a known block start, preserving empty spacer lines."""
+    p = start
+    lines = []
+    while p < len(mod):
+        n = mod[p]
+        if n > 100:
+            return None
+        s = mod[p + 1:p + 1 + n]
+        if len(s) != n or any((c < 0x20 and c != 0x0d) or c > 0x7e for c in s):
+            return None
+        if s == b"END OF WINDOW":
+            return lines if any(lines) else None
+        lines.append(s.decode("ascii"))
+        p += 1 + n
+    return None
+
+
+def enrich_empty_lines(mod, blocks):
+    """Keep the original zero-length lines that separate paragraphs.
+
+    walk_backward() rejects empty strings while locating a block start; once
+    the start is known we can safely re-read the table and restore them.
+    """
+    for b in blocks:
+        lines = walk_sentinel_table(mod, b["start"])
+        if not lines:
+            continue
+        if [ln for ln in b["lines"] if ln] != [ln for ln in lines if ln]:
+            continue
+        b["lines"] = lines
+    return blocks
+
+
 def find_needle(mod, needle):
     i = mod.find(needle.encode("ascii"))
     if i < 0:
@@ -235,6 +287,8 @@ def extract_text_blocks(mod):
         if lines:
             blocks.append({"id": bid, "start": p, "lines": lines})
 
+    blocks = enrich_empty_lines(mod, blocks)
+    blocks = apply_wrapper_padding(blocks)
     blocks = split_instruction_pages(blocks)
 
     # De-duplicate ids, keep first occurrence; sort by file offset.

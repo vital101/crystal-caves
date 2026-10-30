@@ -47,6 +47,7 @@ int  cc_shell_key_redefine_active(void);
 int  cc_shell_key_redefine_step(void);
 void cc_shell_render(void);
 int  cc_shell_state(void);
+int  cc_shell_message_block(void);
 int  cc_shell_overlay(void);
 int  cc_shell_hud_active(void);
 
@@ -74,6 +75,12 @@ void cc_shell_message(int block_id);
 void cc_shell_notify_last_crystal(void);
 void cc_shell_notify_gravity(void);
 void cc_shell_notify_power_shot(void);
+void cc_shell_notify_red_mushroom(void);
+void cc_shell_notify_poison(void);
+void cc_shell_notify_stunned(void);
+void cc_shell_notify_perfect_health(void);
+void cc_shell_notify_more_crystals(void);
+void cc_shell_notify_lever(void);
 void cc_shell_warp(int level_arg);
 
 #ifdef __cplusplus

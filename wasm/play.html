@@ -102,7 +102,8 @@
     /* Draw active objects on top of the 320x200 viewport. */
     for (let s = 0; s < e.cc_obj_count(); s++) {
       if (e.cc_obj_state(s) === 2 || e.cc_obj_kind(s) === 0) continue;
-      const blk = e.cc_obj_tile(s), sh = e.cc_obj_shape(s);
+      const blk = e.cc_obj_tile(s);
+      const sh = e.cc_obj_draw_shape(s);
       if (!blk || !sh) continue;
       const ox = e.cc_obj_x(s) - camX;
       const oy = e.cc_obj_y(s) - camY;
@@ -154,6 +155,7 @@
   });
   document.getElementById('step').addEventListener('click', () => {
     e.cc_objects_step_full();
+    e.cc_hud_tick();
     renderFrame();
   });
 
@@ -170,6 +172,7 @@
       let steps = 0;
       while (accum >= STEP_MS && steps < 4) {
         e.cc_objects_step_full();
+        e.cc_hud_tick();
         accum -= STEP_MS;
         steps++;
       }

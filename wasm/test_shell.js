@@ -45,6 +45,24 @@ function assert(cond, msg) {
     return n;
   };
 
+  const snapshotCells = () => {
+    const a = new Uint8Array(25 * 40 * 20);
+    for (let r = 0; r < 25; r++)
+      for (let c = 0; c < 40; c++)
+        for (let o = 0; o < 20; o++)
+          a[(r * 40 + c) * 20 + o] = e.cc_cell_byte(c, r, o) & 0xFF;
+    return a;
+  };
+
+  const playerBoxSolid = (px, py) => {
+    for (const dx of [3, 8, 12])
+      for (const dy of [0, 8, 15]) {
+        const c = Math.floor((px + dx) / 16), r = Math.floor((py + dy) / 16);
+        if (e.cc_cell_byte(c, r, 0x11) & 0xFF) return true;
+      }
+    return false;
+  };
+
   e.cc_shell_init();
   assert(e.cc_shell_state() === 0, 'shell starts at logo');
   e.cc_shell_render();
@@ -163,6 +181,54 @@ function assert(cond, msg) {
   e.cc_shell_key(13);
   assert(e.cc_shell_state() === 11 || e.cc_shell_state() === 12,
          'ending proceeds to high scores/name entry');
+
+  // Debug warp must use a fresh destination image; replaying the door/exit
+  // overlay from an arbitrary source state can leave source-cave walls.
+  let warpOk = true;
+  for (let n = 1; n <= 16; n++) {
+    e.cc_objects_init(2);
+    e.cc_shell_warp(n);
+    const level = e.cc_cur_level();
+    const px = e.cc_player_x(), py = e.cc_player_y();
+    if (level !== n + 2 || playerBoxSolid(px, py)) {
+      console.log(`warp ${n}: level ${level}, spawn (${px},${py}) blocked`);
+      warpOk = false;
+      break;
+    }
+    const warped = snapshotCells();
+    e.cc_objects_init(level);
+    const fresh = snapshotCells();
+    for (let i = 0; i < warped.length; i++) {
+      if (warped[i] !== fresh[i]) {
+        console.log(`warp ${n}: cell diff vs fresh at byte ${i}`);
+        warpOk = false;
+        break;
+      }
+    }
+    if (!warpOk) break;
+  }
+  assert(warpOk, 'warp uses a fresh destination image');
+
+  e.cc_objects_init(2);
+  e.cc_global_set(0x50A5, 0x1234);
+  e.cc_global_set(0x50A7, 0);
+  e.cc_shell_warp(1);
+  assert(e.cc_cur_level() === 3 && (e.cc_score() >>> 0) === 0x1234,
+         'warp preserves score');
+
+  // Player walk cycle: base shape + anim_timer - 1 (shape 1 -> frames 1..12).
+  e.cc_objects_init(2);
+  for (const f of [0x338E, 0x338F, 0x338B, 0x3390]) e.cc_input_set(f, 0);
+  e.cc_input_set(0x338F, 1);
+  const walkShapes = [];
+  for (let i = 0; i < 14; i++) {
+    e.cc_objects_step_full();
+    walkShapes.push(e.cc_obj_draw_shape(1));
+  }
+  assert(walkShapes[1] === 2 && walkShapes[11] === 12 &&
+         walkShapes[12] === 1 && walkShapes[13] === 2,
+         'player walk animation advances through shapes 1..12');
+  e.cc_input_set(0x338F, 0);
 
   if (process.exitCode) process.exit(1);
 })();

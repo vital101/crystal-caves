@@ -209,6 +209,7 @@ typedef struct {
     uint16_t g_2f6;              /* [0x02f6] last cell cache stamp */
     uint16_t g_512c;             /* [0x512c] slash cell counter */
     uint16_t g_2b5e;             /* [0x2b5e] restart timer */
+    int16_t  g_2b5c;             /* [0x2b5c] text-window vertical scroll */
     uint8_t  g_3394;             /* [0x3394] restart input latch */
     uint8_t  g_a110;             /* [0xa110] restart latch */
     uint8_t  power_shot;         /* [0xa0ff] power-shot active */
@@ -811,7 +812,8 @@ static void h_1fb9(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 static void h_251d(ObjectEntry *o, int idx, int16_t x, int16_t y);
-static void load_level(int level, int new_game);
+static void load_level(int level, int new_game, int fresh_image);
+void cc_warp_level(int level);
 static void load_arg(int arg);
 
 /* 0x1F9A:0x2850 (kind 2): ready gate around the slash update 0x251D. */
@@ -2096,9 +2098,12 @@ static void cell_event(int16_t x, int16_t y) {
         }
         if (w7 == 0x32 && w6 == 6) {
             play_sound(9);
-            if (S->g_a104) { S->g_a104 = 0; helper_a110_clear(); }
+            if (S->g_a104) {
+                S->g_a104 = 0;
+                helper_a110_clear();
+                cc_shell_notify_power_shot();
+            }
             S->power_shot = 1;
-            cc_shell_notify_power_shot();
             cell_word_put(col, row, 0x0E, 0);
             mark_redraw(x, y);
             S->power_timer = S->g_a0c2;
@@ -2111,7 +2116,11 @@ static void cell_event(int16_t x, int16_t y) {
             mark_redraw(x, y);
             helper_toggle_gravity();
             play_sound(0x13);
-            if (S->g_a102) { helper_a110_clear(); S->g_a102 = 0; }
+            if (S->g_a102) {
+                helper_a110_clear();
+                cc_shell_notify_gravity();
+                S->g_a102 = 0;
+            }
             S->g_a100 = 1;
             if (!S->g_513c && !S->g_5140) S->g_513c = 1;
             S->power_timer = S->g_a0c8;
@@ -2182,7 +2191,6 @@ static void cell_event(int16_t x, int16_t y) {
         if (w7 == 0x2D && w6 == 0x0D) {
             if (S->g_513c) {
                 S->g_a10d = 1;
-                cc_shell_notify_gravity();
                 S->g_513c = 0;
                 S->power_timer = S->g_a0ca;
                 S->g_a0c6 = 0;
@@ -2191,6 +2199,7 @@ static void cell_event(int16_t x, int16_t y) {
             cell_word_put(col, row, 0x0E, 0);
             mark_redraw(x, y);
             helper_a110_clear();
+            cc_shell_notify_red_mushroom();
             goto phase2;
         }
         if (w7 == 0x2E && w6 == 0x0D) {
@@ -2198,7 +2207,10 @@ static void cell_event(int16_t x, int16_t y) {
             cell_word_put(col, row, 0x0E, 0);
             mark_redraw(x, y);
             if (S->g_a105) S->g_a105 = 0;
-            if (S->g_513c && !S->g_5140) S->g_5124 = 1;
+            if (S->g_513c && !S->g_5140) {
+                S->g_5124 = 1;
+                cc_shell_notify_poison();
+            }
             goto phase2;
         }
         if (w7 >= 0x25 && w7 <= 0x27 && w6 == 1) {
@@ -2221,7 +2233,10 @@ static void cell_event(int16_t x, int16_t y) {
             cell_word_put(col, row, 0x0E, 0);
             S->power_timer = S->g_a0e4;
             S->g_a0c6 = 0;
-            if (S->g_a101) helper_a110_clear();
+            if (S->g_a101) {
+                helper_a110_clear();
+                cc_shell_notify_stunned();
+            }
             goto phase2;
         }
     }
@@ -2234,6 +2249,7 @@ phase2:
                 play_sound(4);
                 if (S->g_509e == 3) {
                     helper_a59d();
+                    cc_shell_notify_perfect_health();
                     score_add(0xC350, 0);
                 }
                 S->g_a0f6 = 1;
@@ -2241,6 +2257,7 @@ phase2:
             }
         } else if (S->g_a106) {
             helper_a110_clear();
+            cc_shell_notify_more_crystals();
             S->g_a106 = 0;
         }
         goto hazard;
@@ -2265,7 +2282,11 @@ phase2:
         goto hazard;
     }
     if (w3 == 0x11 && w5 == 9) {
-        if (S->g_a109) { helper_a110_clear(); S->g_a109 = 0; }
+        if (S->g_a109) {
+            helper_a110_clear();
+            cc_shell_notify_lever();
+            S->g_a109 = 0;
+        }
         if (S->input_joystick_fire && S->g_a0f4) {
             S->g_a0f4 = 0;
             S->g_a0e8 = (uint16_t)(S->g_a0e8 + 1);
@@ -2284,7 +2305,11 @@ phase2:
         goto hazard;
     }
     if (w3 == 0x15 && w5 == 9) {
-        if (S->g_a109) { helper_a110_clear(); S->g_a109 = 0; }
+        if (S->g_a109) {
+            helper_a110_clear();
+            cc_shell_notify_lever();
+            S->g_a109 = 0;
+        }
         if (S->input_joystick_fire && S->g_a0f4) {
             S->g_a0f4 = 0;
             S->g_a0e8 = (uint16_t)(S->g_a0e8 + 1);
@@ -2303,7 +2328,11 @@ phase2:
         goto hazard;
     }
     if (w3 == 0x13 && w5 == 9) {
-        if (S->g_a109) { helper_a110_clear(); S->g_a109 = 0; }
+        if (S->g_a109) {
+            helper_a110_clear();
+            cc_shell_notify_lever();
+            S->g_a109 = 0;
+        }
         if (S->input_joystick_fire && S->g_a0f4) {
             S->g_a0f4 = 0;
             S->g_a0e8 = (uint16_t)(S->g_a0e8 + 1);
@@ -3581,7 +3610,7 @@ static void load_arg(int arg) {
     else if (u <= 16) level = (int)u + 2;
     else level = 2;
     S->next_level = (int16_t)arg;
-    load_level(level, 0);
+    load_level(level, 0, 0);
 }
 
 /* 0xD4E5: hub door opening/entry; caller has set a0f7. */
@@ -3870,7 +3899,7 @@ static void restore_checkpoint(void) {
 static void reload_current_level(void) {
     S->spawn_col_override = 0xFFFF;
     S->spawn_row_override = 0;
-    load_level(S->cur_level, 0);
+    load_level(S->cur_level, 0, 0);
 }
 
 /* 0xD140: decrement the fade/lives latch. */
@@ -4088,6 +4117,7 @@ static void apply_startup_state(void) {
     S->checkpoint_50c7 = g_startup.f_50c7;
     S->checkpoint_50c9 = g_startup.f_50c9;
     S->g_2b5e = g_startup.f_2b5e;
+    S->g_2b5c = 0;
     S->g_50a2 = g_startup.f_50a2;
     S->g_a0cc = g_startup.f_a0cc;
     S->next_level = (int16_t)g_startup.f_a0be;
@@ -4184,8 +4214,12 @@ static void apply_level_state(int level, int use_start, int fresh) {
     S->g_50dc = st->f_50dc;
     S->g_50de = st->f_50de;
     S->g_50e0 = st->f_50e0;
-    S->g_a0f0 = st->f_a0f0;
-    S->g_a0fa = st->f_a0fa;
+    /* The hub transition preserves these two cave-companion flags; every
+     * other destination reloads them from its level prologue. */
+    if (fresh || level != 2) {
+        S->g_a0f0 = st->f_a0f0;
+        S->g_a0fa = st->f_a0fa;
+    }
     S->g_30d = st->f_30d;
     S->status_30b = st->f_30b;
     if (fresh) {
@@ -4249,7 +4283,8 @@ static void apply_level_state(int level, int use_start, int fresh) {
  * Generated by tools/export_level_overlay.py from the real loader.  The
  * destination loader writes only these cell/object bytes; everything else is
  * preserved from the source level.  A few entries are replayed at runtime:
- * RNG-selected spawn fields and map-command shapes that read carried globals.
+ * RNG-selected spawn fields, map-command shapes that read carried globals,
+ * the hub's two RNG decoration recipes, and flag-driven hub door cells.
  */
 static const unsigned char *g_level_overlay = 0;
 void cc_set_level_overlay(const unsigned char *data) { g_level_overlay = data; }
@@ -4270,15 +4305,16 @@ static void apply_level_overlay(int level) {
     const unsigned char *base = g_level_overlay;
     const unsigned char *p, *bits, *values;
     const unsigned char *cell_tag_p, *obj_lit_p, *obj_tag_p, *glob_p, *draw_p;
-    uint16_t cell_tag_n, obj_lit_n, obj_tag_n, glob_n, draw_n;
+    uint16_t cell_tag_n, obj_lit_n, obj_tag_n, glob_n, draw_n, draw_n_raw;
     uint16_t draws[1024];
-    uint16_t vi = 0, i;
+    uint16_t vi = 0, i, version;
     struct { uint16_t bit; uint8_t tag; uint16_t payload; } ct[256];
     struct { uint8_t slot, off, tag; uint16_t payload; } ot[256];
     uint16_t ct_n = 0, ot_n = 0;
 
     if (!base || level < 0 || level >= OBJ_LEVELS) return;
     if (ov_rd32(base) != 0x4F4C4343u) return;  /* "CCLO" */
+    version = ov_rd16(base + 4);
     p = base + ov_rd32(base + 8 + level * 4);
     bits = p;
     values = p + 2500;
@@ -4321,9 +4357,45 @@ static void apply_level_overlay(int level) {
         if (off == 0x02A6 || off == 0x02A8) continue;  /* live RNG */
         cc_global_set(off, val);
     }
-    draw_n = ov_rd16(p); p += 2;
+    draw_n_raw = ov_rd16(p); p += 2;
     draw_p = p;
+    draw_n = draw_n_raw;
     if (draw_n > 1024) draw_n = 1024;
+    if (version >= 2) {
+        const unsigned char *decor_p = draw_p + (unsigned)draw_n_raw * 4;
+        uint16_t decor_n = ov_rd16(decor_p);
+        decor_p += 2;
+        for (i = 0; i < decor_n; i++, decor_p += 6) {
+            uint16_t bit = ov_rd16(decor_p);
+            uint8_t kind = decor_p[2];
+            uint8_t baseval = decor_p[3];
+            uint8_t range = decor_p[4];
+            uint8_t special = decor_p[5];
+            uint16_t r = (uint16_t)cc_rng_next(range);
+            unsigned char value;
+            if (kind == 0) {
+                if (r == 2) r = (uint16_t)cc_rng_next(range);
+                value = (unsigned char)(baseval + r);
+            } else {
+                value = (r == 4) ? special : (unsigned char)(baseval + r);
+            }
+            S->cells[(bit / 20) / 40][(bit / 20) % 40][bit % 20] = value;
+        }
+        {
+            uint16_t door_n = ov_rd16(decor_p);
+            decor_p += 2;
+            for (i = 0; i < door_n; i++, decor_p += 3) {
+                uint16_t bit = ov_rd16(decor_p);
+                uint8_t index = decor_p[2];
+                unsigned cell = bit / 20;
+                unsigned open = cc_global_get(0x50A8 + index) != 0;
+                /* Hub door cells store the door number in w0 and use shape
+                 * 0x0D when the cave flag is set, 0x10 when it is clear. */
+                S->cells[cell / 40][cell % 40][bit % 20] = open ? index : 0;
+                S->cells[cell / 40][cell % 40][6] = open ? 0x0D : 0x10;
+            }
+        }
+    }
     for (i = 0; i < draw_n; i++) {
         uint16_t n = ov_rd16(draw_p + i * 4);
         uint16_t add = ov_rd16(draw_p + i * 4 + 2);
@@ -4358,13 +4430,13 @@ static void apply_level_overlay(int level) {
     }
 }
 
-static void load_level(int level, int new_game) {
+static void load_level(int level, int new_game, int fresh_image) {
     if (level < 0 || level >= OBJ_LEVELS) level = 0;
     if (new_game) apply_startup_state();
     /* Fresh loads use the baked image.  Real transitions preserve the source
-     * memory and replay only the bytes the loader actually writes; level 2 has
-     * no overlay yet (decorative RNG cells), so it keeps the fresh image. */
-    if (new_game || level == 2 || !g_level_overlay) {
+     * memory and replay only the bytes the loader actually writes.  A debug
+     * warp also uses the baked image but keeps the current progress. */
+    if (new_game || fresh_image || !g_level_overlay) {
         memcpy_(S->obj, g_obj_levels[level], sizeof(S->obj));
         {
             unsigned i;
@@ -4380,15 +4452,24 @@ static void load_level(int level, int new_game) {
     S->obj_cursor = g_level_cursor[level];
     S->a0f8 = 0;
     S->cur_level = (int16_t)level;
-    apply_level_state(level, S->spawn_col_override == 0xffff, new_game);
-    if (!new_game && level != 2) apply_level_overlay(level);
+    apply_level_state(level, S->spawn_col_override == 0xffff,
+                      new_game || fresh_image);
+    if (!new_game && !fresh_image) apply_level_overlay(level);
     if (level >= 2) S->g_a0cc = (uint16_t)count_crystal_cells();
 }
 
 void cc_objects_init(int level) {
     S->spawn_col_override = 0xffff;   /* no override on a fresh load */
     S->spawn_row_override = 0;
-    load_level(level, 1);
+    load_level(level, 1, 1);
+}
+
+/* Debug warp: use the destination's baked image instead of replaying a real
+ * door/exit transition, which would preserve source cave cells. */
+void cc_warp_level(int level) {
+    S->spawn_col_override = 0xffff;
+    S->spawn_row_override = 0;
+    load_level(level, 0, 1);
 }
 
 /* Transition using the original loader argument (0=hub, 1..16=caves). */
@@ -4416,6 +4497,14 @@ uint16_t cc_obj_kind(int i)   { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].kind 
 uint16_t cc_obj_shape(int i)  { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].shape  : 0; }
 uint16_t cc_obj_tile(int i)   { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].tile   : 0; }
 uint16_t cc_obj_p10(int i)    { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].p10    : 0; }
+/* Shape actually selected by the original draw loop: base + p10 - 1. */
+uint16_t cc_obj_draw_shape(int i) {
+    if (i < 0 || i >= OBJ_MAX) return 0;
+    uint16_t base = S->obj[i].shape;
+    if (!base) return 0;
+    int sh = (int)base - 1 + (int)S->obj[i].p10;
+    return sh < 1 ? 0 : (uint16_t)sh;
+}
 uint16_t cc_obj_p12(int i)    { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].p12    : 0; }
 uint16_t cc_obj_p14(int i)    { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].p14    : 0; }
 uint16_t cc_obj_p16(int i)    { return (i >= 0 && i < OBJ_MAX) ? S->obj[i].p16    : 0; }
@@ -4575,6 +4664,7 @@ int32_t cc_global_get(int off) {
         case 0x02F2: return S->g_2f2;
         case 0x02B8: return S->g_2b8;
         case 0x2B5E: return S->g_2b5e;
+        case 0x2B5C: return (int16_t)S->g_2b5c;
         case 0x511E: return S->g_511e;
         case 0x5122: return S->g_5122;
         case 0x50A5: return S->score_lo;
@@ -4700,6 +4790,7 @@ void cc_global_set(int off, int32_t v) {
         case 0x02F2: S->g_2f2 = (uint16_t)v; break;
         case 0x02B8: S->g_2b8 = (uint16_t)v; break;
         case 0x2B5E: S->g_2b5e = (uint16_t)v; break;
+        case 0x2B5C: S->g_2b5c = (int16_t)v; break;
         case 0x511E: S->g_511e = (uint16_t)v; break;
         case 0x5122: S->g_5122 = (uint16_t)v; break;
         case 0x50A5: S->score_lo = (uint16_t)v; break;

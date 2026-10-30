@@ -11,14 +11,10 @@ persistence.  Gameplay remains deterministic and pixel-exact.
 
 Known limitations:
 
-- Text-window borders/fill are a faithful clean-room reproduction of the
-  original blue window style, not yet oracle-diffed at the pixel level.
-  The text glyphs, blocks, font mapping and centering are original.
-- In-game message triggers cover the last-crystal, gravity and power-shot
-  cases; the remaining exported message blocks are available through
-  `cc_shell_message()` but not all cell/handler causes are wired yet.
 - Key redefine stores browser `keyCode` values and persists them; it does not
   emulate DOS scan-code tables.
+- The original blinking input cursor is not drawn in shell text windows; the
+  `^` marker is treated as the input position and skipped by the printer.
 - Joystick uses the Gamepad API when present; the original calibration screen
   is informational.
 - BBS/foreign/ordering/video options show the original text screens with
@@ -47,10 +43,13 @@ Font format: 50 glyphs of 40 bytes; 3-byte MNI header stripped; each glyph is
 8 rows × 5 bytes `[mask][plane0..plane3]`, MSB = leftmost pixel.  Glyph index
 0 is the first byte after the header.
 
-Text encoding: block text is ASCII, but the font's lowercase glyphs start six
-codes later than ASCII lowercase.  `wasm/text.c` applies the original
-`ch - 6` translation for `a`..`z`, then uses F1 for codes `0x17..0x48` and F2
-for `0x49..0x7a`.  This yields the original upper/lowercase-looking glyphs.
+Text encoding: the original printer (`0x0FC5:0x06C4`, linear `0x10314`)
+looks each character up in a 117-byte table at `CS:0x64C`: 32 leading `|`
+entries, ASCII `0x20..0x5a`, then ASCII `0x61..0x7a`.  Characters `0x5b..0x60`
+are absent and draw nothing.  The 1-based table position is the glyph code:
+codes `<= 0x48` select F1 glyph `code-0x17`; codes `>= 0x49` select F2 glyph
+`code-0x49`.  This reproduces the apparent six-code lowercase shift.  `^` is
+the input cursor marker and is not printed by the window renderer.
 
 ## HUD (oracle-exact)
 
@@ -72,6 +71,38 @@ status row at `y = 1` with the glyph blitter `0x28B5:0x1A4D`.
 EGA plane hooks, producing `notes/hud_fixtures.json` (four boundary cases).
 `wasm/test_hud.js` compares the C renderer against those fixtures.
 
+Cadence: the original HUD's power-timer section runs once per game frame.
+`cc_hud_tick()` performs only the `[0xA0C4]/[0xA0C6]` update (and returns early
+when `[0xA0FB]` marks all caves complete); `cc_hud_render()` is now pure.
+`game.html`/`play.html` call the tick once per `cc_objects_step_full()`.
+
+## Text windows (oracle-exact)
+
+The real window renderer is `0x0FC5:0x0877` (linear `0x104C7`), with the
+string printer at `0x0FC5:0x06C4` and glyph blitter `0x28B5:0x0445`.
+`wasm/text.c` reproduces it exactly:
+
+- line buffer is `DS:0x163C`, stride `0x100`, starting at line 1; the
+  `END OF WINDOW` sentinel ends the block.
+- `maxlen = max(line_length - 1)`; `H = text_line_count + 2`;
+  `wx = ((320 - maxlen*8)/2 + [0x512E])/8 - 3`;
+  `wy = ((200 - H*8)/2 + [0x5130])/8 - 2`; all text/glyph y positions add
+  `[0x2B5C]` (`cc_global_get(0x2B5C)` is now writable).
+- interior is F1 glyph 8 tiled from `wx+1` to `wx+maxlen+3` for rows
+  `wy+1..wy+H`; the frame uses F1 glyphs 0,1,2,5,7,9 (top), 4,6,3 (bottom)
+  and glyph 9 for the (black) shadow.
+- text starts at cell `wx+2`, line `i` at cell row `wy+i+1`; the `^` cursor
+  marker is skipped by the printer.
+
+`tools/oracle_shell.py` captures 14 real message wrappers (pause, last
+crystal, stunned, more crystals, red mushroom, lever, power shot, poison, air
+generator, gravity, perfect health, file error, saved, save-hub-only) plus
+menu/story/instructions and camera/scroll variants into
+`notes/text_fixtures.json`.  `wasm/test_text.js` reports 0 differing pixels
+for all 23 cases (`make test-text`).  Shell UI windows are screen-space and
+call `cc_text_draw_block()` with the game camera/scroll temporarily cleared,
+then restore the player's camera globals.
+
 ## Shell state machine
 
 `wasm/shell.c` implements:
@@ -90,6 +121,10 @@ In-game: Esc/F1 help, P pause.  Help: I instructions, T sound, J joystick,
 C calibration text, V video, K key redefine, R restore, S save, Q quit,
 W warp (hidden), Esc return.
 
+The hidden warp is a debug load, not a door/exit transition: it uses the
+destination's baked image (so source-cave leftover cells cannot leave Mylo in
+a wall) while preserving score/lives/cave flags.
+
 Save/restore is hub-only, matching the original restriction.  The C layer
 raises a request (`cc_shell_request_pending/kind/slot`); `game.html` stores or
 loads `cc_state_save/cc_state_load` bytes from `localStorage` and calls
@@ -106,7 +141,9 @@ browser key codes.
 ```sh
 cd wasm
 make test-hud              # oracle HUD fixtures
+make test-text             # oracle text-window frame/fill/text fixtures
+make test-messages         # in-game message trigger causes
 make test-shell            # shell flow, save/restore, high scores, finale
-make test-oracle-shell     # regenerate HUD fixtures from the real routine
+make test-oracle-shell     # regenerate HUD + text fixtures from the real code
 make test-all              # full regression
 ```

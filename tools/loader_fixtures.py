@@ -52,6 +52,16 @@ def main():
             "arg": r["arg"], "objects": r["objects"], "cells": r["cells"],
             "cursor": r["cursor"], "globals": r["globals"], "rng": r["rng"],
         })
+    for src in range(3, 19):
+        r = E.run_transition(src, 2, prefill=True, mutate=mutate,
+                             trace_writes=False)
+        if r["stats"]["stopped"] not in ("ret", "load_end"):
+            raise RuntimeError("transition %d->2 stopped: %s" % (src, r["stats"]["stopped"]))
+        scenarios.append({
+            "name": "L%d_to_hub" % src, "source": src, "dest": 2,
+            "arg": r["arg"], "objects": r["objects"], "cells": r["cells"],
+            "cursor": r["cursor"], "globals": r["globals"], "rng": r["rng"],
+        })
     payload = {
         "object_fields": [[n, o] for n, o, _k in E.OBJ_FIELDS],
         "globals": [[n, off] for n, (off, _w) in GLOBAL_OFF.items()

@@ -127,6 +127,11 @@ void cc_shell_init(void) {
 }
 
 int cc_shell_state(void) { return g_state; }
+int cc_shell_message_block(void) {
+    if (g_state != CC_SHELL_MESSAGE || g_page_count <= 0 ||
+        g_page_index < 0 || g_page_index >= g_page_count) return -1;
+    return g_pages[g_page_index].block;
+}
 int cc_shell_hud_active(void) { return g_state == CC_SHELL_GAME; }
 int cc_shell_overlay(void) {
     return g_state == CC_SHELL_PAUSE || g_state == CC_SHELL_HELP ||
@@ -156,6 +161,30 @@ void cc_shell_notify_gravity(void) {
 
 void cc_shell_notify_power_shot(void) {
     if (g_state == CC_SHELL_GAME) cc_shell_message(SHELL_TEXT_MESSAGE_POWER_SHOT);
+}
+
+void cc_shell_notify_red_mushroom(void) {
+    if (g_state == CC_SHELL_GAME) cc_shell_message(SHELL_TEXT_MESSAGE_RED_MUSHROOM);
+}
+
+void cc_shell_notify_poison(void) {
+    if (g_state == CC_SHELL_GAME) cc_shell_message(SHELL_TEXT_MESSAGE_POISON);
+}
+
+void cc_shell_notify_stunned(void) {
+    if (g_state == CC_SHELL_GAME) cc_shell_message(SHELL_TEXT_MESSAGE_STUNNED);
+}
+
+void cc_shell_notify_perfect_health(void) {
+    if (g_state == CC_SHELL_GAME) cc_shell_message(SHELL_TEXT_MESSAGE_PERFECT_HEALTH);
+}
+
+void cc_shell_notify_more_crystals(void) {
+    if (g_state == CC_SHELL_GAME) cc_shell_message(SHELL_TEXT_MESSAGE_MORE_CRYSTALS);
+}
+
+void cc_shell_notify_lever(void) {
+    if (g_state == CC_SHELL_GAME) cc_shell_message(SHELL_TEXT_MESSAGE_LEVER);
 }
 
 void cc_shell_finale_done(void) {
@@ -315,6 +344,22 @@ static void draw_name_entry(void) {
         cc_text_draw_string(56 + (17 + g_name_len) * 8, 88, "_");
 }
 
+/* Shell windows are screen-space UI: the original wrappers are called with
+ * the window/camera offsets clear.  Keep the player's camera/scroll globals
+ * untouched for the next game frame. */
+static void draw_block_centered(int block, int start, int max) {
+    int cx = cc_global_get(0x512e);
+    int cy = cc_global_get(0x5130);
+    int scroll = cc_global_get(0x2b5c);
+    cc_global_set(0x512e, 0);
+    cc_global_set(0x5130, 0);
+    cc_global_set(0x2b5c, 0);
+    cc_text_draw_block(block, start, max);
+    cc_global_set(0x512e, cx);
+    cc_global_set(0x5130, cy);
+    cc_global_set(0x2b5c, scroll);
+}
+
 void cc_shell_render(void) {
     switch (g_state) {
         case CC_SHELL_LOGO:
@@ -325,7 +370,7 @@ void cc_shell_render(void) {
             break;
         case CC_SHELL_MENU:
             cc_draw_screen(1);
-            cc_text_draw_block(SHELL_TEXT_MENU_MAIN, 0, PAGE_LINES);
+            draw_block_centered(SHELL_TEXT_MENU_MAIN, 0, PAGE_LINES);
             break;
         case CC_SHELL_TEXT:
             if (g_story_level >= 0)
@@ -333,7 +378,7 @@ void cc_shell_render(void) {
             else
                 cc_view_clear(0);
             if (g_page_index < g_page_count)
-                cc_text_draw_block(g_pages[g_page_index].block,
+                draw_block_centered(g_pages[g_page_index].block,
                                    g_pages[g_page_index].start, PAGE_LINES);
             break;
         case CC_SHELL_ENDING:
@@ -364,13 +409,13 @@ void cc_shell_render(void) {
             draw_name_entry();
             break;
         case CC_SHELL_PAUSE:
-            cc_text_draw_block(SHELL_TEXT_MESSAGE_PAUSE, 0, PAGE_LINES);
+            draw_block_centered(SHELL_TEXT_MESSAGE_PAUSE, 0, PAGE_LINES);
             break;
         case CC_SHELL_HELP:
-            cc_text_draw_block(SHELL_TEXT_MENU_HELP, 0, PAGE_LINES);
+            draw_block_centered(SHELL_TEXT_MENU_HELP, 0, PAGE_LINES);
             break;
         case CC_SHELL_QUIT:
-            cc_text_draw_block(SHELL_TEXT_MENU_QUIT, 0, PAGE_LINES);
+            draw_block_centered(SHELL_TEXT_MENU_QUIT, 0, PAGE_LINES);
             break;
         case CC_SHELL_SAVE:
             cc_view_fill_rect(40, 80, 240, 40, 1);
@@ -381,11 +426,11 @@ void cc_shell_render(void) {
             cc_text_draw_string(56, 92, "RESTORE GAME (0 - 9) ^");
             break;
         case CC_SHELL_WARP:
-            cc_text_draw_block(SHELL_TEXT_MENU_WARP, 0, PAGE_LINES);
+            draw_block_centered(SHELL_TEXT_MENU_WARP, 0, PAGE_LINES);
             break;
         case CC_SHELL_MESSAGE:
             if (g_page_index < g_page_count)
-                cc_text_draw_block(g_pages[g_page_index].block,
+                draw_block_centered(g_pages[g_page_index].block,
                                    g_pages[g_page_index].start, PAGE_LINES);
             break;
         case CC_SHELL_GAME:
@@ -640,7 +685,7 @@ int cc_shell_key(int key) {
 
 void cc_shell_warp(int level_arg) {
     if (level_arg >= 1 && level_arg <= 16) {
-        cc_load_arg(level_arg);
+        cc_warp_level(level_arg + 2);
         g_state = CC_SHELL_GAME;
     }
 }

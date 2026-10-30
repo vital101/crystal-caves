@@ -148,7 +148,8 @@
       e.cc_render_view_cells(level, camX, camY);
       for (let s = 0; s < e.cc_obj_count(); s++) {
         if (e.cc_obj_state(s) === 2 || e.cc_obj_kind(s) === 0) continue;
-        const blk = e.cc_obj_tile(s), sh = e.cc_obj_shape(s);
+        const blk = e.cc_obj_tile(s);
+        const sh = e.cc_obj_draw_shape(s);
         if (!blk || !sh) continue;
         e.cc_draw_object_view(blk, sh, e.cc_obj_x(s) - camX, e.cc_obj_y(s) - camY);
       }
@@ -287,6 +288,7 @@
         let steps = 0;
         while (accum >= STEP_MS && steps < 4) {
           e.cc_objects_step_full();
+          e.cc_hud_tick();
           e.cc_shell_step();
           accum -= STEP_MS;
           steps++;

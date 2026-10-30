@@ -385,6 +385,8 @@ static const char *const t_message_cheat[] = {
 };
 static const char *const t_message_saved[] = {
     " Game saved.",
+    "",
+    "",
     "Press ESCAPE ^",
 };
 static const char *const t_message_save_hub_only[] = {
@@ -500,6 +502,7 @@ static const char *const t_message_gravity[] = {
     "Your gravity will be reversed",
     "for a short time.  Watch the",
     "     status bar below.",
+    "",
     "        Press ESCAPE ^",
 };
 static const char *const t_message_perfect_health[] = {
@@ -574,7 +577,7 @@ static const ShellTextBlock g_shell_text_blocks[] = {
     { t_message_power_shot, 4 }, /* SHELL_TEXT_MESSAGE_POWER_SHOT @ 0x16545 */
     { t_message_poison, 6 }, /* SHELL_TEXT_MESSAGE_POISON @ 0x16622 */
     { t_message_cheat, 5 }, /* SHELL_TEXT_MESSAGE_CHEAT @ 0x16753 */
-    { t_message_saved, 2 }, /* SHELL_TEXT_MESSAGE_SAVED @ 0x1683e */
+    { t_message_saved, 4 }, /* SHELL_TEXT_MESSAGE_SAVED @ 0x1683e */
     { t_message_save_hub_only, 4 }, /* SHELL_TEXT_MESSAGE_SAVE_HUB_ONLY @ 0x169f9 */
     { t_message_air_generator, 4 }, /* SHELL_TEXT_MESSAGE_AIR_GENERATOR @ 0x16b13 */
     { t_message_restore_hub_only, 4 }, /* SHELL_TEXT_MESSAGE_RESTORE_HUB_ONLY @ 0x16ce4 */
@@ -586,7 +589,7 @@ static const ShellTextBlock g_shell_text_blocks[] = {
     { t_foreign, 13 }, /* SHELL_TEXT_FOREIGN @ 0x18cb1 */
     { t_bbs, 13 }, /* SHELL_TEXT_BBS @ 0x19910 */
     { t_about, 13 }, /* SHELL_TEXT_ABOUT @ 0x19c8f */
-    { t_message_gravity, 5 }, /* SHELL_TEXT_MESSAGE_GRAVITY @ 0x1a026 */
+    { t_message_gravity, 6 }, /* SHELL_TEXT_MESSAGE_GRAVITY @ 0x1a026 */
     { t_message_perfect_health, 3 }, /* SHELL_TEXT_MESSAGE_PERFECT_HEALTH @ 0x1a1b1 */
     { t_menu_warp, 2 }, /* SHELL_TEXT_MENU_WARP @ 0x1a290 */
     { t_menu_video, 13 }, /* SHELL_TEXT_MENU_VIDEO @ 0x1a4d8 */

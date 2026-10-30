@@ -451,6 +451,8 @@
    "start": 92222,
    "lines": [
     " Game saved.",
+    "",
+    "",
     "Press ESCAPE ^"
    ]
   },
@@ -614,6 +616,7 @@
     "Your gravity will be reversed",
     "for a short time.  Watch the",
     "     status bar below.",
+    "",
     "        Press ESCAPE ^"
    ]
   },

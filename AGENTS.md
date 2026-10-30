@@ -8,7 +8,7 @@ There is no root Makefile; the build lives in `wasm/`.
 |---|---|
 | `make clang` | Build freestanding wasm via Homebrew LLVM (default) |
 | `make emcc` | Emscripten build (needs `emcc` on PATH) |
-| `make test-all` | Data checks + all-19 pixel-exact render + object/gameplay/physics smoke tests |
+| `make test-all` | Data checks + all-19 render + gameplay/loader/text/shell regression |
 | `make test-render-all` | Pixel-diff every level against `out/oracle_L*.png` |
 | `make test-data` | Run `../tools/check_oracle.py` (structural oracle assertions) |
 | `make test-view` | 320x200 viewport crop regression |
@@ -17,12 +17,14 @@ There is no root Makefile; the build lives in `wasm/`.
 | `make test-physics` | Exact player/camera/platform-carry regression (committed fixtures) |
 | `make test-combat` | Committed combat/cell/globals/RNG/sound oracle fixtures (fast) |
 | `make test-handlers` | Committed per-handler oracle fixtures (all 46 behaviours) |
-| `make test-loader` | Committed exact loader-transition fixtures (hub -> each cave) |
+| `make test-loader` | Committed exact loader-transition fixtures (hub -> caves and caves -> hub) |
 | `make test-caves` | Committed full-frame integration fixtures for all 16 caves |
 | `make test-cells` | Committed cell-event/contact/exit fixtures + transition/render checks |
 | `make test-hud` | Oracle-exact HUD fixtures (real HUD routine) |
+| `make test-messages` | In-game message trigger causes (positive/negative) |
+| `make test-text` | Oracle-exact text-window frame/fill/text fixtures |
 | `make test-shell` | Shell flow, text/PCX screens, save/restore, high scores, finale |
-| `make test-oracle-shell` | Regenerate `notes/hud_fixtures.json`, then compare |
+| `make test-oracle-shell` | Regenerate `notes/hud_fixtures.json` + `notes/text_fixtures.json`, then compare |
 | `make test-oracle-cells` | Regenerate `notes/cell_fixtures.json` with Unicorn, then compare |
 | `make test-oracle-physics` | Regenerate physics fixtures from the real routines, then compare (needs venv deps) |
 | `make test-oracle-objects` | Compare C object/cell state with the Unicorn oracle, levels 2 and 3 (needs venv deps) |
@@ -116,23 +118,24 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   hub-door and cave-exit state machines, and dynamic cell rendering.
   `notes/cell_fixtures.json` covers direct cell branches plus full-frame
   contact/exit runs (17 scenarios).
-- Transitions to caves 3–18 now replay the exact loader occupancy overlay
+- Transitions replay the exact loader occupancy overlay
   (`out/portable/level_overlay.bin`) generated from the real loader, including
   preserved source bytes, `[0x2d6]`-dependent shapes and RNG-selected spawn
-  fields. `notes/loader_fixtures.json` / `make test-loader` pass for
-  hub -> each cave.
+  fields.  `notes/loader_fixtures.json` / `make test-loader` pass for
+  hub -> each cave and every cave -> hub, including the hub's two RNG-driven
+  background-decoration recipes and flag-driven door cells.
 - Phase 5 is implemented: title/credits/title flow, main menu, PCX screens,
-  text windows, oracle-exact HUD (`notes/hud_fixtures.json`), story/finale
-  transitions, help/pause/quit/warp, save/restore 0–9, high scores and config
-  persistence in `localStorage`.  `make test-hud` / `make test-shell` pass.
-- Known limitation: transitions **to the hub (level 2)** still use the fresh
-  hub image; the hub's decorative random background is regenerated with the
-  live RNG and is not yet replayed by the overlay.
-- Known shell limitations: text-window frame styling is faithful but not yet
-  oracle-diffed per pixel; in-game message triggers cover last-crystal,
-  gravity and power-shot (other blocks are available via `cc_shell_message`);
-  key redefine stores browser key codes; joystick uses the Gamepad API.
-- Still missing: sound (Phase 6) and exact hub-transition random decorations.
+  oracle-exact text windows (`notes/text_fixtures.json`), oracle-exact HUD
+  (`notes/hud_fixtures.json`), story/finale transitions, help/pause/quit/warp,
+  save/restore 0–9, high scores and config persistence in `localStorage`.
+  `make test-hud` / `make test-text` / `make test-messages` / `make test-shell`
+  pass.
+- Known shell limitations: browser smoke coverage of `game.html`
+  localStorage/save/restore is still pending; key redefine stores browser key
+  codes; joystick uses the Gamepad API; the original blinking input cursor is
+  not drawn in shell text windows; story/menu timing and exact
+  high-score-default/name-entry behavior still need final verification.
+- Still missing: sound (Phase 6).
 
 ## Tooling Entrypoints
 
@@ -150,14 +153,14 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 | `tools/emulate_game.py` | Full update-loop + handler oracle (video/sound stubbed) |
 | `tools/handler_fixtures.py` / `notes/handler_fixtures.json` | Per-handler oracle fixtures (`make test-handlers`) |
 | `tools/loader_fixtures.py` / `notes/loader_fixtures.json` | Exact transition fixtures (`make test-loader`) |
-| `tools/export_level_overlay.py` / `out/portable/level_overlay.bin` | Loader occupancy overlay asset |
+| `tools/export_level_overlay.py` / `out/portable/level_overlay.bin` | Loader occupancy overlay asset (v2: decor + door recipes) |
 | `tools/analyze_loader_tags.py` / `notes/loader_tags.json` | Regenerate source-dependent loader tags |
 | `tools/cave_fixtures.py` / `notes/cave_fixtures.json` | All-cave full-frame fixtures (`make test-caves`) |
 | `tools/trace_handlers.py` | Handler inventory (`notes/handlers.md/json/disasm`) |
 | `tools/disasm.py` | 16-bit disassembler/xref helper (needs capstone) |
 | `tools/export_assets.py` | Portable level/GFX/font asset export |
 | `tools/export_shell_assets.py` | PCX screens, MNI banks, shell text/key/high-score export |
-| `tools/oracle_shell.py` | Real HUD routine oracle (`notes/hud_fixtures.json`) |
+| `tools/oracle_shell.py` | Real HUD + text-window oracle (`notes/hud_fixtures.json`, `notes/text_fixtures.json`) |
 | `tools/check_oracle.py` | Structural oracle validation |
 | `tools/build_cells.py` / `make_cells_data.py` | Cell extraction/header generation |
 | `tools/build_oracle_catalog.py` / `make_objects_data.py` | Object catalog/header generation |
@@ -174,6 +177,7 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - `notes/combat_fixtures.json` — committed combat oracle trace (`make test-combat`)
 - `notes/handler_fixtures.json` — committed per-handler trace (`make test-handlers`)
 - `notes/loader_fixtures.json` — committed transition trace (`make test-loader`)
+- `notes/text_fixtures.json` — committed text-window oracle trace (`make test-text`)
 - `notes/cave_fixtures.json` — committed all-cave full-frame trace (`make test-caves`)
 - `out/portable/level_overlay.bin` — loader transition occupancy asset
 - `notes/cell_fixtures.json` — committed cell/contact/exit oracle trace (`make test-cells`)
@@ -185,6 +189,6 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 ## Known Constraints
 
 - No `package.json`, `pip` project, or `cargo`; Python + clang/emcc only
-- Static levels are baked from oracle dumps; `cells.bin` carries mutable 20-byte records, dynamic redraw is implemented, and the HUD is oracle-exact.
+- Static levels are baked from oracle dumps; `cells.bin` carries mutable 20-byte records, dynamic redraw is implemented, and the HUD/text windows are oracle-exact.
 - Oracle catalog is the regression reference; never hand-edit generated headers
 - Level layout is code-encoded — changing map heights requires editing binary/code assumptions
