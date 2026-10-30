@@ -47,16 +47,16 @@ Verified today:
   warp, save/restore 0–9, high scores and config persistence in
   `localStorage`.  `notes/hud_fixtures.json`, `make test-hud` and
   `make test-shell` pass.  Committed as `4665c32`.
-- Known transition limitation: cave transitions replay the exact loader
-  overlay; transitions to the hub (level 2) still use the fresh hub image
-  because its decorative RNG background is not overlaid yet.
+- P5.R5 exactness verification is implemented: tick-based screen timing,
+  captured story/finale pages, original high-score defaults/sort/name entry,
+  DOS scan-code key redefine, and browser key mapping.  See
+  `notes/shell_exactness_fixtures.json`, `notes/hiscore_fixtures.json`,
+  `notes/keymap_fixtures.json`, `make test-exactness`.
 
 Important remaining work:
 
-- Exact hub-transition random decorations (Phase 4 caveat).
-- Phase 5 polish: text-window frame oracle diff, remaining in-game message
-  triggers, HUD power-timer cadence, browser smoke test, exact story/menu
-  timing and high-score semantics.
+- Phase 5 polish: browser smoke test; title scroll visual parity is
+  approximated from the original tick-driven sequence.
 - Sound (Phase 6).
 - Save/high-score/config hardening and mid-level round-trip verification
   (Phase 7).
@@ -449,10 +449,8 @@ Completed Phase 5 polish:
 
 Remaining Phase 5 polish (see the checklist at the end of this phase):
 
-- verify exact story/menu timing, high-score defaults/name-entry, and
-  DOS-scan-code vs browser-key redefine semantics;
-- confirm the credits/title/finale screen order against the original;
-- add automated headless browser smoke coverage (Phase 8).
+- add automated headless browser smoke coverage (Phase 8);
+- title/credits scroll is approximated by the original 432-tick duration.
 
 Goal: complete the non-gameplay shell around the already-exact gameplay core:
 status HUD, text windows, PCX screens, title/menu flow, story/finale
@@ -765,10 +763,16 @@ make test-all
   object animation frames were not selected (`shape + p10 - 1`) and debug warp
   reused transition overlays from the source cave; both are fixed and covered
   by `test_shell.js`.  Headless Playwright coverage remains Phase 8 work.
-- **P5.R5 — Exactness verification.**  Confirm screen order/timing
-  (Apogee → credits → title → menu, ending → high scores), intro/finale page
-  order, high-score defaults/sort/name-entry rules, and DOS scan-code parity
-  for key redefine.  Document any deliberate browser substitutions.
+- **P5.R5 — Exactness verification (DONE).**  Added
+  `tools/shell_exactness.py`, `notes/shell_exactness_fixtures.json`,
+  `notes/hiscore_fixtures.json`, `notes/keymap_fixtures.json`, and
+  `tools/make_shell_exact_data.py`.  Screen timing now advances in 140.06 Hz
+  PIT ticks (APG 720; credits+title combined 432); intro/finale pages are captured from
+  the original wrappers; high scores use the original ten-row defaults,
+  qualification/tie rules and 20-character name entry; key redefine uses DOS
+  set-1 scan codes and the original labels/confirmation flow.  Browser
+  substitutions are documented in `notes/shell.md`.  Validation:
+  `make test-exactness`, `make test-keymap`, `make test-oracle-exactness`.
 - **P5.R6 — Full shell oracle (optional supporting work).**  Add the INT 21h
   file shim and scripted INT 16h keys to run the original title/menu flow for
   end-to-end screen/state comparison.
@@ -843,12 +847,10 @@ Acceptance:
 
 ## Immediate next actions
 
-1. Finish P5.R5 exactness verification (screen order/timing, high-score
-   defaults/name entry, DOS scan-code key semantics).
-2. Phase 6: reverse the Crystal Caves Sound driver and wire the existing
+1. Phase 6: reverse the Crystal Caves Sound driver and wire the existing
    sound-ID log to WebAudio; honour the Phase 5 sound toggle.
-3. Phase 7: harden the v1 save/config/high-score schema and verify round-trips.
-4. Phase 8: add Playwright browser smoke coverage, CI, release regression,
+2. Phase 7: harden the v1 save/config/high-score schema and verify round-trips.
+3. Phase 8: add Playwright browser smoke coverage, CI, release regression,
    performance and docs.
 
 ## Validation commands
@@ -868,6 +870,9 @@ make test-hud                # oracle-exact HUD fixtures
 make test-text               # oracle-exact text-window fixtures
 make test-messages           # in-game message trigger causes
 make test-shell              # shell flow/save/high-score/finale fixtures
+make test-exactness          # P5.R5 timing/story/high-score/scan-code fixtures
+make test-keymap             # browser key -> DOS scan-code mapping
+make test-oracle-exactness   # regenerate shell exactness fixtures/header
 make test-oracle-shell       # regenerate HUD + text fixtures
 make test-oracle-handlers    # regenerate handler fixtures (Unicorn)
 make test-oracle-loader      # regenerate transition fixtures (Unicorn)
@@ -897,9 +902,13 @@ PASS: mutable cell renderer matches baked; crystal clear changed 150 pixels
 PASS: HUD matches the real routine (4 boundary cases)
 PASS: text windows match the real renderer (23 fixtures, 0 px)
 PASS: shell flow, story/finale, save/restore, high scores
+PASS: P5.R5 tick timing, captured intro/finale pages, high-score defaults/tie
+PASS: high-score screen matches the original framebuffer
+PASS: DOS scan-code defaults, key redefine, and browser key map
 PASS: debug warp uses fresh destination cells and preserves score
 PASS: player walk animation advances through shapes 1..12
 PASS: HUD/text fixtures regenerate via make test-oracle-shell
+PASS: shell exactness fixtures regenerate via make test-oracle-exactness
 ```
 
 ## Relevant files
@@ -921,10 +930,21 @@ PASS: HUD/text fixtures regenerate via make test-oracle-shell
 - `wasm/test_hud.js` — HUD-vs-oracle regression.
 - `wasm/test_text.js` — text-window frame/fill/text oracle regression.
 - `wasm/test_shell.js` — shell flow/save/high-score/finale regression.
+- `wasm/test_exactness.js` — P5.R5 timing/story/high-score/scan-code regression.
+- `wasm/test_keymap.js` / `wasm/keymap.js` — browser key → DOS scan-code map.
+- `tools/shell_exactness.py` / `tools/make_shell_exact_data.py` — P5.R5
+  oracle capture and generated `wasm/shell_exact_data.h`.
 - `tools/oracle_shell.py` — real-HUD and text-window oracle capture.
 - `tools/export_shell_assets.py` — PCX/MNI/text/key/high-score export (Phase 5).
 - `notes/hud_fixtures.json`, `notes/text_fixtures.json`, `notes/shell.md` —
   Phase 5 fixtures/docs.
+- `tools/shell_exactness.py` / `notes/shell_exactness_fixtures.json` —
+  P5.R5 capture harness (screen timing, story pages, high-score screen).
+- `tools/make_shell_exact_data.py` / `wasm/shell_exact_data.h` — generated
+  timing, story page, high-score default and scan-code label tables.
+- `notes/hiscore_fixtures.json`, `notes/keymap_fixtures.json`,
+  `wasm/test_exactness.js`, `wasm/test_keymap.js`, `wasm/keymap.js` — P5.R5
+  high-score and scan-code regressions.
 - `wasm/test_oracle_objects.js` — object/cell oracle comparison.
 - `wasm/test_combat.js` — committed combat/cell/globals/RNG/sound oracle test.
 - `tools/cell_fixtures.py` / `notes/cell_fixtures.json` — committed cell/contact/exit oracle trace.

@@ -172,6 +172,15 @@ void cc_text_draw_block(int block_id, int start_line, int max_lines) {
     draw_window_lines(b->lines + start_line, count, cam_x, cam_y, g_scroll());
 }
 
+/* Draw an arbitrary, generated line array with the same exact window
+ * renderer.  Used by the high-score screen and the captured story pages. */
+void cc_text_draw_lines(const char *const *lines, int count) {
+    if (!lines || count <= 0) return;
+    int cam_x = (int)(int16_t)(cc_global_get(0x512e) & 0xFFFF);
+    int cam_y = (int)(int16_t)(cc_global_get(0x5130) & 0xFFFF);
+    draw_window_lines(lines, count, cam_x, cam_y, g_scroll());
+}
+
 /* ---- HUD ---------------------------------------------------------------- */
 
 static int u32_digits(unsigned int v, char *buf) {

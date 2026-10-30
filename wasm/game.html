@@ -22,6 +22,7 @@
   </div>
   <div id="diag">loading...</div>
 </div>
+<script src="keymap.js"></script>
 <script>
 (() => {
   const W = 320, H = 200;
@@ -32,12 +33,8 @@
   const KEY = {
     BACKSPACE: 8, ENTER: 13, ESC: 27, SPACE: 32, F1: 0x13B,
   };
-  const INPUT = {
-    ArrowLeft: 0x338E, ArrowRight: 0x338F, ArrowUp: 0x338B,
-    ArrowDown: 0x338C, ' ': 0x3390, z: 0x3390, Z: 0x3390,
-    x: 0x338B, X: 0x338B, Control: 0x338B, Alt: 0x3390,
-  };
   const STEP_MS = 1000 * 8 * 0x2147 / 1193182;
+  const TICK_MS = 1000 / 140.06;
 
   function b64encode(bytes) {
     let s = '';
@@ -72,6 +69,14 @@
       mem().set(new Uint8Array(buf), p);
       return p;
     };
+    const copyString = (s) => {
+      const bytes = new TextEncoder().encode(s);
+      const p = e.cc_alloc(bytes.length + 1);
+      const m = mem();
+      m.set(bytes, p);
+      m[p + bytes.length] = 0;
+      return p;
+    };
 
     e.cc_set_assets(copyIn(gfx), copyIn(levels));
     e.cc_set_cells(copyIn(cells));
@@ -90,16 +95,29 @@
     const stateP = e.cc_alloc(stateSize);
 
     // ---- persistent config / high scores -------------------------------
-    const CFG_KEY = 'cc1.config.v1';
+    const CFG_KEY = 'cc1.config.v2';
+    const OLD_CFG_KEY = 'cc1.config.v1';
     const HS_KEY = 'cc1.hiscores.v1';
-    let cfg = { sound: 1, joystick: 0, video: 0, keys: {} };
+    let cfg = { sound: 1, joystick: 0, video: 0, keys: [0x4B, 0x4D, 0x1D, 0x38] };
     try {
       const c = JSON.parse(localStorage.getItem(CFG_KEY) || 'null');
       if (c) cfg = Object.assign(cfg, c);
+      else {
+        const old = JSON.parse(localStorage.getItem(OLD_CFG_KEY) || 'null');
+        if (old) {
+          cfg.sound = old.sound | 0;
+          cfg.joystick = old.joystick | 0;
+          cfg.video = old.video | 0;
+          // Old v1 stored browser keyCode values; keys are reset to the
+          // original DOS defaults and the new config is written below.
+        }
+      }
     } catch (_) {}
     e.cc_shell_set_config(cfg.sound, cfg.joystick, cfg.video);
     if (Array.isArray(cfg.keys))
-      for (let i = 0; i < 4; i++) e.cc_shell_set_key(i, cfg.keys[i] | 0);
+      for (let i = 0; i < 4; i++)
+        if ((cfg.keys[i] | 0) >= 0 && (cfg.keys[i] | 0) <= 0x7F)
+          e.cc_shell_set_key(i, cfg.keys[i] | 0);
     function persistConfig() {
       cfg.sound = e.cc_shell_sound_on();
       cfg.joystick = e.cc_shell_joystick_on();
@@ -113,7 +131,8 @@
         if (Array.isArray(arr)) {
           for (let i = 0; i < arr.length && i < 10; i++)
             if (arr[i] && typeof arr[i].score === 'number')
-              e.cc_shell_hiscore_set(i, String(arr[i].name || ''), arr[i].score);
+              e.cc_shell_hiscore_set(i, copyString(String(arr[i].name || '')),
+                                     arr[i].score);
         }
       } catch (_) {}
     }
@@ -135,6 +154,11 @@
     loadHighScores();
     e.cc_shell_init();
     loadHighScores();
+    if (Array.isArray(cfg.keys))
+      for (let i = 0; i < 4; i++)
+        if ((cfg.keys[i] | 0) >= 0 && (cfg.keys[i] | 0) <= 0x7F)
+          e.cc_shell_set_key(i, cfg.keys[i] | 0);
+    persistConfig();
 
     // ---- rendering ------------------------------------------------------
     function present() {
@@ -200,59 +224,48 @@
     function sendShellKey(ch) { e.cc_shell_key(ch); }
     window.addEventListener('keydown', (ev) => {
       const st = e.cc_shell_state();
+      const scan = CCKeymap.scanFromEvent(ev);
       if (ev.key === 'F1') { ev.preventDefault(); sendShellKey(KEY.F1); return; }
       if (ev.key === 'Escape') { ev.preventDefault(); sendShellKey(KEY.ESC); return; }
-      if (ev.key === 'Enter') { ev.preventDefault(); sendShellKey(KEY.ENTER); return; }
-      if (ev.key === 'Backspace') { ev.preventDefault(); sendShellKey(KEY.BACKSPACE); return; }
-      if (st === 16) { /* keyboard redefine */
+      if (st === 16 || st === 17) { /* keyboard redefine / confirm */
         ev.preventDefault();
-        e.cc_shell_key(ev.keyCode);
+        e.cc_shell_key_scan(scan || (ev.key === ' ' ? 0x39 : 0));
         if (e.cc_shell_state() === 6) persistConfig();
         return;
       }
       if (st === 4) { /* game */
-        const custom = [
-          e.cc_shell_key_for_action(0), e.cc_shell_key_for_action(1),
-          e.cc_shell_key_for_action(2), e.cc_shell_key_for_action(3)
-        ];
-        const flags = [0x338E, 0x338F, 0x338B, 0x3390];
-        let handled = false;
-        for (let i = 0; i < 4; i++) {
-          if (custom[i] && ev.keyCode === custom[i]) {
-            e.cc_input_set(flags[i], 1); handled = true; break;
-          }
-        }
-        if (handled) { ev.preventDefault(); return; }
-        const flag = INPUT[ev.key];
-        if (flag !== undefined) { ev.preventDefault(); e.cc_input_set(flag, 1); return; }
         if (ev.key === 'p' || ev.key === 'P') { e.cc_shell_key(112); return; }
+        if (scan) {
+          ev.preventDefault();
+          e.cc_input_scan(scan, 1);
+        }
         return;
       }
-      const flag = INPUT[ev.key];
-      if (flag !== undefined) ev.preventDefault();
-      const code = ev.key.length === 1 ? ev.key.charCodeAt(0) : 0;
-      if (st === 3 || st === 14) sendShellKey(code || KEY.ENTER);
-      else sendShellKey(code || (ev.key === ' ' ? KEY.ENTER : 0));
+      if (st === 12) { /* name entry */
+        if (ev.key === 'Enter') sendShellKey(KEY.ENTER);
+        else if (ev.key === 'Backspace') sendShellKey(KEY.BACKSPACE);
+        else if (ev.key === ' ') sendShellKey(KEY.SPACE);
+        else sendShellKey(ev.key.length === 1 ? ev.key.charCodeAt(0) : 0);
+      } else if (ev.key === 'Enter') {
+        sendShellKey(KEY.ENTER);
+      } else if (ev.key === 'Backspace') {
+        sendShellKey(KEY.BACKSPACE);
+      } else {
+        const code = ev.key.length === 1 ? ev.key.charCodeAt(0) : 0;
+        if (st === 3 || st === 14) sendShellKey(code || KEY.ENTER);
+        else sendShellKey(code || (ev.key === ' ' ? KEY.ENTER : 0));
+      }
       if (e.cc_shell_state() === 11 || e.cc_shell_state() === 12) persistHighScores();
       if (e.cc_shell_state() === 6) persistConfig();
     });
     window.addEventListener('keyup', (ev) => {
       if (e.cc_shell_state() !== 4) return;
-      const custom = [
-        e.cc_shell_key_for_action(0), e.cc_shell_key_for_action(1),
-        e.cc_shell_key_for_action(2), e.cc_shell_key_for_action(3)
-      ];
-      const flags = [0x338E, 0x338F, 0x338B, 0x3390];
-      for (let i = 0; i < 4; i++) {
-        if (custom[i] && ev.keyCode === custom[i]) {
-          ev.preventDefault(); e.cc_input_set(flags[i], 0); return;
-        }
-      }
-      const flag = INPUT[ev.key];
-      if (flag !== undefined) {
-        ev.preventDefault();
-        e.cc_input_set(flag, 0);
-      }
+      const scan = CCKeymap.scanFromEvent(ev);
+      if (scan) { ev.preventDefault(); e.cc_input_scan(scan, 0); }
+    });
+    window.addEventListener('blur', () => {
+      for (let i = 0; i < 4; i++)
+        e.cc_input_scan(e.cc_shell_key_for_action(i), 0);
     });
 
     document.getElementById('png').onclick = () => {
@@ -264,7 +277,7 @@
     };
 
     // ---- main loop ------------------------------------------------------
-    let last = 0, accum = 0;
+    let last = 0, accum = 0, shellAccum = 0;
     function frame(now) {
       if (!last) last = now;
       let dt = now - last; last = now;
@@ -296,7 +309,11 @@
         }
         if (steps) renderGame();
       } else {
-        e.cc_shell_step();
+        shellAccum += dt;
+        let ticks = Math.floor(shellAccum / TICK_MS);
+        if (ticks > 16) ticks = 16;
+        shellAccum -= ticks * TICK_MS;
+        if (ticks > 0) e.cc_shell_step_ticks(ticks);
         if (e.cc_shell_overlay()) renderGame();
         else renderShell();
       }

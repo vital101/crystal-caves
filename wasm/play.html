@@ -24,7 +24,8 @@
 <button id="run">Pause</button>
 <button id="step">Step Frame</button>
 <button id="saveFrame">Save Frame (PNG)</button>
-<div class="hint">Arrows: move / jump &nbsp;•&nbsp; Z or Space: fire</div>
+<div class="hint">Arrows: move / jump &nbsp;•&nbsp; Ctrl: jump &nbsp;•&nbsp; Alt: fire</div>
+<script src="keymap.js"></script>
 <script>
 (async () => {
   const W = 320, H = 200;
@@ -63,18 +64,14 @@
   e.cc_set_level_overlay(ovP);
   e.cc_set_palette(palP);
 
-  const KEY_MAP = {
-    'ArrowLeft': 0x338E, 'ArrowRight': 0x338F,
-    'ArrowUp': 0x338B, 'ArrowDown': 0x338C,
-    ' ': 0x3390, 'z': 0x3390, 'Z': 0x3390,
-  };
+  e.cc_shell_init();
   window.addEventListener('keydown', (ev) => {
-    const id = KEY_MAP[ev.key];
-    if (id !== undefined) { ev.preventDefault(); e.cc_input_set(id, 1); }
+    const scan = CCKeymap.scanFromEvent(ev);
+    if (scan) { ev.preventDefault(); e.cc_input_scan(scan, 1); }
   });
   window.addEventListener('keyup', (ev) => {
-    const id = KEY_MAP[ev.key];
-    if (id !== undefined) { ev.preventDefault(); e.cc_input_set(id, 0); }
+    const scan = CCKeymap.scanFromEvent(ev);
+    if (scan) { ev.preventDefault(); e.cc_input_scan(scan, 0); }
   });
 
   document.getElementById('saveFrame').addEventListener('click', () => {

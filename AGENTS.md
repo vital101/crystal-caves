@@ -24,6 +24,9 @@ There is no root Makefile; the build lives in `wasm/`.
 | `make test-messages` | In-game message trigger causes (positive/negative) |
 | `make test-text` | Oracle-exact text-window frame/fill/text fixtures |
 | `make test-shell` | Shell flow, text/PCX screens, save/restore, high scores, finale |
+| `make test-exactness` | P5.R5 timing/story/high-score/scan-code exactness fixtures |
+| `make test-keymap` | Browser physical-key → DOS scan-code mapping |
+| `make test-oracle-exactness` | Regenerate shell exactness fixtures/header |
 | `make test-oracle-shell` | Regenerate `notes/hud_fixtures.json` + `notes/text_fixtures.json`, then compare |
 | `make test-oracle-cells` | Regenerate `notes/cell_fixtures.json` with Unicorn, then compare |
 | `make test-oracle-physics` | Regenerate physics fixtures from the real routines, then compare (needs venv deps) |
@@ -129,12 +132,15 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   (`notes/hud_fixtures.json`), story/finale transitions, help/pause/quit/warp,
   save/restore 0–9, high scores and config persistence in `localStorage`.
   `make test-hud` / `make test-text` / `make test-messages` / `make test-shell`
-  pass.
+  / `make test-exactness` / `make test-keymap` pass.
+- P5.R5 exactness verification is implemented: PIT-tick screen timing,
+  captured intro/finale page order, original high-score defaults/sort/tie and
+  20-character name entry, DOS scan-code key redefine, and browser
+  `KeyboardEvent.code` → set-1 scan-code mapping.
 - Known shell limitations: browser smoke coverage of `game.html`
-  localStorage/save/restore is still pending; key redefine stores browser key
-  codes; joystick uses the Gamepad API; the original blinking input cursor is
-  not drawn in shell text windows; story/menu timing and exact
-  high-score-default/name-entry behavior still need final verification.
+  localStorage/save/restore is still pending; joystick uses the Gamepad API;
+  the original blinking input cursor is not drawn in shell text windows;
+  title scroll is approximated from the original tick-driven sequence.
 - Still missing: sound (Phase 6).
 
 ## Tooling Entrypoints
@@ -161,6 +167,8 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 | `tools/export_assets.py` | Portable level/GFX/font asset export |
 | `tools/export_shell_assets.py` | PCX screens, MNI banks, shell text/key/high-score export |
 | `tools/oracle_shell.py` | Real HUD + text-window oracle (`notes/hud_fixtures.json`, `notes/text_fixtures.json`) |
+| `tools/shell_exactness.py` | P5.R5 shell exactness capture (`notes/shell_exactness_fixtures.json`, high-score/keymap fixtures) |
+| `tools/make_shell_exact_data.py` | Generate `wasm/shell_exact_data.h` from exactness fixtures |
 | `tools/check_oracle.py` | Structural oracle validation |
 | `tools/build_cells.py` / `make_cells_data.py` | Cell extraction/header generation |
 | `tools/build_oracle_catalog.py` / `make_objects_data.py` | Object catalog/header generation |
@@ -178,6 +186,9 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - `notes/handler_fixtures.json` — committed per-handler trace (`make test-handlers`)
 - `notes/loader_fixtures.json` — committed transition trace (`make test-loader`)
 - `notes/text_fixtures.json` — committed text-window oracle trace (`make test-text`)
+- `notes/shell_exactness_fixtures.json`, `notes/hiscore_fixtures.json`,
+  `notes/keymap_fixtures.json` — P5.R5 shell exactness fixtures
+  (`make test-exactness`, `make test-oracle-exactness`)
 - `notes/cave_fixtures.json` — committed all-cave full-frame trace (`make test-caves`)
 - `out/portable/level_overlay.bin` — loader transition occupancy asset
 - `notes/cell_fixtures.json` — committed cell/contact/exit oracle trace (`make test-cells`)

@@ -22,7 +22,8 @@ enum cc_shell_state {
     CC_SHELL_ENDING,
     CC_SHELL_MESSAGE,
     CC_SHELL_CREDITS,
-    CC_SHELL_KEY_REDEFINE
+    CC_SHELL_KEY_REDEFINE,
+    CC_SHELL_KEY_CONFIRM
 };
 
 /* Key values used by the shell (JS maps browser keys to these). */
@@ -40,14 +41,23 @@ enum {
 
 void cc_shell_init(void);
 void cc_shell_step(void);
+void cc_shell_step_ticks(int ticks);
 int  cc_shell_key(int key);
+int  cc_shell_key_scan(int scan);
 int  cc_shell_key_for_action(int action);
+int  cc_shell_action_for_scan(int scan);
+int  cc_shell_key_name(int scan, const char **name);
 void cc_shell_set_key(int action, int key);
+void cc_input_scan(int scan, int down);
 int  cc_shell_key_redefine_active(void);
 int  cc_shell_key_redefine_step(void);
 void cc_shell_render(void);
 int  cc_shell_state(void);
 int  cc_shell_message_block(void);
+int  cc_shell_page_count(void);
+int  cc_shell_page_index(void);
+int  cc_shell_page_line_count(void);
+const char *cc_shell_page_line(int index);
 int  cc_shell_overlay(void);
 int  cc_shell_hud_active(void);
 

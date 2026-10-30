@@ -14,8 +14,8 @@ OUT    ?= render.wasm
 
 EXPORTS = cc_alloc cc_set_assets cc_set_palette cc_render_level cc_render_view cc_render_cells cc_render_view_cells cc_set_cells cc_set_level_overlay cc_cell_byte cc_cell_set cc_framebuffer cc_view_framebuffer cc_view_width cc_view_height cc_tex_width cc_tex_height \
 	  cc_set_screens cc_draw_screen cc_view_clear cc_view_fill_rect cc_view_set_pixel cc_view_draw_glyph \
-	  cc_text_set_fonts cc_text_draw_string cc_text_draw_block cc_text_draw_frame cc_text_block_lines cc_hud_tick cc_hud_render \
-	  cc_shell_init cc_shell_step cc_shell_key cc_shell_render cc_shell_state cc_shell_message_block cc_shell_overlay cc_shell_hud_active cc_shell_key_for_action cc_shell_set_key cc_shell_key_redefine_active cc_shell_key_redefine_step \
+	  cc_text_set_fonts cc_text_draw_string cc_text_draw_block cc_text_draw_lines cc_text_draw_frame cc_text_block_lines cc_hud_tick cc_hud_render \
+	  cc_shell_init cc_shell_step cc_shell_step_ticks cc_shell_key cc_shell_key_scan cc_shell_render cc_shell_state cc_shell_message_block cc_shell_page_count cc_shell_page_index cc_shell_page_line_count cc_shell_page_line cc_shell_overlay cc_shell_hud_active cc_shell_key_for_action cc_shell_action_for_scan cc_shell_key_name cc_shell_set_key cc_input_scan cc_shell_key_redefine_active cc_shell_key_redefine_step \
 	  cc_shell_request_pending cc_shell_request_kind cc_shell_request_slot cc_shell_request_done \
 	  cc_shell_sound_on cc_shell_joystick_on cc_shell_video_alt cc_shell_set_config \
 	  cc_shell_hiscore_count cc_shell_hiscore_name cc_shell_hiscore_score cc_shell_hiscore_set cc_shell_hiscore_add cc_shell_hiscore_qualifies cc_shell_finale_done cc_shell_message cc_shell_warp \
@@ -30,7 +30,7 @@ EXPORTS = cc_alloc cc_set_assets cc_set_palette cc_render_level cc_render_view c
 
 clang: assets $(OUT)
 
-$(OUT): render.c render.h objects.c objects.h objects_data.h cells_data.h startup_data.h text.c text.h shell.c shell.h shell_text_data.h
+$(OUT): render.c render.h objects.c objects.h objects_data.h cells_data.h startup_data.h text.c text.h shell.c shell.h shell_text_data.h shell_exact_data.h
 	@test -x "$(LLVM)/clang" || { echo "clang not found at $(LLVM)/clang"; \
 	  echo "Install Homebrew LLVM (brew install llvm) or pass LLVM=/path/to/bin"; exit 1; }
 	$(LLVM)/clang --target=wasm32 -O2 -nostdlib -ffreestanding -fno-builtin \
@@ -73,6 +73,7 @@ data:
 	$(PYTHON) ../tools/make_startup_data.py
 	$(PYTHON) ../tools/export_assets.py
 	$(PYTHON) ../tools/export_shell_assets.py
+	$(PYTHON) ../tools/make_shell_exact_data.py
 	$(PYTHON) ../tools/export_level_overlay.py
 
 # Recover the exact 0xC3E startup state (Unicorn; writes notes/startup.json).
@@ -125,14 +126,29 @@ test-text: clang
 test-shell: clang
 	node test_shell.js
 
+test-exactness: clang
+	node test_exactness.js
+	node test_keymap.js
+
+test-keymap:
+	node test_keymap.js
+
+test-oracle-exactness:
+	$(PYTHON) ../tools/shell_exactness.py
+	$(PYTHON) ../tools/make_shell_exact_data.py
+	$(MAKE) clang
+	node test_exactness.js
+	node test_keymap.js
+
 test-oracle-shell: clang
 	$(PYTHON) ../tools/oracle_shell.py
 	node test_hud.js
 	node test_text.js
 
-# Compatibility aliases: save/high-score coverage lives in test_shell.js.
+# Compatibility aliases: save coverage lives in test_shell.js; the exact
+# high-score table/sort/name-entry coverage lives in test_exactness.js.
 test-save: test-shell
-test-hiscore: test-shell
+test-hiscore: test-exactness
 
 # Committed combat fixtures (fast; regenerate with test-oracle-combat).
 test-combat: clang
@@ -191,9 +207,9 @@ test-oracle-objects: clang
 	$(PYTHON) ../tools/emulate_game.py 3 120 --json > oracle_level3.json
 	node test_oracle_objects.js oracle_level3.json
 
-test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell
+test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-exactness test-keymap
 
 clean:
 	rm -f $(OUT) app.js app.wasm out_wasm_level*.png oracle_level*.json
 
-.PHONY: clang emcc assets data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-oracle-shell test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-all clean
+.PHONY: clang emcc assets data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-exactness test-keymap test-oracle-exactness test-oracle-shell test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-all clean

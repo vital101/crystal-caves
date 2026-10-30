@@ -9,17 +9,25 @@ windows, the in-game HUD, help/pause/quit/warp/key-redefine screens,
 story/finale transitions, save/restore, high scores, and browser config
 persistence.  Gameplay remains deterministic and pixel-exact.
 
-Known limitations:
+Known limitations / deliberate browser substitutions:
 
-- Key redefine stores browser `keyCode` values and persists them; it does not
-  emulate DOS scan-code tables.
+- Keyboard bindings use IBM PC set-1 scan codes, matching the original port
+  `0x60` input routine.  `wasm/keymap.js` maps browser `KeyboardEvent.code`
+  values to those scan codes; E0-extended keys are normalized.
 - The original blinking input cursor is not drawn in shell text windows; the
   `^` marker is treated as the input position and skipped by the printer.
+- The title/credits scroll animation is approximated by the original
+  432-tick combined duration; the exact per-frame scroll position is not
+  reproduced.
 - Joystick uses the Gamepad API when present; the original calibration screen
   is informational.
 - BBS/foreign/ordering/video options show the original text screens with
   browser-appropriate behaviour (no DOS file I/O or network calls).
+- Quit to DOS returns to the title screen.
 - Sound is still Phase 6; the help sound toggle is stored/persisted.
+- `CC1.CFG`/`CC1.HS` file I/O is replaced by `localStorage` JSON.  The C-side
+  high-score table and sort/name-entry rules are the original rules; only the
+  storage format is a browser substitution.
 
 ## Assets
 
@@ -132,9 +140,94 @@ loads `cc_state_save/cc_state_load` bytes from `localStorage` and calls
 objects, cells, globals, RNG, cave flags, score/lives/ammo and checkpoints.
 
 High scores and config use `localStorage` keys `cc1.hiscores.v1` and
-`cc1.config.v1`.  High-score defaults are the original shareware names; the
-table is sorted descending.  Config stores sound/joystick/video and four
-browser key codes.
+`cc1.config.v2`.  High-score defaults, qualification, sort/tie and name-entry
+rules are the original rules (see below).  Config stores sound/joystick/video
+and four DOS scan codes.  `cc1.config.v1` keys were browser `keyCode` values;
+v1 is read only for sound/joystick/video and the keys reset to the DOS
+defaults.
+
+## Exactness verification (P5.R5)
+
+`tools/shell_exactness.py` runs the original shell routines with a minimal
+INT 21h file shim and scripted keyboard input.  It does not run the complete
+menu flow; it captures the observable data needed by P5.R5.
+
+Committed fixtures:
+
+- `notes/shell_exactness_fixtures.json` — screen tick counts, intro/finale
+  page line buffers, high-score screen lines and framebuffer hash.
+- `notes/hiscore_fixtures.json` — default ten-row table, qualification cases,
+  tie rule, name-entry limit.
+- `notes/keymap_fixtures.json` — default scan codes and the original
+  scan-code → label table.
+
+`tools/make_shell_exact_data.py` turns the committed fixtures into
+`wasm/shell_exact_data.h`.  Do not hand-edit that header; run
+`make test-oracle-exactness` to regenerate, then `make data` in `wasm/`.
+
+### Screen timing
+
+The shell advances in PIT ticks at 140.06 Hz, not render frames.  The
+original constants are:
+
+| Stage | Timer | Approx. duration |
+|---|---|---|
+| Apogee logo | `[0x2B60] > 0x2D0` (720 ticks) | 5.14 s |
+| Credits | 216 ticks | 1.54 s |
+| Title | 216 ticks | 1.54 s |
+
+The original title routine loads `cc1.cdt` and `cc1.ttl` and runs one
+432-tick (3.08 s) scroll sequence.  The two 216-tick shell stages represent
+the two captured screens; the scroll itself is approximated by the tick
+cadence.
+
+`cc_shell_step_ticks()` is the deterministic entry point; `game.html`
+converts elapsed time to ticks at the same rate.  `cc_shell_step()` remains a
+one-tick alias for tests.
+
+### Story/finale order
+
+The captured page order is:
+
+- intro: ship's log page 1, log page 2a, log page 2b, encyclopedia page 1,
+  encyclopedia page 2 (5 pages);
+- finale: finale page, “Can he succeed…”, twibbles, twibbles2 (4 pages).
+
+The line arrays include the original blank separator rows and the
+`Press Any Key ^` marker, so they are rendered without the old fixed 18-line
+block split.
+
+### High scores
+
+The original initializer (`0x0FC5:0x8738`) seeds the default ten-row table:
+
+```text
+150000 Play all 3 episodes
+140000 of Crystal Caves.
+130000 Call 1-800-852-5659
+120000 and use Visa or MC.
+110000
+100000 I. Jones
+ 90000 B. Blaze
+ 80000 S. Logan
+ 70000 D. Nukem
+ 60000 J. Kirk
+```
+
+The qualification threshold is the last row (`score > 60000` on defaults).
+The sort is descending and stable: equal scores keep the existing entry
+first.  Name entry accepts up to 20 letters/digits/spaces; an empty name is
+preserved (it is not replaced with `"Mylo"`).  The high-score screen is built
+from the original line format (`" %-20s %u"`) and matches the captured
+framebuffer.
+
+### Key redefine
+
+Defaults are DOS scan codes: left `0x4B`, right `0x4D`, jump `0x1D` (Ctrl),
+fire `0x38` (Alt).  The redefine flow prompts for four keys, rejects
+duplicates with the original “Sorry, that key is unavailable.” window,
+shows the summary, and restarts on `N`; any other key accepts.  `Esc`
+cancels.  `wasm/keymap.js` is the browser → set-1 scan-code adapter.
 
 ## Tests
 
@@ -144,6 +237,9 @@ make test-hud              # oracle HUD fixtures
 make test-text             # oracle text-window frame/fill/text fixtures
 make test-messages         # in-game message trigger causes
 make test-shell            # shell flow, save/restore, high scores, finale
+make test-exactness        # P5.R5 timing/story/high-score/scan-code fixtures
+make test-keymap           # browser physical-key → DOS scan-code mapping
+make test-oracle-exactness # regenerate shell exactness fixtures/header
 make test-oracle-shell     # regenerate HUD + text fixtures from the real code
 make test-all              # full regression
 ```

@@ -26,6 +26,7 @@ function assert(cond, msg) {
   const e = instance.exports;
   const mem = () => new Uint8Array(e.memory.buffer);
   const copy = (b) => { const p = e.cc_alloc(b.length); mem().set(b, p); return p; };
+  const sput = (s) => { const p = e.cc_alloc(s.length + 1); const m = mem(); for (let i = 0; i < s.length; i++) m[p + i] = s.charCodeAt(i); m[p + s.length] = 0; return p; };
   e.cc_set_assets(copy(gfx), copy(levels));
   e.cc_set_cells(copy(cells));
   const ovp = e.cc_alloc(overlay.length); mem().set(overlay, ovp); e.cc_set_level_overlay(ovp);
@@ -105,9 +106,15 @@ function assert(cond, msg) {
   e.cc_shell_key(27);                 // help
   e.cc_shell_key(key('k'));
   assert(e.cc_shell_state() === 16, 'key redefine screen');
-  for (const k of [65, 66, 67, 68]) e.cc_shell_key(k);
+  for (const k of [0x1E, 0x20, 0x39, 0x1C]) e.cc_shell_key_scan(k);
+  assert(e.cc_shell_state() === 17, 'key redefine confirmation screen');
+  e.cc_shell_key_scan(0x15);          // Y accepts
   assert(e.cc_shell_state() === 6, 'key redefine returns to help');
-  assert(e.cc_shell_key_for_action(0) === 65, 'key redefine stores codes');
+  assert(e.cc_shell_key_for_action(0) === 0x1E &&
+         e.cc_shell_key_for_action(1) === 0x20 &&
+         e.cc_shell_key_for_action(2) === 0x39 &&
+         e.cc_shell_key_for_action(3) === 0x1C,
+         'key redefine stores scan codes');
   e.cc_shell_key(key('w'));
   assert(e.cc_shell_state() === 10, 'warp prompt');
   e.cc_shell_key(key('1'));
@@ -151,7 +158,7 @@ function assert(cond, msg) {
 
   // High score table.
   const before = e.cc_shell_hiscore_count();
-  e.cc_shell_hiscore_add('TEST', 1234567);
+  e.cc_shell_hiscore_add(sput('TEST'), 1234567);
   assert(e.cc_shell_hiscore_name(0) && e.cc_shell_hiscore_score(0) === 1234567,
          'high score inserted at top');
 

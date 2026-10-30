@@ -10,6 +10,7 @@ void cc_text_set_fonts(const unsigned char *f1, const unsigned char *f2,
 void cc_text_draw_string(int x, int y, const char *s);
 void cc_text_draw_frame(int x, int y, int w, int h);
 void cc_text_draw_block(int block_id, int start_line, int max_lines);
+void cc_text_draw_lines(const char *const *lines, int count);
 int  cc_text_block_lines(int block_id);
 void cc_hud_tick(void);
 void cc_hud_render(void);

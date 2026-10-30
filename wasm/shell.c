@@ -10,12 +10,15 @@
 #include "render.h"
 #include "objects.h"
 #include "shell_text_data.h"
+#include "shell_exact_data.h"
 
 #define MAX_PAGES 96
 #define PAGE_LINES 18
+#define HISCORE_NAME_MAX 20
+#define HISCORE_COUNT 10
 
 typedef struct { int block; int start; } TextPage;
-typedef struct { char name[16]; unsigned int score; } HiScore;
+typedef struct { char name[24]; unsigned int score; } HiScore;
 
 static int g_state;
 static int g_timer;
@@ -28,6 +31,11 @@ static unsigned int g_pending_score;
 static TextPage g_pages[MAX_PAGES];
 static int g_page_count;
 static int g_page_index;
+static const ShellPageDef *g_story_pages;
+static int g_story_page_count;
+
+/* Selected keys before confirmation, and the committed action keys. */
+static int g_key_tmp[4];
 
 static int g_request_pending;
 static int g_request_kind;     /* 1 save, 2 restore */
@@ -45,14 +53,6 @@ static int g_warp_value = -1;
 static int g_keys[4] = { 0, 0, 0, 0 };
 static int g_key_action;
 
-static const int INTRO_BLOCKS[] = {
-    SHELL_TEXT_STORY_LOG1, SHELL_TEXT_STORY_LOG2,
-    SHELL_TEXT_STORY_ENCYCLOPEDIA1, SHELL_TEXT_STORY_ENCYCLOPEDIA2
-};
-static const int FINALE_BLOCKS[] = {
-    SHELL_TEXT_STORY_FINALE, SHELL_TEXT_STORY_CAN_HE,
-    SHELL_TEXT_STORY_TWIBBLES, SHELL_TEXT_STORY_TWIBBLES2
-};
 static const int INSTRUCTION_BLOCKS[] = {
     SHELL_TEXT_INSTRUCTIONS_1, SHELL_TEXT_INSTRUCTIONS_2,
     SHELL_TEXT_INSTRUCTIONS_3, SHELL_TEXT_INSTRUCTIONS_3_2,
@@ -70,6 +70,8 @@ static void scopy(char *d, const char *s, int cap) {
 static void clear_pages(void) {
     g_page_count = 0;
     g_page_index = 0;
+    g_story_pages = 0;
+    g_story_page_count = 0;
 }
 
 static void add_block_pages(int block) {
@@ -86,6 +88,19 @@ static void set_pages(const int *blocks, int n, int return_state,
                       int story_kind, int story_level) {
     clear_pages();
     for (int i = 0; i < n; i++) add_block_pages(blocks[i]);
+    g_return_state = return_state;
+    g_story_kind = story_kind;
+    g_story_level = story_level;
+    g_state = CC_SHELL_TEXT;
+    if (story_level >= 0) cc_objects_init(story_level);
+}
+
+static void set_story_pages(const ShellPageDef *pages, int n,
+                            int return_state, int story_kind,
+                            int story_level) {
+    clear_pages();
+    g_story_pages = pages;
+    g_story_page_count = n;
     g_return_state = return_state;
     g_story_kind = story_kind;
     g_story_level = story_level;
@@ -111,19 +126,25 @@ void cc_shell_init(void) {
     g_request_kind = 0;
     g_request_slot = -1;
     clear_pages();
-    g_hiscore_count = 10;
-    static const char *const names[10] = {
-        "I. Jones", "B. Blaze", "S. Logan", "D. Nukem", "J. Kirk",
-        "Mylo", "Apogee", "Todd", "Scott", "George"
-    };
-    for (int i = 0; i < 10; i++) {
-        scopy(g_hiscores[i].name, names[i], sizeof(g_hiscores[i].name));
-        g_hiscores[i].score = 0;
+    g_hiscore_count = HISCORE_COUNT;
+    for (int i = 0; i < HISCORE_COUNT; i++) {
+        scopy(g_hiscores[i].name, g_hiscore_default_names[i],
+              sizeof(g_hiscores[i].name));
+        g_hiscores[i].score = g_hiscore_default_scores[i];
     }
     g_name[0] = 0;
     g_name_len = 0;
     g_warp_value = -1;
     g_key_action = 0;
+    g_keys[0] = 0x4B;   /* left arrow */
+    g_keys[1] = 0x4D;   /* right arrow */
+    g_keys[2] = 0x1D;   /* Ctrl */
+    g_keys[3] = 0x38;   /* Alt */
+    for (int i = 0; i < 4; i++) g_key_tmp[i] = g_keys[i];
+    cc_shell_set_key(0, g_keys[0]);
+    cc_shell_set_key(1, g_keys[1]);
+    cc_shell_set_key(2, g_keys[2]);
+    cc_shell_set_key(3, g_keys[3]);
 }
 
 int cc_shell_state(void) { return g_state; }
@@ -132,6 +153,36 @@ int cc_shell_message_block(void) {
         g_page_index < 0 || g_page_index >= g_page_count) return -1;
     return g_pages[g_page_index].block;
 }
+
+int cc_shell_page_count(void) {
+    return g_story_pages ? g_story_page_count : g_page_count;
+}
+int cc_shell_page_index(void) { return g_page_index; }
+int cc_shell_page_line_count(void) {
+    if (g_story_pages) {
+        if (g_page_index < 0 || g_page_index >= g_story_page_count) return 0;
+        return g_story_pages[g_page_index].count;
+    }
+    if (g_page_index < 0 || g_page_index >= g_page_count) return 0;
+    return PAGE_LINES;
+}
+const char *cc_shell_page_line(int index) {
+    if (g_story_pages) {
+        if (g_page_index < 0 || g_page_index >= g_story_page_count)
+            return "";
+        const ShellPageDef *p = &g_story_pages[g_page_index];
+        if (index < 0 || index >= p->count) return "";
+        return p->lines[index];
+    }
+    if (g_page_index < 0 || g_page_index >= g_page_count) return "";
+    int block = g_pages[g_page_index].block;
+    int start = g_pages[g_page_index].start;
+    if (block < 0 || block >= SHELL_TEXT_COUNT) return "";
+    const ShellTextBlock *b = &g_shell_text_blocks[block];
+    if (start + index >= b->count) return "";
+    return b->lines[start + index];
+}
+
 int cc_shell_hud_active(void) { return g_state == CC_SHELL_GAME; }
 int cc_shell_overlay(void) {
     return g_state == CC_SHELL_PAUSE || g_state == CC_SHELL_HELP ||
@@ -194,19 +245,32 @@ void cc_shell_finale_done(void) {
     }
 }
 
-void cc_shell_step(void) {
+void cc_shell_step(void) { cc_shell_step_ticks(1); }
+
+void cc_shell_step_ticks(int ticks) {
+    if (ticks < 0) ticks = 0;
+    g_timer += ticks;
     if (g_state == CC_SHELL_LOGO) {
-        g_timer++;
-        if (g_timer > 150) { g_state = CC_SHELL_CREDITS; g_timer = 0; }
+        if (g_timer > CC_SHELL_APOGEE_TICKS) {
+            g_state = CC_SHELL_CREDITS;
+            g_timer = 0;
+        }
     } else if (g_state == CC_SHELL_CREDITS) {
-        g_timer++;
-        if (g_timer > 150) { g_state = CC_SHELL_TITLE; g_timer = 0; }
+        if (g_timer > CC_SHELL_CREDITS_TICKS) {
+            g_state = CC_SHELL_TITLE;
+            g_timer = 0;
+        }
+    } else if (g_state == CC_SHELL_TITLE) {
+        if (g_timer > CC_SHELL_TITLE_TICKS) {
+            g_state = CC_SHELL_MENU;
+            g_timer = 0;
+        }
     }
     if (g_finale_pending) {
         g_finale_pending = 0;
         if (g_state == CC_SHELL_GAME)
-            set_pages(FINALE_BLOCKS, (int)(sizeof(FINALE_BLOCKS) / sizeof(int)),
-                      CC_SHELL_ENDING, 2, 1);
+            set_story_pages(g_finale_pages, g_finale_page_count,
+                            CC_SHELL_ENDING, 2, 1);
     }
 }
 
@@ -258,27 +322,28 @@ unsigned int cc_shell_hiscore_score(int i) {
     return (i >= 0 && i < g_hiscore_count) ? g_hiscores[i].score : 0;
 }
 void cc_shell_hiscore_set(int i, const char *name, unsigned int score) {
-    if (i < 0 || i >= 10) return;
+    if (i < 0 || i >= HISCORE_COUNT) return;
     scopy(g_hiscores[i].name, name ? name : "", sizeof(g_hiscores[i].name));
     g_hiscores[i].score = score;
-    if (i + 1 > g_hiscore_count) g_hiscore_count = i + 1;
+    if (g_hiscore_count < i + 1) g_hiscore_count = i + 1;
 }
 int cc_shell_hiscore_qualifies(unsigned int score) {
-    if (g_hiscore_count < 10) return 1;
-    return score > g_hiscores[9].score;
+    if (g_hiscore_count < HISCORE_COUNT) return 1;
+    return score > g_hiscores[HISCORE_COUNT - 1].score;
 }
 void cc_shell_hiscore_add(const char *name, unsigned int score) {
     if (!cc_shell_hiscore_qualifies(score)) return;
-    int pos = g_hiscore_count;
-    for (int i = 0; i < g_hiscore_count; i++) {
+    int pos = HISCORE_COUNT;
+    for (int i = 0; i < HISCORE_COUNT; i++) {
         if (score > g_hiscores[i].score) { pos = i; break; }
     }
-    if (pos > 9) return;
-    if (g_hiscore_count < 10) g_hiscore_count++;
-    for (int i = g_hiscore_count - 1; i > pos; i--)
+    if (pos >= HISCORE_COUNT) return;
+    for (int i = HISCORE_COUNT - 1; i > pos; i--)
         g_hiscores[i] = g_hiscores[i - 1];
-    scopy(g_hiscores[pos].name, name ? name : "Mylo", sizeof(g_hiscores[pos].name));
+    scopy(g_hiscores[pos].name, name ? name : "",
+          sizeof(g_hiscores[pos].name));
     g_hiscores[pos].score = score;
+    g_hiscore_count = HISCORE_COUNT;
 }
 
 /* ---- config ------------------------------------------------------------- */
@@ -294,9 +359,32 @@ int cc_shell_key_for_action(int action) {
     if (action < 0 || action > 3) return 0;
     return g_keys[action];
 }
+int cc_shell_key_name(int scan, const char **name) {
+    if (scan < 0 || scan > 0x7F) {
+        if (name) *name = "NULL";
+        return 0;
+    }
+    if (name) *name = g_key_names[scan];
+    return g_key_names[scan][0] != 'N' || g_key_names[scan][1] != 'U';
+}
+int cc_shell_action_for_scan(int scan) {
+    for (int i = 0; i < 4; i++)
+        if (g_keys[i] == scan) return i;
+    return -1;
+}
 void cc_shell_set_key(int action, int key) {
+    static const int globals[4] = { 0x2B6C, 0x2B6E, 0x2B70, 0x2B7A };
     if (action < 0 || action > 3) return;
+    if (key < 0 || key > 0x7F) return;
     g_keys[action] = key;
+    cc_global_set(globals[action], key & 0xFFFF);
+}
+void cc_input_scan(int scan, int down) {
+    scan &= 0x7F;
+    if (scan == g_keys[0]) cc_input_set(0x338E, down ? 1 : 0);
+    if (scan == g_keys[1]) cc_input_set(0x338F, down ? 1 : 0);
+    if (scan == g_keys[2]) cc_input_set(0x338B, down ? 1 : 0);
+    if (scan == g_keys[3]) cc_input_set(0x3390, down ? 1 : 0);
 }
 
 void cc_shell_set_config(int sound, int joystick, int video) {
@@ -307,41 +395,54 @@ void cc_shell_set_config(int sound, int joystick, int video) {
 
 /* ---- rendering ---------------------------------------------------------- */
 
+static void draw_lines_centered(const char *const *lines, int count);
+
 static void draw_hiscore_screen(void) {
-    cc_view_clear(0);
-    cc_text_draw_frame(24, 16, 272, 168);
-    cc_text_draw_string(56, 26, "   Top Intergalactic Traders");
-    cc_text_draw_string(56, 38, " -----------------------------");
-    for (int i = 0; i < 10; i++) {
-        char line[40];
+    char lines[17][40];
+    const char *ptrs[17];
+
+    lines[0][0] = 0;
+    scopy(lines[0], "   Top Intergalactic Traders", sizeof(lines[0]));
+    scopy(lines[1], " -----------------------------", sizeof(lines[1]));
+    scopy(lines[2], " ", sizeof(lines[2]));
+    for (int i = 0; i < HISCORE_COUNT; i++) {
         int n = 0;
-        if (i < 9) { line[n++] = (char)('1' + i); }
-        else { line[n++] = '1'; line[n++] = '0'; }
-        line[n++] = '.';
-        line[n++] = ' ';
+        lines[3 + i][n++] = ' ';
         const char *nm = g_hiscores[i].name;
-        for (int j = 0; nm[j] && n < 20; j++) line[n++] = nm[j];
-        while (n < 22) line[n++] = ' ';
+        for (int j = 0; j < HISCORE_NAME_MAX; j++)
+            lines[3 + i][n++] = nm[j] ? nm[j] : ' ';
+        lines[3 + i][n++] = ' ';
         unsigned int v = g_hiscores[i].score;
-        char d[12]; int dn = 0;
+        char d[12];
+        int dn = 0;
         if (!v) d[dn++] = '0';
         while (v) { d[dn++] = (char)('0' + v % 10); v /= 10; }
-        for (int j = dn - 1; j >= 0 && n < 39; j--) line[n++] = d[j];
-        line[n] = 0;
-        cc_text_draw_string(40, 54 + i * 11, line);
+        for (int j = dn - 1; j >= 0; j--)
+            lines[3 + i][n++] = d[j];
+        lines[3 + i][n] = 0;
     }
-    cc_text_draw_string(104, 168, "Press Any Key ^");
+    scopy(lines[13], " ", sizeof(lines[13]));
+    scopy(lines[14], " -----------------------------", sizeof(lines[14]));
+    scopy(lines[15], " ", sizeof(lines[15]));
+    scopy(lines[16], "         Press Any Key ^", sizeof(lines[16]));
+    for (int i = 0; i < 17; i++) ptrs[i] = lines[i];
+    draw_lines_centered(ptrs, 17);
 }
 
 static void draw_name_entry(void) {
-    cc_view_clear(0);
-    cc_text_draw_frame(40, 56, 240, 88);
-    cc_text_draw_string(56, 68, " Your score is in the top ten! ");
-    cc_text_draw_string(56, 88, " Enter your name: ");
-    cc_text_draw_string(56 + 17 * 8, 88, g_name);
-    /* blinking cursor */
-    if (((g_timer >> 3) & 1) == 0)
-        cc_text_draw_string(56 + (17 + g_name_len) * 8, 88, "_");
+    char line[48];
+    const char *ptrs[4];
+    scopy(line, " Enter your name: ", sizeof(line));
+    int n = slen(line);
+    for (int i = 0; i < g_name_len && n < (int)sizeof(line) - 2; i++)
+        line[n++] = g_name[i];
+    line[n++] = '^';
+    line[n] = 0;
+    ptrs[0] = " Your score is in the top ten! ";
+    ptrs[1] = line;
+    ptrs[2] = " ";
+    ptrs[3] = "   ";
+    draw_lines_centered(ptrs, 4);
 }
 
 /* Shell windows are screen-space UI: the original wrappers are called with
@@ -355,6 +456,19 @@ static void draw_block_centered(int block, int start, int max) {
     cc_global_set(0x5130, 0);
     cc_global_set(0x2b5c, 0);
     cc_text_draw_block(block, start, max);
+    cc_global_set(0x512e, cx);
+    cc_global_set(0x5130, cy);
+    cc_global_set(0x2b5c, scroll);
+}
+
+static void draw_lines_centered(const char *const *lines, int count) {
+    int cx = cc_global_get(0x512e);
+    int cy = cc_global_get(0x5130);
+    int scroll = cc_global_get(0x2b5c);
+    cc_global_set(0x512e, 0);
+    cc_global_set(0x5130, 0);
+    cc_global_set(0x2b5c, 0);
+    cc_text_draw_lines(lines, count);
     cc_global_set(0x512e, cx);
     cc_global_set(0x5130, cy);
     cc_global_set(0x2b5c, scroll);
@@ -377,9 +491,14 @@ void cc_shell_render(void) {
                 cc_render_view_cells(g_story_level, cc_cam_x(), cc_cam_y());
             else
                 cc_view_clear(0);
-            if (g_page_index < g_page_count)
+            if (g_story_pages) {
+                if (g_page_index < g_story_page_count)
+                    draw_lines_centered(g_story_pages[g_page_index].lines,
+                                        g_story_pages[g_page_index].count);
+            } else if (g_page_index < g_page_count) {
                 draw_block_centered(g_pages[g_page_index].block,
                                    g_pages[g_page_index].start, PAGE_LINES);
+            }
             break;
         case CC_SHELL_ENDING:
             cc_draw_screen(3);
@@ -389,17 +508,46 @@ void cc_shell_render(void) {
             break;
         case CC_SHELL_KEY_REDEFINE: {
             static const char *const prompt[4] = {
-                "Select key to move left:",
-                "Select key to move right:",
-                "Select key to jump:",
-                "Select key to fire:"
+                "Select key to move left: ^",
+                "Select key to move right: ^",
+                "Select key to jump: ^",
+                "Select key to fire: ^"
             };
+            const char *lines[5];
+            lines[0] = "KEYBOARD REDEFINE";
+            lines[1] = (g_key_action >= 0 && g_key_action < 4)
+                ? prompt[g_key_action] : "Select key: ^";
+            lines[2] = " ";
+            lines[3] = "Press ESC to cancel.";
+            lines[4] = " ";
             cc_view_clear(0);
-            cc_text_draw_frame(32, 48, 256, 96);
-            cc_text_draw_string(48, 60, "KEYBOARD REDEFINE");
-            if (g_key_action < 4)
-                cc_text_draw_string(48, 84, prompt[g_key_action]);
-            cc_text_draw_string(48, 108, "Press ESC to cancel.");
+            draw_lines_centered(lines, 5);
+            break;
+        }
+        case CC_SHELL_KEY_CONFIRM: {
+            char left[32], right[32], jump[32], fire[32];
+            const char *lines[6];
+            const char *nm;
+            cc_shell_key_name(g_key_tmp[0], &nm);
+            left[0] = 0; scopy(left, "LEFT  - ", sizeof(left));
+            scopy(left + slen(left), nm, sizeof(left) - slen(left));
+            cc_shell_key_name(g_key_tmp[1], &nm);
+            right[0] = 0; scopy(right, "RIGHT - ", sizeof(right));
+            scopy(right + slen(right), nm, sizeof(right) - slen(right));
+            cc_shell_key_name(g_key_tmp[2], &nm);
+            jump[0] = 0; scopy(jump, "JUMP  - ", sizeof(jump));
+            scopy(jump + slen(jump), nm, sizeof(jump) - slen(jump));
+            cc_shell_key_name(g_key_tmp[3], &nm);
+            fire[0] = 0; scopy(fire, "FIRE  - ", sizeof(fire));
+            scopy(fire + slen(fire), nm, sizeof(fire) - slen(fire));
+            lines[0] = "KEYBOARD REDEFINED";
+            lines[1] = left;
+            lines[2] = right;
+            lines[3] = jump;
+            lines[4] = fire;
+            lines[5] = "Are these selections ok (Y-N): ^";
+            cc_view_clear(0);
+            draw_lines_centered(lines, 6);
             break;
         }
         case CC_SHELL_HISCORE:
@@ -446,10 +594,29 @@ static int lower(int k) {
     return k;
 }
 
+/* Compatibility for callers that still pass ASCII menu keys. */
+static int scan_from_ascii(int key) {
+    if (key >= 'a' && key <= 'z') key -= 'a' - 'A';
+    if (key >= 'A' && key <= 'Z') {
+        static const unsigned char map[26] = {
+            0x1E, 0x30, 0x2E, 0x20, 0x12, 0x21, 0x22, 0x23, 0x17, 0x24,
+            0x25, 0x26, 0x32, 0x31, 0x18, 0x19, 0x10, 0x13, 0x1F, 0x14,
+            0x16, 0x2F, 0x11, 0x2D, 0x15, 0x2C
+        };
+        return map[key - 'A'];
+    }
+    if (key >= '0' && key <= '9')
+        return (key == '0') ? 0x0B : (0x02 + key - '1');
+    if (key == ' ') return 0x39;
+    if (key == 13) return 0x1C;
+    if (key == 27) return 0x01;
+    return 0;
+}
+
 static void start_intro_story(void) {
     g_pending_score = cc_score();
-    set_pages(INTRO_BLOCKS, (int)(sizeof(INTRO_BLOCKS) / sizeof(int)),
-              CC_SHELL_GAME, 1, 0);
+    set_story_pages(g_intro_pages, g_intro_page_count,
+                    CC_SHELL_GAME, 1, 0);
 }
 
 static void start_instructions(int return_state) {
@@ -460,8 +627,8 @@ static void start_instructions(int return_state) {
 
 static void start_finale_story(void) {
     g_pending_score = cc_score();
-    set_pages(FINALE_BLOCKS, (int)(sizeof(FINALE_BLOCKS) / sizeof(int)),
-              CC_SHELL_ENDING, 2, 1);
+    set_story_pages(g_finale_pages, g_finale_page_count,
+                    CC_SHELL_ENDING, 2, 1);
 }
 
 static int text_key(int key) {
@@ -484,7 +651,8 @@ static int text_key(int key) {
     }
     if (key == 0) return 1;
     g_page_index++;
-    if (g_page_index < g_page_count) return 1;
+    int pages = g_story_pages ? g_story_page_count : g_page_count;
+    if (g_page_index < pages) return 1;
     if (g_story_kind == 1) {
         cc_load_arg(0);
         g_state = CC_SHELL_GAME;
@@ -496,6 +664,57 @@ static int text_key(int key) {
     g_story_kind = 0;
     g_story_level = -1;
     return 1;
+}
+
+int cc_shell_key_scan(int scan) {
+    scan &= 0x7F;
+    if (g_state == CC_SHELL_KEY_REDEFINE) {
+        if (scan == 0x01) {
+            g_state = CC_SHELL_HELP;
+            return 1;
+        }
+        if (scan == 0) return 1;
+        {
+            const char *new_name = g_key_names[scan];
+            for (int i = 0; i < g_key_action; i++) {
+                const char *old_name = g_key_names[g_key_tmp[i]];
+                int same = 1;
+                for (int j = 0; new_name[j] || old_name[j]; j++) {
+                    if (new_name[j] != old_name[j]) { same = 0; break; }
+                }
+                if (same) {
+                    show_block(SHELL_TEXT_MENU_KEY_UNAVAILABLE,
+                               CC_SHELL_KEY_REDEFINE);
+                    g_state = CC_SHELL_MESSAGE;
+                    g_return_state = CC_SHELL_KEY_REDEFINE;
+                    clear_pages();
+                    add_block_pages(SHELL_TEXT_MENU_KEY_UNAVAILABLE);
+                    return 1;
+                }
+            }
+        }
+        if (g_key_action < 4) {
+            g_key_tmp[g_key_action++] = scan;
+            if (g_key_action >= 4) g_state = CC_SHELL_KEY_CONFIRM;
+        }
+        return 1;
+    }
+    if (g_state == CC_SHELL_KEY_CONFIRM) {
+        if (scan == 0x01) {
+            g_state = CC_SHELL_HELP;
+            return 1;
+        }
+        if (scan == 0x31) {  /* N: keep the previous bindings */
+            g_key_action = 0;
+            for (int i = 0; i < 4; i++) g_key_tmp[i] = g_keys[i];
+            g_state = CC_SHELL_KEY_REDEFINE;
+            return 1;
+        }
+        for (int i = 0; i < 4; i++) cc_shell_set_key(i, g_key_tmp[i]);
+        g_state = CC_SHELL_HELP;
+        return 1;
+    }
+    return 0;
 }
 
 int cc_shell_key(int key) {
@@ -518,8 +737,8 @@ int cc_shell_key(int key) {
                 g_return_state = CC_SHELL_MENU;
                 g_state = CC_SHELL_RESTORE;
             } else if (k == 's') {
-                set_pages(INTRO_BLOCKS, (int)(sizeof(INTRO_BLOCKS) / sizeof(int)),
-                          CC_SHELL_MENU, 0, 0);
+                set_story_pages(g_intro_pages, g_intro_page_count,
+                                CC_SHELL_MENU, 0, 0);
             } else if (k == 'i') {
                 start_instructions(CC_SHELL_MENU);
             } else if (k == 'o') {
@@ -562,9 +781,13 @@ int cc_shell_key(int key) {
             if (key == CC_KEY_BACKSPACE) {
                 if (g_name_len > 0) g_name[--g_name_len] = 0;
             } else if (key == CC_KEY_ENTER) {
-                cc_shell_hiscore_add(g_name_len ? g_name : "Mylo", g_pending_score);
+                cc_shell_hiscore_add(g_name, g_pending_score);
                 g_state = CC_SHELL_HISCORE;
-            } else if (key >= 0x20 && key <= 0x7e && g_name_len < 12) {
+            } else if (g_name_len < HISCORE_NAME_MAX &&
+                       ((key >= 'A' && key <= 'Z') ||
+                        (key >= 'a' && key <= 'z') ||
+                        (key >= '0' && key <= '9') ||
+                        key == ' ')) {
                 g_name[g_name_len++] = (char)key;
                 g_name[g_name_len] = 0;
             }
@@ -599,6 +822,7 @@ int cc_shell_key(int key) {
                 show_block(SHELL_TEXT_MENU_VIDEO, CC_SHELL_HELP);
             } else if (k == 'k') {
                 g_key_action = 0;
+                for (int i = 0; i < 4; i++) g_key_tmp[i] = g_keys[i];
                 g_state = CC_SHELL_KEY_REDEFINE;
             } else if (k == 'w') {
                 g_warp_value = -1;
@@ -651,13 +875,8 @@ int cc_shell_key(int key) {
             }
             return 1;
         case CC_SHELL_KEY_REDEFINE:
-            if (key == CC_KEY_ESC) {
-                g_state = CC_SHELL_HELP;
-            } else if (key != 0 && g_key_action < 4) {
-                g_keys[g_key_action++] = key;
-                if (g_key_action >= 4) g_state = CC_SHELL_HELP;
-            }
-            return 1;
+        case CC_SHELL_KEY_CONFIRM:
+            return cc_shell_key_scan(scan_from_ascii(key));
         case CC_SHELL_WARP: {
             int k = lower(key);
             if (k >= '0' && k <= '9') {

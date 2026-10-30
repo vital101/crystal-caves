@@ -1,0 +1,74 @@
+{
+ "defaults": {
+  "names": [
+   "Play all 3 episodes",
+   "of Crystal Caves.",
+   "Call 1-800-852-5659",
+   "and use Visa or MC.",
+   " ",
+   "I. Jones",
+   "B. Blaze",
+   "S. Logan",
+   "D. Nukem",
+   "J. Kirk"
+  ],
+  "scores": [
+   150000,
+   140000,
+   130000,
+   120000,
+   110000,
+   100000,
+   90000,
+   80000,
+   70000,
+   60000
+  ],
+  "threshold": 60000
+ },
+ "screen_lines": [
+  "   Top Intergalactic Traders",
+  " -----------------------------",
+  " ",
+  " Play all 3 episodes  150000",
+  " of Crystal Caves.    140000",
+  " Call 1-800-852-5659  130000",
+  " and use Visa or MC.  120000",
+  "                      110000",
+  " I. Jones             100000",
+  " B. Blaze             90000",
+  " S. Logan             80000",
+  " D. Nukem             70000",
+  " J. Kirk              60000",
+  " ",
+  " -----------------------------",
+  " ",
+  "         Press Any Key ^"
+ ],
+ "screen_fb_sha256": "eb9716c424394492cff71625f8b35fde1fbcf4e1c5ea0f2f6e30a6d380c1db39",
+ "screen_fb_b64": "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",
+ "qualify_cases": [
+  {
+   "score": 59999,
+   "qualifies": false
+  },
+  {
+   "score": 60000,
+   "qualifies": false
+  },
+  {
+   "score": 60001,
+   "qualifies": true
+  },
+  {
+   "score": 150000,
+   "qualifies": true
+  },
+  {
+   "score": 150001,
+   "qualifies": true
+  }
+ ],
+ "tie_rule": "equal scores keep the existing entry first",
+ "name_max": 20
+}
