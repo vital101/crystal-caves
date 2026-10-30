@@ -442,14 +442,17 @@ Completed Phase 5 polish:
 - the HUD power timers tick once per game step (`cc_hud_tick()`) instead of
   once per rendered frame, with a cadence regression test;
 - cave→hub transitions replay the destination-2 overlay, including the hub's
-  two RNG-driven background decoration recipes and flag-driven door cells.
+  two RNG-driven background decoration recipes and flag-driven door cells;
+- manual browser smoke testing is complete; it caught and fixed object-frame
+  selection (`shape + p10 - 1`) and debug-warp source-cell leakage, both now
+  covered by regressions.
 
 Remaining Phase 5 polish (see the checklist at the end of this phase):
 
-- run a real-browser smoke test for `game.html` save/restore/high scores/config;
 - verify exact story/menu timing, high-score defaults/name-entry, and
   DOS-scan-code vs browser-key redefine semantics;
-- confirm the credits/title/finale screen order against the original.
+- confirm the credits/title/finale screen order against the original;
+- add automated headless browser smoke coverage (Phase 8).
 
 Goal: complete the non-gameplay shell around the already-exact gameplay core:
 status HUD, text windows, PCX screens, title/menu flow, story/finale
@@ -756,10 +759,12 @@ make test-all
 - **P5.R3 — HUD cadence (DONE).**  `cc_hud_tick()` advances
   `[0xA0C4]/[0xA0C6]` once per game step; `cc_hud_render()` is pure.
   `test_hud.js` checks 18 ticks with extra renders ignored.
-- **P5.R4 — Browser smoke test.**  Exercise `wasm/game.html` in a real browser:
-  title→new game→hub, HUD updates, help/pause/quit/warp/key redefine, save and
-  restore slots, high-score name entry and persistence across reload, config
-  persistence, and Gamepad input.  Add a headless Playwright test if available.
+- **P5.R4 — Browser smoke test (DONE, manual).**  Exercised `wasm/game.html`
+  in a real browser through title→new game→hub, HUD, help/pause/warp and the
+  save/restore/high-score/config flows.  The pass found two rendering bugs:
+  object animation frames were not selected (`shape + p10 - 1`) and debug warp
+  reused transition overlays from the source cave; both are fixed and covered
+  by `test_shell.js`.  Headless Playwright coverage remains Phase 8 work.
 - **P5.R5 — Exactness verification.**  Confirm screen order/timing
   (Apogee → credits → title → menu, ending → high scores), intro/finale page
   order, high-score defaults/sort/name-entry rules, and DOS scan-code parity
@@ -838,12 +843,13 @@ Acceptance:
 
 ## Immediate next actions
 
-1. Finish Phase 5 polish P5.R4–P5.R5: browser smoke test and exactness
-   verification (timing, high-score defaults/name entry, key semantics).
+1. Finish P5.R5 exactness verification (screen order/timing, high-score
+   defaults/name entry, DOS scan-code key semantics).
 2. Phase 6: reverse the Crystal Caves Sound driver and wire the existing
    sound-ID log to WebAudio; honour the Phase 5 sound toggle.
 3. Phase 7: harden the v1 save/config/high-score schema and verify round-trips.
-4. Phase 8: CI, release regression, performance and docs.
+4. Phase 8: add Playwright browser smoke coverage, CI, release regression,
+   performance and docs.
 
 ## Validation commands
 
@@ -891,6 +897,8 @@ PASS: mutable cell renderer matches baked; crystal clear changed 150 pixels
 PASS: HUD matches the real routine (4 boundary cases)
 PASS: text windows match the real renderer (23 fixtures, 0 px)
 PASS: shell flow, story/finale, save/restore, high scores
+PASS: debug warp uses fresh destination cells and preserves score
+PASS: player walk animation advances through shapes 1..12
 PASS: HUD/text fixtures regenerate via make test-oracle-shell
 ```
 
