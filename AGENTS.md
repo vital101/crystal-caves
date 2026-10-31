@@ -28,6 +28,9 @@ There is no root Makefile; the build lives in `wasm/`.
 | `make test-exactness` | P5.R5 timing/story/high-score/scan-code exactness fixtures |
 | `make test-keymap` | Browser physical-key → DOS scan-code mapping |
 | `make test-sound` | Sound driver, trace asset, JS synth and shell sound fixtures |
+| `make test-browser` | Headless Chromium smoke test of `game.html` (Playwright; skips if absent) |
+| `make test-browser-update` | Regenerate `wasm/browser_expectations.json` framebuffer hashes |
+| `make perf` | wasm size + per-frame timing against the 57.1 ms game budget |
 | `make test-oracle-sound` | Regenerate the Unicorn sound trace, then compare |
 | `make test-oracle-exactness` | Regenerate shell exactness fixtures/header |
 | `make test-oracle-shell` | Regenerate `notes/hud_fixtures.json` + `notes/text_fixtures.json`, then compare |
@@ -46,9 +49,13 @@ There is no root Makefile; the build lives in `wasm/`.
 `assets/` automatically. `test-data` needs no wasm build.
 
 **Toolchain:** Homebrew LLVM **and lld** (`brew install llvm lld`); the Makefile
-uses `brew --prefix llvm` or pass `LLVM=/path/to/bin`. Python oracle tools need
+uses `brew --prefix llvm` or pass `LLVM=/path/to/bin`. The clang build uses
+`-Oz` (~152 KB `render.wasm`). Python oracle tools need
 `tools/requirements.txt` (`capstone`, `unicorn`); use `../.venv/bin/python` (the
-Makefile auto-detects it) or install system-wide.
+Makefile auto-detects it) or install system-wide. npm is **test-only**
+(`wasm/package.json` + Playwright for `test-browser`); the game build never
+needs it. CI is `.github/workflows/ci.yml` (Ubuntu: build + `test-all` +
+size/perf summary, browser smoke, manual oracle regeneration).
 
 ## Data Pipeline
 
@@ -148,10 +155,17 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   covered by `notes/persist.md` / `make test-persist`.  The original hub-only
   save restriction, `CC1.HS` defaults/sort/tie rules and `CC1.CFG` fields are
   preserved; see `notes/persist.md` for the original file layouts.
-- Known shell limitations: browser smoke coverage of `game.html`
-  localStorage/save/restore is still pending; joystick uses the Gamepad API;
-  the original blinking input cursor is not drawn in shell text windows;
-  title scroll is approximated from the original tick-driven sequence.
+- Known shell limitations: joystick uses the Gamepad API; the original
+  blinking input cursor is not drawn in shell text windows; title scroll is
+  approximated from the original tick-driven sequence.
+- Phase 8 is implemented: `make test-all` covers the full committed-fixture
+  suite with an unknown-handler guard, `make test-browser` runs
+  title → hub → save/restore → finale in headless Chromium via real key
+  events, `.github/workflows/ci.yml` builds/tests on Ubuntu, `make perf`
+  reports wasm size and frame cost (~1.2 ms per level frame against the
+  57.1 ms budget), and the build uses `-Oz` (~152 KB vs ~180 KB at `-O2`).
+  `notes/regression.md` maps every subsystem to its fixture and target; the
+  root `README.md` documents build/run/test.
 - Phase 6 sound is implemented: all 36 Crystal Caves Sound effects are
   trace-captured from the real `0x1FBBF`/`0x0A3F` driver, rendered by
   `wasm/sound_synth.js`, and played through a single WebAudio channel.
@@ -227,10 +241,16 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - `wasm/game.html` — full shell page
 - `wasm/text.c/h`, `wasm/shell.c/h`, `wasm/render.h` — Phase 5 code
 - `wasm/sound.c/h`, `wasm/sound_data.h`, `wasm/sound_synth.js`, `wasm/audio.js` — Phase 6 sound
+- `wasm/test_browser.js` / `wasm/browser_expectations.json` — Phase 8 headless browser smoke
+- `wasm/measure_perf.js` / `wasm/perf_baseline.json` — Phase 8 frame-budget/size checks
+- `notes/regression.md` — Phase 8 coverage matrix (target → fixture → harness)
+- `README.md` — build, run, controls, test and oracle-regeneration guide
 
 ## Known Constraints
 
-- No `package.json`, `pip` project, or `cargo`; Python + clang/emcc only
+- No `pip` project or `cargo`; the game build is Python + clang/emcc only.
+  npm exists solely for the optional Playwright browser test
+  (`wasm/package.json`).
 - Static levels are baked from oracle dumps; `cells.bin` carries mutable 20-byte records, dynamic redraw is implemented, and the HUD/text windows are oracle-exact.
 - Oracle catalog is the regression reference; never hand-edit generated headers
 - Level layout is code-encoded — changing map heights requires editing binary/code assumptions

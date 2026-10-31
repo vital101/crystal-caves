@@ -57,16 +57,23 @@ Verified today:
   high-score reload/corruption fallback and config/key-binding reload are
   covered by `notes/persist.md` and `make test-persist`.  A real Phase 5 v1
   save is committed as `notes/persist_v1_fixture.json`.
+- Phase 8 is complete: the full committed-fixture suite runs in `make test-all`
+  with an unknown-handler guard, the headless browser smoke test covers
+  title -> hub -> save/restore -> finale via real key events, GitHub Actions
+  builds/tests on Ubuntu, and the `-Oz` build is ~152 KB with ~1.2 ms level
+  frames against the 57.1 ms budget.  The root `README.md` and
+  `notes/regression.md` document build/run and coverage.
 
 Important remaining work:
 
-- Phase 5 polish: browser smoke test; title scroll visual parity is
-  approximated from the original tick-driven sequence.
+- Phase 5 polish: title scroll visual parity is approximated from the
+  original tick-driven sequence (manual browser smoke is automated in Phase 8).
 - Sound (Phase 6) is implemented; IDs 2/7 trigger-coverage audit and a
-  full oracle-driven title/menu sound flow remain.
+  full oracle-driven title/menu sound flow remain optional follow-ups.
 - Phase 7 (save/high-score/config hardening) is complete; see
   `notes/persist.md` and `make test-persist`.
-- Release regression/CI/docs/performance work (Phase 8).
+- Phase 8 is complete; see `notes/regression.md`, `README.md`, and
+  `.github/workflows/ci.yml`.
 
 ## Critical path
 
@@ -455,8 +462,9 @@ Completed Phase 5 polish:
 
 Remaining Phase 5 polish (see the checklist at the end of this phase):
 
-- add automated headless browser smoke coverage (Phase 8);
-- title/credits scroll is approximated by the original 432-tick duration.
+- automated headless browser smoke coverage is done in Phase 8
+  (`make test-browser`); title/credits scroll is still approximated by the
+  original 432-tick duration.
 
 Goal: complete the non-gameplay shell around the already-exact gameplay core:
 status HUD, text windows, PCX screens, title/menu flow, story/finale
@@ -768,7 +776,8 @@ make test-all
   save/restore/high-score/config flows.  The pass found two rendering bugs:
   object animation frames were not selected (`shape + p10 - 1`) and debug warp
   reused transition overlays from the source cave; both are fixed and covered
-  by `test_shell.js`.  Headless Playwright coverage remains Phase 8 work.
+  by `test_shell.js`.  Headless Playwright coverage landed in Phase 8
+  (`make test-browser`).
 - **P5.R5 — Exactness verification (DONE).**  Added
   `tools/shell_exactness.py`, `notes/shell_exactness_fixtures.json`,
   `notes/hiscore_fixtures.json`, `notes/keymap_fixtures.json`, and
@@ -860,39 +869,51 @@ Acceptance:
 - High scores survive reload.  (met)
 - Key bindings/config survive reload.  (met)
 
-## Phase 8 — Full regression and release
+## Phase 8 — Full regression and release (COMPLETE)
 
-Tasks:
+Status: COMPLETE.
 
-- Add permanent oracle fixtures:
-  - all 19 static renders,
-  - hub/level object+cell frames,
-  - player physics,
-  - interaction/combat,
-  - hub door flow/exit,
-  - menus/save/high scores,
-  - text-window frames, message triggers and HUD cadence.
-- Add sound-ID/timing fixtures (Phase 6).
-- Make `make test-all` cover the full deterministic suite.
-- Add CI workflow (build, data checks, render diff, gameplay fixtures, browser
-  smoke test).
-- Optimize wasm size/memory and frame budget.
-- Refresh `AGENTS.md`, `notes/*`, and add a README with build/run instructions.
-- Remove stale stub assertions/tests and superseded tools.
+Implemented:
+
+- `make test-all` runs the full committed-fixture suite (data, 19-level
+  render, viewport, objects, gameplay, integration, physics, combat, handlers,
+  loader, caves, cells, HUD, messages, text, shell, persist, exactness,
+  sound).  `test_handlers.js` now asserts `cc_unknown_handler_hits() == 0`.
+- `make test-browser` (`wasm/test_browser.js`, Playwright) opens
+  `game.html?test=1` in headless Chromium, drives real keyboard events through
+  logo/credits/title/menu/intro/hub, walks and fires, saves to slot 0,
+  mutates, reloads, restores (state hash and score match), verifies config and
+  high-score reload, and runs the all-caves finale -> ending flow.
+  `browser_expectations.json` locks the shell/hub framebuffer hashes.
+- `.github/workflows/ci.yml`: Ubuntu build + `test-all` + size/perf summary,
+  headless browser job, and a manual `workflow_dispatch` oracle-regeneration
+  job.
+- `make perf` (`wasm/measure_perf.js`): per-frame work identical to the page.
+  `-Oz` shrinks `render.wasm` from ~180 KB to ~152 KB; measured level frames
+  are ~1.2 ms against the 57.1 ms budget; 16 MiB initial memory is unchanged.
+  `--gc-sections` saves 2 bytes and is not used.
+- `README.md` (build/run/controls/tests/oracle/CI), refreshed `AGENTS.md` and
+  `notes/regression.md` coverage matrix.
+- Removed stale zero-stub comments/assertions, the dead `test_gameplay.js`
+  helper, and the duplicate `test-keymap` prerequisite.  `test_gameplay.js`
+  now describes level facts rather than stub behavior.
 
 Acceptance:
 
-- Clean checkout builds and passes the full suite.
-- Playable from title to finale with no known gameplay stubs.
-- Regression suite fails on any oracle divergence.
+- Clean checkout builds and passes the full suite (CI).
+- Playable from title to finale with no known gameplay stubs (browser smoke +
+  node shell fixtures).
+- Regression suite fails on any oracle divergence (committed fixtures and the
+  unknown-handler guard).
 
 ## Immediate next actions
 
-1. Phase 6 follow-up: audit the remaining ID 2/7 gameplay trigger sites and
-   add end-to-end title/menu sound capture if desired.
-2. Phase 8: add Playwright browser smoke coverage, CI, release regression,
-   performance and docs.  Phase 7 persistence is complete
-   (`notes/persist.md`, `make test-persist`).
+1. Optional Phase 6 follow-up: audit the remaining ID 2/7 gameplay trigger
+   sites and add end-to-end title/menu sound capture if desired.
+2. Phase 8 is complete (`README.md`, `notes/regression.md`,
+   `.github/workflows/ci.yml`, `make test-browser`, `make perf`).  Remaining
+   optional polish: title-scroll visual parity, the shell text cursor, and a
+   full oracle-driven title/menu sound capture.
 
 ## Validation commands
 
@@ -915,6 +936,9 @@ make test-persist            # Phase 7 save format/round-trip/high-score/config
 make test-exactness          # P5.R5 timing/story/high-score/scan-code fixtures
 make test-keymap             # browser key -> DOS scan-code mapping
 make test-sound              # sound driver/trace/JS synth/shell integration
+make test-browser            # headless browser smoke (title->hub->save->finale)
+make test-browser-update     # regenerate browser framebuffer hash expectations
+make perf                    # wasm size + frame-budget measurement
 make test-oracle-sound       # regenerate sound traces (Unicorn) and compare
 make test-oracle-exactness   # regenerate shell exactness fixtures/header
 make test-oracle-shell       # regenerate HUD + text fixtures
@@ -953,6 +977,8 @@ PASS: high-score screen matches the original framebuffer
 PASS: DOS scan-code defaults, key redefine, and browser key map
 PASS: 36 sound traces, driver priority/preemption, JS synth hashes
 PASS: shell sounds and ID-26 finale wait
+PASS: browser smoke (title -> hub -> save/restore -> finale)
+PASS: wasm size and frame budget within thresholds (~152 KB, ~1.2 ms/frame)
 PASS: debug warp uses fresh destination cells and preserves score
 PASS: player walk animation advances through shapes 1..12
 PASS: HUD/text fixtures regenerate via make test-oracle-shell
@@ -977,7 +1003,14 @@ PASS: shell exactness fixtures regenerate via make test-oracle-exactness
 - `tools/sound_banks.py`, `tools/sound_fixtures.py`, `tools/export_sound.py` — sound oracle/export
 - `notes/sound_fixtures.json`, `notes/sound_synth_fixtures.json`, `notes/sound_shell_fixtures.json`, `notes/sound.md`.
 - `wasm/play.html` — dev level-select/input harness.
-- `wasm/game.html` — full shell page (Phase 5).
+- `wasm/game.html` — full shell page
+- `wasm/test_browser.js` / `wasm/browser_expectations.json` — Phase 8
+  deterministic headless browser smoke (Playwright, test-only npm).
+- `wasm/measure_perf.js` / `wasm/perf_baseline.json` — Phase 8 size/frame-budget check.
+- `.github/workflows/ci.yml` — Ubuntu build + deterministic suite + browser
+  smoke + manual oracle regeneration.
+- `README.md` — build/run/controls/test/oracle guide.
+- `notes/regression.md` — Phase 8 coverage matrix and build-size notes. (Phase 5).
 - `wasm/test_hud.js` — HUD-vs-oracle regression.
 - `wasm/test_text.js` — text-window frame/fill/text oracle regression.
 - `wasm/test_shell.js` — shell flow/save/high-score/finale regression.
