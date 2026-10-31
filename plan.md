@@ -57,7 +57,8 @@ Important remaining work:
 
 - Phase 5 polish: browser smoke test; title scroll visual parity is
   approximated from the original tick-driven sequence.
-- Sound (Phase 6).
+- Sound (Phase 6) is implemented; IDs 2/7 trigger-coverage audit and a
+  full oracle-driven title/menu sound flow remain.
 - Save/high-score/config hardening and mid-level round-trip verification
   (Phase 7).
 - Release regression/CI/docs/performance work (Phase 8).
@@ -777,24 +778,43 @@ make test-all
   file shim and scripted INT 16h keys to run the original title/menu flow for
   end-to-end screen/state comparison.
 
-## Phase 6 — Sound
+## Phase 6 — Sound (IMPLEMENTED)
 
-Phase 5 already records every original sound ID through `cc_sound_log_*` and
-persists the in-game sound toggle; Phase 6 consumes both.
+Status: implemented.  The real driver is captured, all 36 banks are traced
+tick-for-tick, and the browser synthesizes the trace at load time.
 
-Tasks:
+Recovered model:
 
-- Reverse the Crystal Caves Sound driver (`0x0FC5`) and the three SND banks.
-- Map `play_sound_or_effect` IDs (`0x1FBBF`) to effects.
-- Pre-render PC-speaker effects to PCM at build time, or implement a runtime
-  synthesizer.
-- Add a WebAudio channel manager and sound-enable toggle.
-- Add fixtures for sound ID selection/timing.
+- `play_sound_or_effect` is `0x1F9A:0x021F` (linear `0x1FBBF`); bank selection
+  `(id-1)/12+1`, slot `(id-1)%12+1`; far pointers at `DS:0x510C/0x5110/0x5114`.
+- `CC1-1.SND`..`CC1-3.SND` are 12 × 610-byte records.  Notes are `uint16` Hz
+  terminated by `0xFFFF`; `+600` priority; `+604` gate period.
+- INT 1Ch ISR `0x0A3F`; PIT channel 0 divisor `0x2147` = 140.061 Hz;
+  `0x287F6` sets `divisor = 1193181/Hz` (≤18 is ignored); `0x28823` silences;
+  `0xFB33` plays ID 26 and waits for `[0x513F]`.
+- Exact priority rule: new priority `>=` current preempts; lower is ignored.
 
-Acceptance:
+Implemented:
 
-- Sound effects trigger at the correct times and obey the in-game toggle.
-- No missing/unknown sound IDs in normal gameplay.
+- `tools/sound_banks.py` / `tools/sound_fixtures.py` — model + Unicorn oracle.
+  All 36 traces match; selection matrix matches.
+- `wasm/sound.c/h` — exact enable/priority/preemption/tick/event state.
+- `tools/export_sound.py` — `out/portable/sound.json` +
+  `wasm/sound_data.h` + synth hashes.
+- `wasm/sound_synth.js` — deterministic integer-phase square-wave renderer.
+- `wasm/audio.js` — single-channel WebAudio manager, autoplay unlock, toggle.
+- `wasm/game.html` — 140.06 Hz sound tick accumulator, event polling, stop on
+  transitions/restore/quit, play through pause/help.
+- Shell effects: menu 33, page 35, high score 34, ending 32, level start 36,
+  and the ID-26 all-caves fanfare/wait.
+- Fixtures/tests: `notes/sound_fixtures.json`,
+  `notes/sound_synth_fixtures.json`, `notes/sound_shell_fixtures.json`,
+  `make test-sound`, `make test-oracle-sound`.
+
+Acceptance: met for the 36 banked effects and the shell integration.
+Remaining coverage audit: IDs 2 and 7 have no C gameplay trigger (ID 7's
+static site is `0xF74C/0xF757`); the full title/menu shell sequence is
+statically mapped rather than captured end-to-end.
 
 ## Phase 7 — Save/high-score/config hardening
 
@@ -847,8 +867,8 @@ Acceptance:
 
 ## Immediate next actions
 
-1. Phase 6: reverse the Crystal Caves Sound driver and wire the existing
-   sound-ID log to WebAudio; honour the Phase 5 sound toggle.
+1. Phase 6 follow-up: audit the remaining ID 2/7 gameplay trigger sites and
+   add end-to-end title/menu sound capture if desired.
 2. Phase 7: harden the v1 save/config/high-score schema and verify round-trips.
 3. Phase 8: add Playwright browser smoke coverage, CI, release regression,
    performance and docs.
@@ -872,6 +892,8 @@ make test-messages           # in-game message trigger causes
 make test-shell              # shell flow/save/high-score/finale fixtures
 make test-exactness          # P5.R5 timing/story/high-score/scan-code fixtures
 make test-keymap             # browser key -> DOS scan-code mapping
+make test-sound              # sound driver/trace/JS synth/shell integration
+make test-oracle-sound       # regenerate sound traces (Unicorn) and compare
 make test-oracle-exactness   # regenerate shell exactness fixtures/header
 make test-oracle-shell       # regenerate HUD + text fixtures
 make test-oracle-handlers    # regenerate handler fixtures (Unicorn)
@@ -905,6 +927,8 @@ PASS: shell flow, story/finale, save/restore, high scores
 PASS: P5.R5 tick timing, captured intro/finale pages, high-score defaults/tie
 PASS: high-score screen matches the original framebuffer
 PASS: DOS scan-code defaults, key redefine, and browser key map
+PASS: 36 sound traces, driver priority/preemption, JS synth hashes
+PASS: shell sounds and ID-26 finale wait
 PASS: debug warp uses fresh destination cells and preserves score
 PASS: player walk animation advances through shapes 1..12
 PASS: HUD/text fixtures regenerate via make test-oracle-shell
@@ -924,7 +948,10 @@ PASS: shell exactness fixtures regenerate via make test-oracle-exactness
 - `wasm/test_physics.js` — C-vs-oracle physics regression.
 - `wasm/render.c` — static renderer, viewport, object draw, HUD/screen hooks.
 - `wasm/text.c` / `wasm/text.h` — fonts, glyph blitter, text windows (Phase 5).
-- `wasm/shell.c` / `wasm/shell.h` — title/menu/story/help state machine (Phase 5).
+- `wasm/shell.c` / `wasm/shell.h` — title/menu/story/help state machine (Phase 5)
+- `wasm/sound.c/h`, `wasm/sound_data.h`, `wasm/sound_synth.js`, `wasm/audio.js` — Phase 6 sound
+- `tools/sound_banks.py`, `tools/sound_fixtures.py`, `tools/export_sound.py` — sound oracle/export
+- `notes/sound_fixtures.json`, `notes/sound_synth_fixtures.json`, `notes/sound_shell_fixtures.json`, `notes/sound.md`.
 - `wasm/play.html` — dev level-select/input harness.
 - `wasm/game.html` — full shell page (Phase 5).
 - `wasm/test_hud.js` — HUD-vs-oracle regression.

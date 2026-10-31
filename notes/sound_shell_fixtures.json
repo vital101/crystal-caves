@@ -1,0 +1,53 @@
+{
+ "source": "Static play_sound call sites in CC1-UNLZ.EXE plus the Phase 6 shell integration; see notes/sound.md.",
+ "call_sites": [
+  {
+   "address": "0x1776f",
+   "id": 33,
+   "action": "main menu N / Space / Enter (start new game)",
+   "evidence": "scan-code compare 0x31/0x39/0x1c then play_sound(0x21)"
+  },
+  {
+   "address": "0x10934",
+   "id": 35,
+   "action": "text window/page rendered",
+   "evidence": "window renderer completion path"
+  },
+  {
+   "address": "0x13fc4",
+   "action": "high-score screen",
+   "id": 34,
+   "evidence": "name/high-score text routine"
+  },
+  {
+   "address": "0x1aaef",
+   "action": "ending screen",
+   "id": 32,
+   "evidence": "ending screen setup before wait"
+  },
+  {
+   "address": "0xfb37",
+   "action": "all-caves fanfare, then wait for [0x513f]",
+   "id": 26,
+   "evidence": "play_sound(0x1a); cmp [0x513f],0; jne loop"
+  },
+  {
+   "address": "0xcf1c",
+   "action": "level start",
+   "id": 36,
+   "evidence": "0xCF00 level-start/restart routine"
+  }
+ ],
+ "finale_wait": {
+  "id": 26,
+  "ticks": 149,
+  "tick_hz": 140.061157,
+  "seconds": 1.0638
+ },
+ "toggle": "Exact [0x513e]: sound off blocks future play_sound calls but does not stop the current effect.",
+ "priority": "Exact 0x1FBBF: new priority >= current priority preempts; lower priority is ignored.",
+ "notes": [
+  "The full main-menu/title flow is not driven end-to-end by an oracle in Phase 6; the call sites above are statically recovered and the C shell test asserts the integration.",
+  "ID 33 is attempted on new-game selection but the immediately following story/level load clears [0x513f], so it is usually inaudible in the fast browser load, matching the original loader reset."
+ ]
+}

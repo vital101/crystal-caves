@@ -24,21 +24,24 @@ EXPORTS = cc_alloc cc_set_assets cc_set_palette cc_render_level cc_render_view c
 	  cc_obj_kind cc_obj_shape cc_obj_tile cc_obj_p10 cc_obj_draw_shape cc_obj_p12 cc_obj_p14 cc_obj_p16 cc_obj_p18 cc_obj_p1a cc_obj_ready cc_obj_vx cc_obj_vy cc_obj_speed cc_obj_p24 cc_obj_cursor cc_obj_set_cursor cc_obj_handler cc_cur_level \
 	  cc_input_set cc_set_player cc_player_x cc_player_y cc_cam_x cc_cam_y cc_move_dir cc_collide_player \
 	  cc_draw_object cc_draw_object_view cc_sound_set_callback cc_sound_log_clear cc_sound_log_count cc_sound_log_total cc_sound_log_at \
+	  cc_sound_init cc_sound_reset cc_sound_set_enabled cc_sound_enabled cc_sound_play cc_sound_tick cc_sound_end cc_sound_stop \
+	  cc_sound_playing cc_sound_current_id cc_sound_current_priority cc_sound_current_bank cc_sound_current_slot cc_sound_current_ticks cc_sound_unknown_hits \
+	  cc_sound_event_count cc_sound_event_at cc_sound_event_clear \
 	  cc_global_get cc_global_set cc_rng_next cc_rng_seed cc_rng_lo cc_rng_hi \
 	  cc_score cc_score_lo cc_score_hi cc_cooldown cc_g_2da cc_g_a0c4 cc_g_a0ff cc_collectibles_total cc_collectibles_left \
 	  cc_lives cc_health cc_ammo cc_crystals_collected cc_crystals_remaining cc_level_arg cc_exit_unlocked cc_exit_active cc_door_active cc_cave_flag cc_level_complete cc_handler_coverage_num cc_phys_get cc_phys_set
 
 clang: assets $(OUT)
 
-$(OUT): render.c render.h objects.c objects.h objects_data.h cells_data.h startup_data.h text.c text.h shell.c shell.h shell_text_data.h shell_exact_data.h
+$(OUT): render.c render.h objects.c objects.h objects_data.h cells_data.h startup_data.h text.c text.h shell.c shell.h shell_text_data.h shell_exact_data.h sound.c sound.h sound_data.h
 	@test -x "$(LLVM)/clang" || { echo "clang not found at $(LLVM)/clang"; \
 	  echo "Install Homebrew LLVM (brew install llvm) or pass LLVM=/path/to/bin"; exit 1; }
 	$(LLVM)/clang --target=wasm32 -O2 -nostdlib -ffreestanding -fno-builtin \
 	  -Wl,--no-entry -Wl,--no-gc-sections -Wl,--stack-first -Wl,-z,stack-size=65536 \
 	  -Wl,--export-memory -Wl,--initial-memory=16777216 -Wl,-z,stack-size=65536 \
-	  $(foreach s,$(EXPORTS),-Wl,--export=$(s)) -o $(OUT) render.c objects.c text.c shell.c
+	  $(foreach s,$(EXPORTS),-Wl,--export=$(s)) -o $(OUT) render.c objects.c text.c shell.c sound.c
 
-assets: assets/gfx.bin assets/levels.bin assets/palette.json assets/cells.bin assets/level_overlay.bin assets/screens.bin assets/mni_f1.bin assets/mni_f2.bin assets/mni_spl.bin
+assets: assets/gfx.bin assets/levels.bin assets/palette.json assets/cells.bin assets/level_overlay.bin assets/screens.bin assets/mni_f1.bin assets/mni_f2.bin assets/mni_spl.bin assets/sound.json
 
 assets/gfx.bin: ../out/portable/gfx.bin
 	@mkdir -p assets
@@ -67,6 +70,9 @@ assets/mni_f2.bin: ../out/portable/mni_f2.bin
 assets/mni_spl.bin: ../out/portable/mni_spl.bin
 	@mkdir -p assets
 	cp $< $@
+assets/sound.json: ../out/portable/sound.json
+	@mkdir -p assets
+	cp $< $@
 
 # Regenerate the portable intermediate from the committed extracted assets.
 data:
@@ -75,6 +81,7 @@ data:
 	$(PYTHON) ../tools/export_shell_assets.py
 	$(PYTHON) ../tools/make_shell_exact_data.py
 	$(PYTHON) ../tools/export_level_overlay.py
+	$(PYTHON) ../tools/export_sound.py
 
 # Recover the exact 0xC3E startup state (Unicorn; writes notes/startup.json).
 startup:
@@ -132,6 +139,18 @@ test-exactness: clang
 
 test-keymap:
 	node test_keymap.js
+
+# Phase 6 sound: driver selection, exported trace, JS synth hashes.
+test-sound: clang
+	node test_sound.js
+	node test_sound_shell.js
+
+test-oracle-sound:
+	$(PYTHON) ../tools/sound_fixtures.py
+	$(PYTHON) ../tools/export_sound.py
+	$(MAKE) clang
+	node test_sound.js
+	node test_sound_shell.js
 
 test-oracle-exactness:
 	$(PYTHON) ../tools/shell_exactness.py
@@ -207,9 +226,9 @@ test-oracle-objects: clang
 	$(PYTHON) ../tools/emulate_game.py 3 120 --json > oracle_level3.json
 	node test_oracle_objects.js oracle_level3.json
 
-test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-exactness test-keymap
+test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-exactness test-keymap test-sound
 
 clean:
 	rm -f $(OUT) app.js app.wasm out_wasm_level*.png oracle_level*.json
 
-.PHONY: clang emcc assets data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-exactness test-keymap test-oracle-exactness test-oracle-shell test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-all clean
+.PHONY: clang emcc assets data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-exactness test-keymap test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-all clean

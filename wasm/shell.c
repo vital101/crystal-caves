@@ -9,6 +9,7 @@
 #include "text.h"
 #include "render.h"
 #include "objects.h"
+#include "sound.h"
 #include "shell_text_data.h"
 #include "shell_exact_data.h"
 
@@ -23,6 +24,8 @@ typedef struct { char name[24]; unsigned int score; } HiScore;
 static int g_state;
 static int g_timer;
 static int g_return_state;
+static int g_wait_sound;       /* finale ID 26: hold until [0x513F] clears */
+static int g_pending_ending;   /* enter CC1.END after the ID 26 fanfare */
 static int g_story_kind;       /* 0 none, 1 intro, 2 finale */
 static int g_story_level;      /* -1 = no level background */
 static int g_finale_pending;
@@ -92,7 +95,9 @@ static void set_pages(const int *blocks, int n, int return_state,
     g_story_kind = story_kind;
     g_story_level = story_level;
     g_state = CC_SHELL_TEXT;
-    if (story_level >= 0) cc_objects_init(story_level);
+    if (story_level >= 0) cc_objects_init_silent(story_level);
+    /* Text-window page effect (0x23); 0x10930 plays it after drawing a page. */
+    cc_sound_play(35);
 }
 
 static void set_story_pages(const ShellPageDef *pages, int n,
@@ -105,7 +110,9 @@ static void set_story_pages(const ShellPageDef *pages, int n,
     g_story_kind = story_kind;
     g_story_level = story_level;
     g_state = CC_SHELL_TEXT;
-    if (story_level >= 0) cc_objects_init(story_level);
+    if (story_level >= 0) cc_objects_init_silent(story_level);
+    /* 0x10930: page/window effect. */
+    cc_sound_play(35);
 }
 
 static void show_block(int block, int return_state) {
@@ -114,9 +121,35 @@ static void show_block(int block, int return_state) {
     set_pages(one, 1, return_state, 0, -1);
 }
 
+/* ID 0x22: high-score display/entry screen. */
+static void enter_high_score(void) {
+    g_state = CC_SHELL_HISCORE;
+    cc_sound_play(34);
+}
+
+/* ID 0x20: CC1.END ending screen. */
+static void enter_ending(void) {
+    g_state = CC_SHELL_ENDING;
+    cc_sound_play(32);
+}
+
+/* 0xFB33: play the all-caves fanfare (ID 0x1A), wait for [0x513F] to clear,
+ * then enter the ending screen. */
+static void begin_ending_fanfare(void) {
+    cc_sound_play(26);
+    if (cc_sound_playing()) {
+        g_wait_sound = 1;
+        g_pending_ending = 1;
+    } else {
+        enter_ending();
+    }
+}
+
 void cc_shell_init(void) {
     g_state = CC_SHELL_LOGO;
     g_timer = 0;
+    g_wait_sound = 0;
+    g_pending_ending = 0;
     g_return_state = CC_SHELL_MENU;
     g_story_kind = 0;
     g_story_level = -1;
@@ -249,6 +282,16 @@ void cc_shell_step(void) { cc_shell_step_ticks(1); }
 
 void cc_shell_step_ticks(int ticks) {
     if (ticks < 0) ticks = 0;
+    /* 0xFB33: the all-caves fanfare is played and the sequence waits for
+     * [0x513F] to clear before continuing. */
+    if (g_wait_sound) {
+        if (cc_sound_playing()) return;
+        g_wait_sound = 0;
+        if (g_pending_ending) {
+            g_pending_ending = 0;
+            enter_ending();
+        }
+    }
     g_timer += ticks;
     if (g_state == CC_SHELL_LOGO) {
         if (g_timer > CC_SHELL_APOGEE_TICKS) {
@@ -268,9 +311,10 @@ void cc_shell_step_ticks(int ticks) {
     }
     if (g_finale_pending) {
         g_finale_pending = 0;
-        if (g_state == CC_SHELL_GAME)
+        if (g_state == CC_SHELL_GAME) {
             set_story_pages(g_finale_pages, g_finale_page_count,
                             CC_SHELL_ENDING, 2, 1);
+        }
     }
 }
 
@@ -391,6 +435,7 @@ void cc_shell_set_config(int sound, int joystick, int video) {
     g_sound_on = sound ? 1 : 0;
     g_joystick_on = joystick ? 1 : 0;
     g_video_alt = video ? 1 : 0;
+    cc_sound_set_enabled(g_sound_on);
 }
 
 /* ---- rendering ---------------------------------------------------------- */
@@ -641,7 +686,7 @@ static int text_key(int key) {
                 return 1;
             }
             if (g_story_kind == 2) {
-                g_state = CC_SHELL_ENDING;
+                begin_ending_fanfare();
                 g_story_kind = 0;
                 g_story_level = -1;
                 return 1;
@@ -652,12 +697,15 @@ static int text_key(int key) {
     if (key == 0) return 1;
     g_page_index++;
     int pages = g_story_pages ? g_story_page_count : g_page_count;
-    if (g_page_index < pages) return 1;
+    if (g_page_index < pages) {
+        cc_sound_play(35);
+        return 1;
+    }
     if (g_story_kind == 1) {
         cc_load_arg(0);
         g_state = CC_SHELL_GAME;
     } else if (g_story_kind == 2) {
-        g_state = CC_SHELL_ENDING;
+        begin_ending_fanfare();
     } else {
         g_state = g_return_state;
     }
@@ -718,6 +766,7 @@ int cc_shell_key_scan(int scan) {
 }
 
 int cc_shell_key(int key) {
+    if (g_wait_sound) return 1;
     g_timer = 0;
     switch (g_state) {
         case CC_SHELL_LOGO:
@@ -732,6 +781,7 @@ int cc_shell_key(int key) {
         case CC_SHELL_MENU: {
             int k = lower(key);
             if (k == 'n' || key == CC_KEY_ENTER || key == CC_KEY_SPACE) {
+                cc_sound_play(33);
                 start_intro_story();
             } else if (k == 'r') {
                 g_return_state = CC_SHELL_MENU;
@@ -748,7 +798,7 @@ int cc_shell_key(int key) {
                     set_pages(blocks, 2, CC_SHELL_MENU, 0, -1);
                 }
             } else if (k == 'h') {
-                g_state = CC_SHELL_HISCORE;
+                enter_high_score();
             } else if (k == 'f') {
                 show_block(SHELL_TEXT_FOREIGN, CC_SHELL_MENU);
             } else if (k == 'c') {
@@ -770,8 +820,9 @@ int cc_shell_key(int key) {
                 g_name[0] = 0;
                 g_name_len = 0;
                 g_state = CC_SHELL_NAME_ENTRY;
+                cc_sound_play(34);
             } else {
-                g_state = CC_SHELL_HISCORE;
+                enter_high_score();
             }
             return 1;
         case CC_SHELL_HISCORE:
@@ -782,7 +833,7 @@ int cc_shell_key(int key) {
                 if (g_name_len > 0) g_name[--g_name_len] = 0;
             } else if (key == CC_KEY_ENTER) {
                 cc_shell_hiscore_add(g_name, g_pending_score);
-                g_state = CC_SHELL_HISCORE;
+                enter_high_score();
             } else if (g_name_len < HISCORE_NAME_MAX &&
                        ((key >= 'A' && key <= 'Z') ||
                         (key >= 'a' && key <= 'z') ||
@@ -814,6 +865,9 @@ int cc_shell_key(int key) {
                 start_instructions(CC_SHELL_HELP);
             } else if (k == 't') {
                 g_sound_on = !g_sound_on;
+                /* Exact original semantics: [0x513E] only gates future
+                 * play_sound calls; the current effect finishes. */
+                cc_sound_set_enabled(g_sound_on);
             } else if (k == 'j') {
                 g_joystick_on = !g_joystick_on;
             } else if (k == 'c') {
@@ -841,6 +895,7 @@ int cc_shell_key(int key) {
         case CC_SHELL_QUIT: {
             int k = lower(key);
             if (k == 'd' || k == 't') {
+                cc_sound_stop();
                 g_state = CC_SHELL_TITLE;
             } else if (k == 'm') {
                 cc_load_arg(0);

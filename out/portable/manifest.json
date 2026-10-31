@@ -77,5 +77,14 @@
   "shell_text": {
     "file": "shell_text.json",
     "blocks": 49
+  },
+  "sound": {
+    "file": "sound.json",
+    "format": "CCSND6",
+    "count": 36,
+    "pit_hz": 1193181,
+    "tick_divisor": 8519,
+    "tick_hz": 140.061157,
+    "trace": "per 140.06 Hz tick: [PIT divisor, speaker on/off]"
   }
 }

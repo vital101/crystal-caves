@@ -26,6 +26,8 @@ There is no root Makefile; the build lives in `wasm/`.
 | `make test-shell` | Shell flow, text/PCX screens, save/restore, high scores, finale |
 | `make test-exactness` | P5.R5 timing/story/high-score/scan-code exactness fixtures |
 | `make test-keymap` | Browser physical-key → DOS scan-code mapping |
+| `make test-sound` | Sound driver, trace asset, JS synth and shell sound fixtures |
+| `make test-oracle-sound` | Regenerate the Unicorn sound trace, then compare |
 | `make test-oracle-exactness` | Regenerate shell exactness fixtures/header |
 | `make test-oracle-shell` | Regenerate `notes/hud_fixtures.json` + `notes/text_fixtures.json`, then compare |
 | `make test-oracle-cells` | Regenerate `notes/cell_fixtures.json` with Unicorn, then compare |
@@ -61,7 +63,7 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 6. `python3 tools/check_oracle.py` — structural regression checks
 7. `python3 tools/render_oracle.py 0..18` — regenerate static oracle PNGs
 8. `python3 tools/export_level_overlay.py` — generates `out/portable/level_overlay.bin`
-9. `wasm: make data` — exports `out/portable/{gfx,levels,cells,palette,mni,commands,objects,level_overlay,screens,shell_text}`
+9. `wasm: make data` — exports `out/portable/{gfx,levels,cells,palette,mni,commands,objects,level_overlay,screens,shell_text,sound}`
 
 ## Level Model (important)
 
@@ -85,7 +87,7 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - **GFX**: 23 blocks x 8003 B; shape = 16 rows x 2 groups x 5 B `[mask][p0..p3]`; mask=opaque, colour = p0 + 2*p1 + 4*p2 + 8*p3, MSB=leftmost; indices are 1-based
 - **Cell record**: 20 B = 10 words; `w2/w4` layer1 shape/block, `w3/w5` layer2, `w7/w6` layer3; byte `0x11`=solid, `0x13`=exit. Do not discard the other words at runtime — handlers mutate cells.
 - **MNI**: ProGraphx 8x8 font/sprite; `CC1-F1/F2/SPL` are 50-glyph banks of 40 B after a 3-byte header; lowercase text is shifted by -6 in the original font encoding
-- **Sound**: Crystal Caves Sound (modified inverse-frequency, PC speaker); not decoded yet
+- **Sound**: Crystal Caves Sound, 3 banks × 12 records × 610 B; driver is `0x1F9A:0x021F`, INT 1Ch ISR `0x0A3F` at 140.06 Hz, PIT divisor `1193181/Hz`, gate field `+604`; details in `notes/sound.md`
 - **Borland Turbo Pascal** binary; TP runtime helpers live in segment `0x2BB5`
 - **Normal frame order**: `0xE011 → 0xE36B → 0xE5D3 → 0xEBF2 → 0xEAEA → 0xD72A`.
 - **Player fire** is `0xCF6C`, called from `0xEBF2`. The attack is object slot 2
@@ -141,7 +143,15 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   localStorage/save/restore is still pending; joystick uses the Gamepad API;
   the original blinking input cursor is not drawn in shell text windows;
   title scroll is approximated from the original tick-driven sequence.
-- Still missing: sound (Phase 6).
+- Phase 6 sound is implemented: all 36 Crystal Caves Sound effects are
+  trace-captured from the real `0x1FBBF`/`0x0A3F` driver, rendered by
+  `wasm/sound_synth.js`, and played through a single WebAudio channel.
+  Priority/preemption, `[0x513E]` toggle semantics, shell page/high-score/
+  ending effects, the level-start effect and the ID-26 finale wait are wired.
+  `notes/sound_fixtures.json` has 36 exact tick traces; `make test-sound`
+  passes.  Remaining coverage audit: IDs 2 and 7 have no C gameplay trigger
+  (ID 7's static site is `0xF74C/0xF757`); full title/menu shell sound flow is
+  still statically mapped rather than oracle-driven end-to-end.
 
 ## Tooling Entrypoints
 
@@ -169,6 +179,9 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 | `tools/oracle_shell.py` | Real HUD + text-window oracle (`notes/hud_fixtures.json`, `notes/text_fixtures.json`) |
 | `tools/shell_exactness.py` | P5.R5 shell exactness capture (`notes/shell_exactness_fixtures.json`, high-score/keymap fixtures) |
 | `tools/make_shell_exact_data.py` | Generate `wasm/shell_exact_data.h` from exactness fixtures |
+| `tools/sound_banks.py` | Parse CC1-*.SND and build the tick-trace model |
+| `tools/sound_fixtures.py` | Unicorn capture of the real sound driver/ISR (`notes/sound_fixtures.json`) |
+| `tools/export_sound.py` | Export `sound.json`, `sound_data.h` and synth hashes |
 | `tools/check_oracle.py` | Structural oracle validation |
 | `tools/build_cells.py` / `make_cells_data.py` | Cell extraction/header generation |
 | `tools/build_oracle_catalog.py` / `make_objects_data.py` | Object catalog/header generation |
@@ -177,7 +190,7 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 
 ## Outputs
 
-- `out/portable/gfx.bin`, `levels.bin`, `cells.bin`, `palette.json`, `mni_f*.bin`, `screens.bin`, `shell_text.json`, `commands.json`, `objects.json`
+- `out/portable/gfx.bin`, `levels.bin`, `cells.bin`, `palette.json`, `mni_f*.bin`, `screens.bin`, `shell_text.json`, `sound.json`, `commands.json`, `objects.json`
 - `out/emu_L*.png`, `out/oracle_L*.png` — reference renders (oracle renders come from startup+loader cells)
 - `wasm/render.wasm` — build artifact (gitignored)
 - `wasm/startup_data.h` — generated startup/table/level-start data
@@ -194,8 +207,13 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - `notes/cell_fixtures.json` — committed cell/contact/exit oracle trace (`make test-cells`)
 - `notes/handlers.*`, `notes/oracle_catalog.json`, `notes/oracle_objects.json`, `notes/level_table.json`, `notes/gameplay.md`
 - `notes/shell.md` — Phase 5 HUD/text/menu/save notes
+- `notes/sound_fixtures.json` — committed 36-ID sound-driver trace (`make test-sound`)
+- `notes/sound_synth_fixtures.json` — Python-reference JS synth hashes
+- `notes/sound_shell_fixtures.json` — recovered shell sound call sites
+- `notes/sound.md` — Phase 6 driver/format/browser notes
 - `wasm/game.html` — full shell page
 - `wasm/text.c/h`, `wasm/shell.c/h`, `wasm/render.h` — Phase 5 code
+- `wasm/sound.c/h`, `wasm/sound_data.h`, `wasm/sound_synth.js`, `wasm/audio.js` — Phase 6 sound
 
 ## Known Constraints
 

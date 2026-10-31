@@ -39,6 +39,7 @@
 #include "cells_data.h"
 #include "startup_data.h"
 #include "shell.h"
+#include "sound.h"
 
 /* freestanding: no libc */
 static void *memcpy_(void *d, const void *s, unsigned n) {
@@ -375,15 +376,22 @@ static int16_t proximity_mode2(int16_t x, int16_t y, int16_t radius) {
     return ((int16_t)(y - S->player_y) > 0) ? -1 : 1;
 }
 
-/* 0x1F9A:0x21F play_sound_or_effect(id).
- * Original: manages sound channels [0x50E0]/[0x50F4], sets [0x5138]=1,
- * [0x513F]=1, and advances the sound channel index [0x5136].
- * Here we log the ID for oracle comparison and forward it to the host. */
-static void play_sound(uint16_t id) {
+/* Raw attempt log + host callback.  This is deliberately separate from the
+ * Phase 6 driver state: the existing combat/cell/handler fixtures compare
+ * the exact sequence of IDs passed to 0x1F9A:0x21F, regardless of the
+ * sound-enable/priority decision inside the routine. */
+void cc_sound_note(uint16_t id) {
     if (S->sound_log_count < 256)
         S->sound_log[S->sound_log_count++] = id;
     S->sound_log_total++;
     if (S->sound_callback) S->sound_callback(id);
+}
+
+/* 0x1F9A:0x21F play_sound_or_effect(id).  All logging and driver selection
+ * live in cc_sound_play()/cc_sound_note() so shell-triggered sounds use the
+ * same path. */
+static void play_sound(uint16_t id) {
+    cc_sound_play(id);
 }
 
 /* ---------------------------------------------------------------- input
@@ -812,7 +820,8 @@ static void h_1fb9(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 static void h_251d(ObjectEntry *o, int idx, int16_t x, int16_t y);
-static void load_level(int level, int new_game, int fresh_image);
+static void load_level(int level, int new_game, int fresh_image,
+                       int sound_start);
 void cc_warp_level(int level);
 static void load_arg(int arg);
 
@@ -3610,7 +3619,7 @@ static void load_arg(int arg) {
     else if (u <= 16) level = (int)u + 2;
     else level = 2;
     S->next_level = (int16_t)arg;
-    load_level(level, 0, 0);
+    load_level(level, 0, 0, 1);
 }
 
 /* 0xD4E5: hub door opening/entry; caller has set a0f7. */
@@ -3899,7 +3908,7 @@ static void restore_checkpoint(void) {
 static void reload_current_level(void) {
     S->spawn_col_override = 0xFFFF;
     S->spawn_row_override = 0;
-    load_level(S->cur_level, 0, 0);
+    load_level(S->cur_level, 0, 0, 1);
 }
 
 /* 0xD140: decrement the fade/lives latch. */
@@ -4430,8 +4439,13 @@ static void apply_level_overlay(int level) {
     }
 }
 
-static void load_level(int level, int new_game, int fresh_image) {
+static void load_level(int level, int new_game, int fresh_image, int sound_start) {
     if (level < 0 || level >= OBJ_LEVELS) level = 0;
+    /* The original clears [0x513F] before reloading a level (0xEFCF). */
+    cc_sound_reset();
+    /* 0xCF18: the level-start effect (ID 0x24).  Shell story backgrounds
+     * opt out so the finale effect (0x1A) can play instead. */
+    if (sound_start) cc_sound_play(36);
     if (new_game) apply_startup_state();
     /* Fresh loads use the baked image.  Real transitions preserve the source
      * memory and replay only the bytes the loader actually writes.  A debug
@@ -4461,7 +4475,13 @@ static void load_level(int level, int new_game, int fresh_image) {
 void cc_objects_init(int level) {
     S->spawn_col_override = 0xffff;   /* no override on a fresh load */
     S->spawn_row_override = 0;
-    load_level(level, 1, 1);
+    load_level(level, 1, 1, 1);
+}
+
+void cc_objects_init_silent(int level) {
+    S->spawn_col_override = 0xffff;
+    S->spawn_row_override = 0;
+    load_level(level, 1, 1, 0);
 }
 
 /* Debug warp: use the destination's baked image instead of replaying a real
@@ -4469,7 +4489,7 @@ void cc_objects_init(int level) {
 void cc_warp_level(int level) {
     S->spawn_col_override = 0xffff;
     S->spawn_row_override = 0;
-    load_level(level, 0, 1);
+    load_level(level, 0, 1, 1);
 }
 
 /* Transition using the original loader argument (0=hub, 1..16=caves). */
@@ -5092,5 +5112,6 @@ int cc_state_load(const unsigned char *in, int len) {
     S->sound_callback = cb;
     S->sound_log_count = 0;
     S->sound_log_total = 0;
+    cc_sound_reset();
     return 1;
 }

@@ -24,7 +24,8 @@ Known limitations / deliberate browser substitutions:
 - BBS/foreign/ordering/video options show the original text screens with
   browser-appropriate behaviour (no DOS file I/O or network calls).
 - Quit to DOS returns to the title screen.
-- Sound is still Phase 6; the help sound toggle is stored/persisted.
+- Sound is implemented in Phase 6 (`notes/sound.md`); the help sound toggle
+  persists and follows the exact original `[0x513E]` gating semantics.
 - `CC1.CFG`/`CC1.HS` file I/O is replaced by `localStorage` JSON.  The C-side
   high-score table and sort/name-entry rules are the original rules; only the
   storage format is a browser substitution.

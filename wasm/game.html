@@ -23,6 +23,8 @@
   <div id="diag">loading...</div>
 </div>
 <script src="keymap.js"></script>
+<script src="sound_synth.js"></script>
+<script src="audio.js"></script>
 <script>
 (() => {
   const W = 320, H = 200;
@@ -52,18 +54,23 @@
 
   (async () => {
     const load = (p) => fetch(p + '?v=' + Date.now()).then(r => r.arrayBuffer());
-    const [wasm, gfx, levels, cells, overlay, screens, f1, f2, spl, pal] =
+    const [wasm, gfx, levels, cells, overlay, screens, f1, f2, spl, pal, snd] =
       await Promise.all([
         load('render.wasm'), load('assets/gfx.bin'), load('assets/levels.bin'),
         load('assets/cells.bin'), load('assets/level_overlay.bin'),
         load('assets/screens.bin'), load('assets/mni_f1.bin'),
         load('assets/mni_f2.bin'), load('assets/mni_spl.bin'),
         fetch('assets/palette.json').then(r => r.json()),
+        fetch('assets/sound.json').then(r => r.json()),
       ]);
 
     const { instance } = await WebAssembly.instantiate(wasm, {});
     const e = instance.exports;
     const mem = () => new Uint8Array(e.memory.buffer);
+
+    const audio = new CCAudio();
+    audio.load(snd);
+    audio.onended = (id) => e.cc_sound_end(id);
     const copyIn = (buf) => {
       const p = e.cc_alloc(buf.byteLength);
       mem().set(new Uint8Array(buf), p);
@@ -113,7 +120,9 @@
         }
       }
     } catch (_) {}
+    e.cc_sound_init();
     e.cc_shell_set_config(cfg.sound, cfg.joystick, cfg.video);
+    audio.setEnabled(cfg.sound);
     if (Array.isArray(cfg.keys))
       for (let i = 0; i < 4; i++)
         if ((cfg.keys[i] | 0) >= 0 && (cfg.keys[i] | 0) <= 0x7F)
@@ -123,6 +132,7 @@
       cfg.joystick = e.cc_shell_joystick_on();
       cfg.video = e.cc_shell_video_alt();
       cfg.keys = [0, 1, 2, 3].map(i => e.cc_shell_key_for_action(i));
+      audio.setEnabled(cfg.sound);
       try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (_) {}
     }
     function loadHighScores() {
@@ -223,6 +233,7 @@
     let running = true;
     function sendShellKey(ch) { e.cc_shell_key(ch); }
     window.addEventListener('keydown', (ev) => {
+      audio.unlock();
       const st = e.cc_shell_state();
       const scan = CCKeymap.scanFromEvent(ev);
       if (ev.key === 'F1') { ev.preventDefault(); sendShellKey(KEY.F1); return; }
@@ -258,6 +269,7 @@
       if (e.cc_shell_state() === 11 || e.cc_shell_state() === 12) persistHighScores();
       if (e.cc_shell_state() === 6) persistConfig();
     });
+    window.addEventListener('pointerdown', () => { audio.unlock(); });
     window.addEventListener('keyup', (ev) => {
       if (e.cc_shell_state() !== 4) return;
       const scan = CCKeymap.scanFromEvent(ev);
@@ -276,12 +288,26 @@
       const a = document.createElement('a'); a.download = 'crystal-caves.png'; a.href = c.toDataURL(); a.click();
     };
 
+    // ---- sound event pump ----------------------------------------------
+    function pumpSound() {
+      const n = e.cc_sound_event_count();
+      for (let i = 0; i < n; i++) audio.play(e.cc_sound_event_at(i));
+      if (n) e.cc_sound_event_clear();
+      if (!e.cc_sound_playing()) audio.stop();
+    }
+
     // ---- main loop ------------------------------------------------------
-    let last = 0, accum = 0, shellAccum = 0;
+    let last = 0, accum = 0, soundAccum = 0;
     function frame(now) {
       if (!last) last = now;
       let dt = now - last; last = now;
       if (dt > 250) dt = 250;
+      /* The original sound ISR runs on the same 140.06 Hz PIT as the game
+       * timer, independently of the 17.5 Hz game frame. */
+      soundAccum += dt;
+      let soundTicks = Math.floor(soundAccum / TICK_MS);
+      if (soundTicks > 32) soundTicks = 32;
+      soundAccum -= soundTicks * TICK_MS;
       handleRequest();
       if (e.cc_shell_state() === 4 && navigator.getGamepads) {
         const pads = navigator.getGamepads();
@@ -295,6 +321,14 @@
           e.cc_input_set(0x3390, gp.buttons[2] && gp.buttons[2].pressed ? 1 : 0);
         }
       }
+      /* Advance the sound driver at 140.06 Hz.  In shell states the shell
+       * timer advances on the same tick, after the sound tick, so a
+       * wait-for-sound (ID 26) observes the cleared playing flag. */
+      for (let i = 0; i < soundTicks; i++) {
+        e.cc_sound_tick();
+        if (e.cc_shell_state() !== 4) e.cc_shell_step_ticks(1);
+      }
+
       if (e.cc_shell_state() === 4) {
         e.cc_shell_step();
         accum += dt;
@@ -307,13 +341,10 @@
           steps++;
           if (e.cc_shell_state() !== 4) break;
         }
+        pumpSound();
         if (steps) renderGame();
       } else {
-        shellAccum += dt;
-        let ticks = Math.floor(shellAccum / TICK_MS);
-        if (ticks > 16) ticks = 16;
-        shellAccum -= ticks * TICK_MS;
-        if (ticks > 0) e.cc_shell_step_ticks(ticks);
+        pumpSound();
         if (e.cc_shell_overlay()) renderGame();
         else renderShell();
       }

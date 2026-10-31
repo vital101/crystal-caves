@@ -29,6 +29,9 @@ function key(ch) { return typeof ch === 'number' ? ch : ch.charCodeAt(0); }
 
   const { instance } = await WebAssembly.instantiate(wasm, {});
   const e = instance.exports;
+  /* P5 exactness covers layout/timing, not audio; keep the Phase 6 shell
+   * fanfare/wait from delaying page transitions in this fixture. */
+  e.cc_sound_set_enabled(0);
   const mem = () => new Uint8Array(e.memory.buffer);
   const copy = (b) => { const p = e.cc_alloc(b.length); mem().set(b, p); return p; };
   const sput = (s) => {

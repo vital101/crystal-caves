@@ -17,6 +17,9 @@ void cc_cell_set(int col, int row, int off, int value);
 
 /* Load the oracle-captured 60-slot object image for `level`. */
 void cc_objects_init(int level);
+/* Shell story backgrounds: load the level without the gameplay level-start
+ * sound (0x24), which would otherwise preempt the finale (0x1A) effect. */
+void cc_objects_init_silent(int level);
 void cc_warp_level(int level);
 void cc_level_exit(int arg);
 void cc_load_arg(int arg);
