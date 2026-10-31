@@ -1,0 +1,26 @@
+# Only what the image build needs: wasm/ sources and out/portable/ assets.
+.git
+.github
+.venv
+
+# Original EXE/archive material and research notes are not part of the image.
+extracted
+notes
+tools
+
+# Keep out/portable/ only; drop the reference renders and scratch output.
+out/*
+!out/portable
+
+# Locally built/generated outputs are rebuilt inside the image.
+wasm/node_modules
+wasm/assets
+wasm/render.wasm
+wasm/app.js
+wasm/app.wasm
+wasm/out_wasm_level*.png
+wasm/oracle_level*.json
+
+# Docs and OS noise.
+**/*.md
+**/.DS_Store

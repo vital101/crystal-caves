@@ -21,8 +21,8 @@ stubbed), then the real loader for all 19 levels.  It writes
 `notes/startup.json`; `tools/make_startup_data.py` turns that into
 `wasm/startup_data.h` (never edit by hand).
 
-Important correction: `plan.md` previously listed the table as `DS:0xF245`.
-That was a miscomputed effective address.  The instruction is
+Important correction: an earlier note listed the table as `DS:0xF245`.  That
+was a miscomputed effective address.  The instruction is
 `mov al,[di+0xA111]` with `DI = [0x5134]`, so the table base is **`0xA111`**.
 Index 0 is unused; `0xC3E` initializes indices 1..19:
 
