@@ -145,11 +145,28 @@ uint16_t  cc_collectibles_left(void);
 uint16_t cc_lives(void);
 int       cc_level_complete(void);
 
-/* Phase 5: complete deterministic state snapshot (gameplay + cells + flags).
- * The format is versioned and must remain stable. */
+/* Phase 5/7: complete deterministic state snapshot (gameplay + cells + flags).
+ * The format is versioned and must remain stable.  cc_state_size() returns the
+ * maximum buffer size, covering both the current v2 format and legacy v1
+ * saves; cc_state_save() returns the actual number of bytes written. */
+#define CC_STATE_LOAD_HUB_ONLY 1
+
+enum cc_state_error {
+    CC_STATE_OK = 0,
+    CC_STATE_ERR_ARG = 1,
+    CC_STATE_ERR_MAGIC = 2,
+    CC_STATE_ERR_VERSION = 3,
+    CC_STATE_ERR_SIZE = 4,
+    CC_STATE_ERR_CRC = 5,
+    CC_STATE_ERR_INVALID = 6,
+    CC_STATE_ERR_NOT_HUB = 7
+};
+
 int cc_state_size(void);
 int cc_state_save(unsigned char *out, int cap);
 int cc_state_load(const unsigned char *in, int len);
+int cc_state_load_ex(const unsigned char *in, int len, int flags);
+int cc_state_last_error(void);
 
 #ifdef __cplusplus
 }

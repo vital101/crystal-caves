@@ -220,20 +220,23 @@ typedef struct {
     uint16_t checkpoint_50c4;    /* [0x50c4] */
     uint16_t checkpoint_50c7;    /* [0x50c7] */
     uint16_t checkpoint_50c9;    /* [0x50c9] */
-
-    /* Sound callback / event log (host-set).  0x1F9A:0x21F forwards here. */
-    void (*sound_callback)(uint16_t id);
-    uint16_t sound_log[256];
-    uint16_t sound_log_count;
-    uint32_t sound_log_total;
-
-    /* C4/C5: collectibles-lifetime stubs until Phase 3. */
-    uint16_t collectibles_total;
-    uint16_t collectibles_left;
 } cc_state_t;
+
+/* The save payload is a raw struct image.  Any field change must bump the
+ * save format version and add a migration (see cc_state_save below). */
+_Static_assert(sizeof(cc_state_t) == 23010,
+               "cc_state_t changed; bump the save format version");
+_Static_assert(sizeof(cc_state_t) <= 0xFFFF, "save payload too large");
 
 static cc_state_t g_state = { 0 };
 static const unsigned char *g_cells_asset = 0;
+
+/* Host-only sound attempt log/callback.  Deliberately outside cc_state_t so
+ * the deterministic save payload never contains pointers or host state. */
+static void (*g_sound_callback)(uint16_t id);
+static uint16_t g_sound_log[256];
+static uint16_t g_sound_log_count;
+static uint32_t g_sound_log_total;
 
 #define S   (&g_state)
 
@@ -381,10 +384,10 @@ static int16_t proximity_mode2(int16_t x, int16_t y, int16_t radius) {
  * the exact sequence of IDs passed to 0x1F9A:0x21F, regardless of the
  * sound-enable/priority decision inside the routine. */
 void cc_sound_note(uint16_t id) {
-    if (S->sound_log_count < 256)
-        S->sound_log[S->sound_log_count++] = id;
-    S->sound_log_total++;
-    if (S->sound_callback) S->sound_callback(id);
+    if (g_sound_log_count < 256)
+        g_sound_log[g_sound_log_count++] = id;
+    g_sound_log_total++;
+    if (g_sound_callback) g_sound_callback(id);
 }
 
 /* 0x1F9A:0x21F play_sound_or_effect(id).  All logging and driver selection
@@ -4172,8 +4175,7 @@ static void apply_startup_state(void) {
     S->g_3394 = 0;
     S->g_a110 = 0;
     S->g_512c = 0;
-    S->sound_log_count = 0;
-    S->sound_log_total = 0;
+    cc_sound_log_clear();
 
     S->g_512a = 0;
     S->g_513a = 0;
@@ -4497,16 +4499,16 @@ void cc_level_exit(int arg) { load_arg(arg); }
 void cc_load_arg(int arg) { load_arg(arg); }
 
 void cc_sound_set_callback(void (*cb)(uint16_t id)) {
-    S->sound_callback = cb;
+    g_sound_callback = cb;
 }
 void cc_sound_log_clear(void) {
-    S->sound_log_count = 0;
-    S->sound_log_total = 0;
+    g_sound_log_count = 0;
+    g_sound_log_total = 0;
 }
-int cc_sound_log_count(void) { return S->sound_log_count; }
-int cc_sound_log_total(void) { return (int)S->sound_log_total; }
+int cc_sound_log_count(void) { return g_sound_log_count; }
+int cc_sound_log_total(void) { return (int)g_sound_log_total; }
 uint16_t cc_sound_log_at(int i) {
-    return (i >= 0 && i < S->sound_log_count) ? S->sound_log[i] : 0;
+    return (i >= 0 && i < g_sound_log_count) ? g_sound_log[i] : 0;
 }
 
 int cc_obj_count(void) { return OBJ_MAX; }
@@ -5063,55 +5065,149 @@ void cc_phys_set(int f, int32_t v) {
 }
 
 /* ---------------------------------------------------------------- save state
- * Versioned deterministic snapshot.  This is the Phase 5 v1 format; Phase 7
- * owns migration/hardening.  Host pointers and the sound event log are not
- * part of the snapshot. */
-#define CC_SAVE_MAGIC   0x31534343u /* "CCS1" */
-#define CC_SAVE_VERSION 1u
-#define CC_SAVE_HDR     8
+ * Versioned deterministic snapshot.
+ *
+ * v2 header (12 bytes, little-endian):
+ *   0..3   magic "CCS2"
+ *   4..5   version 2
+ *   6..7   payload size (sizeof(cc_state_t))
+ *   8..11  CRC-32/ISO-HDLC of the payload
+ *   12..   raw cc_state_t image
+ *
+ * v1 (Phase 5) used an 8-byte "CCS1" header and a 23,540-byte payload that
+ * contained host-only sound fields after the deterministic prefix.  v1 is
+ * accepted and migrated by copying the first sizeof(cc_state_t) bytes. */
+#define CC_SAVE_MAGIC_V1   0x31534343u /* "CCS1" */
+#define CC_SAVE_MAGIC_V2   0x32534343u /* "CCS2" */
+#define CC_SAVE_VERSION_V1 1u
+#define CC_SAVE_VERSION_V2 2u
+#define CC_SAVE_HDR_V1     8
+#define CC_SAVE_HDR_V2     12
+#define CC_SAVE_V1_PAYLOAD 23540
 
-static cc_state_t g_save_tmp;
+static cc_state_t g_load_tmp;
+static int g_state_error = CC_STATE_OK;
+
+static uint16_t rd16_(const unsigned char *p) {
+    return (uint16_t)((uint16_t)p[0] | ((uint16_t)p[1] << 8));
+}
+static uint32_t rd32_(const unsigned char *p) {
+    return (uint32_t)p[0] | ((uint32_t)p[1] << 8)
+         | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
+}
+static void wr16_(unsigned char *p, uint16_t v) {
+    p[0] = (unsigned char)(v & 0xFF);
+    p[1] = (unsigned char)(v >> 8);
+}
+static void wr32_(unsigned char *p, uint32_t v) {
+    p[0] = (unsigned char)(v & 0xFF);
+    p[1] = (unsigned char)((v >> 8) & 0xFF);
+    p[2] = (unsigned char)((v >> 16) & 0xFF);
+    p[3] = (unsigned char)((v >> 24) & 0xFF);
+}
+static uint32_t crc32_(const unsigned char *p, int n) {
+    uint32_t c = 0xFFFFFFFFu;
+    while (n-- > 0) {
+        c ^= *p++;
+        for (int k = 0; k < 8; k++)
+            c = (c >> 1) ^ (0xEDB88320u & (0u - (c & 1u)));
+    }
+    return ~c;
+}
+
+static int state_valid_(const cc_state_t *st) {
+    if (st->cur_level < 0 || st->cur_level > 18) return 0;
+    if (st->next_level < -2 || st->next_level > 18) return 0;
+    if (st->obj_cursor >= OBJ_MAX) return 0;
+    for (int i = 0; i < 17; i++)
+        if (st->cave_flags[i] > 1) return 0;
+    if (st->spawn_col_override != 0xFFFF && st->spawn_col_override > 40)
+        return 0;
+    if (st->spawn_row_override != 0xFFFF && st->spawn_row_override > 24)
+        return 0;
+    if (st->exit_col < 0 || st->exit_col >= CELL_COLS) return 0;
+    if (st->exit_row < 0 || st->exit_row >= CELL_ROWS) return 0;
+    if (st->g_5124 > 3) return 0;
+    return 1;
+}
 
 int cc_state_size(void) {
-    return CC_SAVE_HDR + (int)sizeof(cc_state_t);
+    int v2 = CC_SAVE_HDR_V2 + (int)sizeof(cc_state_t);
+    int v1 = CC_SAVE_HDR_V1 + CC_SAVE_V1_PAYLOAD;
+    return v2 > v1 ? v2 : v1;
 }
 
 int cc_state_save(unsigned char *out, int cap) {
-    int need = cc_state_size();
-    if (!out || cap < need) return 0;
-    memcpy_(&g_save_tmp, S, sizeof(cc_state_t));
-    g_save_tmp.sound_callback = 0;
-    g_save_tmp.sound_log_count = 0;
-    g_save_tmp.sound_log_total = 0;
-    for (unsigned i = 0; i < sizeof(g_save_tmp.sound_log); i++)
-        g_save_tmp.sound_log[i] = 0;
-    out[0] = (unsigned char)(CC_SAVE_MAGIC & 0xFF);
-    out[1] = (unsigned char)((CC_SAVE_MAGIC >> 8) & 0xFF);
-    out[2] = (unsigned char)((CC_SAVE_MAGIC >> 16) & 0xFF);
-    out[3] = (unsigned char)((CC_SAVE_MAGIC >> 24) & 0xFF);
-    out[4] = (unsigned char)(CC_SAVE_VERSION & 0xFF);
-    out[5] = (unsigned char)((CC_SAVE_VERSION >> 8) & 0xFF);
-    out[6] = (unsigned char)((sizeof(cc_state_t)) & 0xFF);
-    out[7] = (unsigned char)((sizeof(cc_state_t) >> 8) & 0xFF);
-    memcpy_(out + CC_SAVE_HDR, &g_save_tmp, sizeof(cc_state_t));
+    int need = CC_SAVE_HDR_V2 + (int)sizeof(cc_state_t);
+    g_state_error = CC_STATE_OK;
+    if (!out || cap < need) {
+        g_state_error = CC_STATE_ERR_ARG;
+        return 0;
+    }
+    memcpy_(out + CC_SAVE_HDR_V2, S, sizeof(cc_state_t));
+    wr32_(out, CC_SAVE_MAGIC_V2);
+    wr16_(out + 4, CC_SAVE_VERSION_V2);
+    wr16_(out + 6, (uint16_t)sizeof(cc_state_t));
+    wr32_(out + 8, crc32_(out + CC_SAVE_HDR_V2, (int)sizeof(cc_state_t)));
     return need;
 }
 
-int cc_state_load(const unsigned char *in, int len) {
-    if (!in || len < CC_SAVE_HDR) return 0;
-    unsigned int magic = (unsigned int)in[0] | ((unsigned int)in[1] << 8)
-                       | ((unsigned int)in[2] << 16) | ((unsigned int)in[3] << 24);
-    unsigned int ver = (unsigned int)in[4] | ((unsigned int)in[5] << 8);
-    unsigned int sz = (unsigned int)in[6] | ((unsigned int)in[7] << 8);
-    if (magic != CC_SAVE_MAGIC || ver != CC_SAVE_VERSION ||
-        sz != sizeof(cc_state_t) || len < CC_SAVE_HDR + (int)sz)
+int cc_state_load_ex(const unsigned char *in, int len, int flags) {
+    g_state_error = CC_STATE_OK;
+    if (!in || len < CC_SAVE_HDR_V1) {
+        g_state_error = CC_STATE_ERR_ARG;
         return 0;
-    void (*cb)(uint16_t) = S->sound_callback;
-    memcpy_(&g_save_tmp, in + CC_SAVE_HDR, sizeof(cc_state_t));
-    memcpy_(S, &g_save_tmp, sizeof(cc_state_t));
-    S->sound_callback = cb;
-    S->sound_log_count = 0;
-    S->sound_log_total = 0;
+    }
+    uint32_t magic = rd32_(in);
+    uint16_t ver = rd16_(in + 4);
+    uint16_t sz = rd16_(in + 6);
+    if (magic == CC_SAVE_MAGIC_V2) {
+        if (ver != CC_SAVE_VERSION_V2) {
+            g_state_error = CC_STATE_ERR_VERSION;
+            return 0;
+        }
+        if (sz != (uint16_t)sizeof(cc_state_t) ||
+            len < CC_SAVE_HDR_V2 + (int)sz) {
+            g_state_error = CC_STATE_ERR_SIZE;
+            return 0;
+        }
+        if (rd32_(in + 8) != crc32_(in + CC_SAVE_HDR_V2, (int)sz)) {
+            g_state_error = CC_STATE_ERR_CRC;
+            return 0;
+        }
+        memcpy_(&g_load_tmp, in + CC_SAVE_HDR_V2, sizeof(cc_state_t));
+    } else if (magic == CC_SAVE_MAGIC_V1) {
+        if (ver != CC_SAVE_VERSION_V1) {
+            g_state_error = CC_STATE_ERR_VERSION;
+            return 0;
+        }
+        if (sz != CC_SAVE_V1_PAYLOAD || len < CC_SAVE_HDR_V1 + (int)sz) {
+            g_state_error = CC_STATE_ERR_SIZE;
+            return 0;
+        }
+        /* The v1 gameplay prefix is layout-identical; the old tail held
+         * host-only sound state and dead collectible fields. */
+        memcpy_(&g_load_tmp, in + CC_SAVE_HDR_V1, sizeof(cc_state_t));
+    } else {
+        g_state_error = CC_STATE_ERR_MAGIC;
+        return 0;
+    }
+    if (!state_valid_(&g_load_tmp)) {
+        g_state_error = CC_STATE_ERR_INVALID;
+        return 0;
+    }
+    if ((flags & CC_STATE_LOAD_HUB_ONLY) && g_load_tmp.cur_level != 2) {
+        g_state_error = CC_STATE_ERR_NOT_HUB;
+        return 0;
+    }
+    memcpy_(S, &g_load_tmp, sizeof(cc_state_t));
     cc_sound_reset();
+    cc_sound_log_clear();
     return 1;
 }
+
+int cc_state_load(const unsigned char *in, int len) {
+    return cc_state_load_ex(in, len, 0);
+}
+
+int cc_state_last_error(void) { return g_state_error; }

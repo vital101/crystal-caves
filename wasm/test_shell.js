@@ -128,6 +128,7 @@ function assert(cond, msg) {
   // Save/restore handshake.
   const size = e.cc_state_size();
   const sp = e.cc_alloc(size);
+  let savedLen = 0;
   e.cc_global_set(0x50A5, 4321);
   e.cc_shell_key(27);      // help
   e.cc_shell_key(key('s'));     // save
@@ -137,12 +138,16 @@ function assert(cond, msg) {
   assert(e.cc_shell_request_kind() === 1 && e.cc_shell_request_slot() === 0,
          'save request has slot 0');
   {
-    const n = e.cc_state_save(sp, size);
-    assert(n > 0, 'state save succeeds');
+    const x0 = e.cc_obj_x(1);
+    savedLen = e.cc_state_save(sp, size);
+    assert(savedLen > 0 && savedLen <= size, 'state save succeeds');
+    assert(e.cc_obj_x(1) === x0, 'state save does not mutate the player');
     e.cc_shell_request_done(1);
     assert(e.cc_shell_state() === 14, 'save result message');
     e.cc_shell_key(13);
-    assert(e.cc_shell_state() === 4, 'save message returns to game');
+    assert(e.cc_shell_state() === 14, 'save message ignores Enter');
+    e.cc_shell_key(27);
+    assert(e.cc_shell_state() === 4, 'save message returns to game on Esc');
   }
   e.cc_global_set(0x50A5, 99);
   e.cc_shell_key(27);      // help
@@ -151,13 +156,12 @@ function assert(cond, msg) {
   e.cc_shell_key(key('0'));
   assert(e.cc_shell_request_pending() === 1 &&
          e.cc_shell_request_kind() === 2, 'restore request pending');
-  assert(e.cc_state_load(sp, size) === 1, 'state load succeeds');
+  assert(e.cc_state_load(sp, savedLen) === 1, 'state load succeeds');
   e.cc_shell_request_done(1);
   assert(e.cc_shell_state() === 4, 'restore returns to game');
   assert((e.cc_global_get(0x50A5) & 0xFFFF) === 4321, 'restore recovers score');
 
   // High score table.
-  const before = e.cc_shell_hiscore_count();
   e.cc_shell_hiscore_add(sput('TEST'), 1234567);
   assert(e.cc_shell_hiscore_name(0) && e.cc_shell_hiscore_score(0) === 1234567,
          'high score inserted at top');

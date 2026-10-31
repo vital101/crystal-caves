@@ -52,6 +52,11 @@ Verified today:
   DOS scan-code key redefine, and browser key mapping.  See
   `notes/shell_exactness_fixtures.json`, `notes/hiscore_fixtures.json`,
   `notes/keymap_fixtures.json`, `make test-exactness`.
+- Phase 7 is complete: the `CCS2` v2 save format with CRC/atomic validation,
+  v1 `CCS1` migration, mid-hub/cave round-trips, corrupt/oversized slots,
+  high-score reload/corruption fallback and config/key-binding reload are
+  covered by `notes/persist.md` and `make test-persist`.  A real Phase 5 v1
+  save is committed as `notes/persist_v1_fixture.json`.
 
 Important remaining work:
 
@@ -59,8 +64,8 @@ Important remaining work:
   approximated from the original tick-driven sequence.
 - Sound (Phase 6) is implemented; IDs 2/7 trigger-coverage audit and a
   full oracle-driven title/menu sound flow remain.
-- Save/high-score/config hardening and mid-level round-trip verification
-  (Phase 7).
+- Phase 7 (save/high-score/config hardening) is complete; see
+  `notes/persist.md` and `make test-persist`.
 - Release regression/CI/docs/performance work (Phase 8).
 
 ## Critical path
@@ -71,7 +76,7 @@ Important remaining work:
 4. Port remaining handlers and finish all 16 caves. (done)
 5. Add HUD, menus, save/high scores (done in Phase 5); finish sound in Phase 6
    and Phase 5 polish items.
-6. Build full regression coverage and release (Phase 7/8).
+6. Build full regression coverage and release (Phase 8; Phase 7 done).
 
 ## Phase 1 — Exact player physics and startup data (COMPLETE)
 
@@ -504,7 +509,7 @@ browser settings.
 - DOS-only features are browser substitutions: original screens/text are
   preserved, but no DOS file I/O, BBS dialing, or ordering network calls.
 - Phase 5 ships a minimal versioned save/config/high-score layer; Phase 7
-  hardens/migrates it.  Do not create two formats.
+  hardened/migrated it.  Do not create two formats.
 - Do not port the original shell control flow literally.  The original uses
   overlapping TP segments (CS bases `0x0FC5`/`0x1000`) and overlaid text
   buffers; recover observable behavior through an oracle and implement a
@@ -650,7 +655,7 @@ story page order/timing is verified by P5.R5.
 Acceptance: every help option is reachable and behaves; input/config
 persists.
 
-### P5.5 — Save/restore, high scores, config persistence (DONE; Phase 7 hardening pending)
+### P5.5 — Save/restore, high scores, config persistence (DONE; Phase 7 hardening complete)
 
 - Define a versioned `cc_save_state` v1 schema:
   - header/magic/version, level arg, player/camera, object array, full
@@ -678,8 +683,8 @@ persists.
   handling.
 
 Acceptance: save/restore reproduces identical state; high scores/config
-survive reload.  Phase 7 owns schema hardening/migration; Phase 5 must ship
-the single v1 implementation.
+survive reload.  Phase 7 completed the schema hardening/migration; Phase 5
+shipped the single v1 implementation that Phase 7 migrates.
 
 ### P5.6 — Integration, docs, regression (DONE)
 
@@ -717,8 +722,8 @@ remain.
   order and timing still need an oracle check.
 - **Browser input conflicts:** preventDefault, a browser-key redefine map and
   Gamepad API support are implemented.  DOS scan-code parity remains open.
-- **Scope overlap with Phase 7:** Phase 5 ships the v1 save/config/high-score
-  format; Phase 7 hardens/migrates it.
+- **Scope overlap with Phase 7:** Phase 5 shipped the v1 save/config/high-score
+  format; Phase 7 hardened/migrated it.
 
 ### Suggested order and commits
 
@@ -816,28 +821,44 @@ Remaining coverage audit: IDs 2 and 7 have no C gameplay trigger (ID 7's
 static site is `0xF74C/0xF757`); the full title/menu shell sequence is
 statically mapped rather than captured end-to-end.
 
-## Phase 7 — Save/high-score/config hardening
+## Phase 7 — Save/high-score/config hardening (COMPLETE)
 
-Phase 5 ships the first working save/config/high-score implementation and the
-v1 schema.  This phase hardens it; it must not introduce a second format.
+Status: COMPLETE.  The snapshot format is `CCS2` v2 with a CRC-32, explicit
+validation and atomic commit; v1 `CCS1` saves migrate.  Host-only sound
+fields were moved out of `cc_state_t` (fixing a save-time overflow that
+corrupted the first object slots), and `cc_state_t` is frozen by a
+`_Static_assert`.  `wasm/persist.js` centralizes config/high-score/slot
+validation for the browser; `game.html` uses it and enforces the original
+hub-only save restriction on restore.  `notes/persist.md` documents the v2
+format, validation/error codes, the original 33-byte save record, the
+0x1400-byte `CC1.HS` layout and the 12-byte `CC1.CFG` layout.
+
+Coverage: `notes/persist.md` and `make test-persist` cover mid-hub and
+mid-cave round-trips (including subsequent-frame determinism), save-does-not-
+mutate, v1 migration, corrupt/oversized slots, high-score reload/corruption
+fallback and config/key-binding reload/migration.  `make test-shell` covers
+the save/restore messages, hub-only restrictions and main-menu restore.
 
 Tasks:
 
 - Harden/version the Phase 5 save-state schema:
   - globals, player, object array, mutable cells, level progress, crystals,
-    score, lives, flags.
-- Add migration/validation for version changes and corrupt slots.
-- Verify save/restore mid-level and mid-hub round-trips exactly.
+    score, lives, flags.  (done)
+- Add migration/validation for version changes and corrupt slots.  (done)
+- Verify save/restore mid-level and mid-hub round-trips exactly.  (done:
+  mid-hub via the shell, mid-cave via the snapshot API; the shell keeps the
+  original hub-only restriction)
 - Harden high-score table/name entry and config persistence; verify the
-  original default table, sort/tie rules and CC1.HS semantics.
+  original default table, sort/tie rules and CC1.HS semantics.  (done)
 - Keep the browser “not available” treatment for DOS-only file/BBS actions
-  consistent with the Phase 5 shells.
+  consistent with the Phase 5 shells.  (done; `make test-persist` checks the
+  O/F/C/V/A screens perform no file I/O)
 
 Acceptance:
 
-- Mid-level save/restore reproduces identical state.
-- High scores survive reload.
-- Key bindings/config survive reload.
+- Mid-level save/restore reproduces identical state.  (met)
+- High scores survive reload.  (met)
+- Key bindings/config survive reload.  (met)
 
 ## Phase 8 — Full regression and release
 
@@ -869,9 +890,9 @@ Acceptance:
 
 1. Phase 6 follow-up: audit the remaining ID 2/7 gameplay trigger sites and
    add end-to-end title/menu sound capture if desired.
-2. Phase 7: harden the v1 save/config/high-score schema and verify round-trips.
-3. Phase 8: add Playwright browser smoke coverage, CI, release regression,
-   performance and docs.
+2. Phase 8: add Playwright browser smoke coverage, CI, release regression,
+   performance and docs.  Phase 7 persistence is complete
+   (`notes/persist.md`, `make test-persist`).
 
 ## Validation commands
 
@@ -890,6 +911,7 @@ make test-hud                # oracle-exact HUD fixtures
 make test-text               # oracle-exact text-window fixtures
 make test-messages           # in-game message trigger causes
 make test-shell              # shell flow/save/high-score/finale fixtures
+make test-persist            # Phase 7 save format/round-trip/high-score/config
 make test-exactness          # P5.R5 timing/story/high-score/scan-code fixtures
 make test-keymap             # browser key -> DOS scan-code mapping
 make test-sound              # sound driver/trace/JS synth/shell integration
@@ -924,6 +946,8 @@ PASS: mutable cell renderer matches baked; crystal clear changed 150 pixels
 PASS: HUD matches the real routine (4 boundary cases)
 PASS: text windows match the real renderer (23 fixtures, 0 px)
 PASS: shell flow, story/finale, save/restore, high scores
+PASS: Phase 7 save format, mid-hub/cave round-trips, corrupt slots
+PASS: high scores/config survive reload; v1 save/config migration
 PASS: P5.R5 tick timing, captured intro/finale pages, high-score defaults/tie
 PASS: high-score screen matches the original framebuffer
 PASS: DOS scan-code defaults, key redefine, and browser key map
@@ -957,6 +981,10 @@ PASS: shell exactness fixtures regenerate via make test-oracle-exactness
 - `wasm/test_hud.js` — HUD-vs-oracle regression.
 - `wasm/test_text.js` — text-window frame/fill/text oracle regression.
 - `wasm/test_shell.js` — shell flow/save/high-score/finale regression.
+- `wasm/test_persist.js` — Phase 7 save format/round-trip/high-score/config regression.
+- `wasm/persist.js` — browser localStorage config/high-score/slot adapter.
+- `notes/persist.md` — Phase 7 save format, validation, original CC1.HS/CC1.CFG/save-record docs.
+- `notes/persist_v1_fixture.json` — real Phase 5 v1 save for migration regression.
 - `wasm/test_exactness.js` — P5.R5 timing/story/high-score/scan-code regression.
 - `wasm/test_keymap.js` / `wasm/keymap.js` — browser key → DOS scan-code map.
 - `tools/shell_exactness.py` / `tools/make_shell_exact_data.py` — P5.R5

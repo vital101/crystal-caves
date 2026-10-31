@@ -23,6 +23,7 @@
   <div id="diag">loading...</div>
 </div>
 <script src="keymap.js"></script>
+<script src="persist.js"></script>
 <script src="sound_synth.js"></script>
 <script src="audio.js"></script>
 <script>
@@ -37,20 +38,6 @@
   };
   const STEP_MS = 1000 * 8 * 0x2147 / 1193182;
   const TICK_MS = 1000 / 140.06;
-
-  function b64encode(bytes) {
-    let s = '';
-    const chunk = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunk)
-      s += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
-    return btoa(s);
-  }
-  function b64decode(str) {
-    const s = atob(str);
-    const out = new Uint8Array(s.length);
-    for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
-    return out;
-  }
 
   (async () => {
     const load = (p) => fetch(p + '?v=' + Date.now()).then(r => r.arrayBuffer());
@@ -102,73 +89,29 @@
     const stateP = e.cc_alloc(stateSize);
 
     // ---- persistent config / high scores -------------------------------
-    const CFG_KEY = 'cc1.config.v2';
-    const OLD_CFG_KEY = 'cc1.config.v1';
-    const HS_KEY = 'cc1.hiscores.v1';
-    let cfg = { sound: 1, joystick: 0, video: 0, keys: [0x4B, 0x4D, 0x1D, 0x38] };
-    try {
-      const c = JSON.parse(localStorage.getItem(CFG_KEY) || 'null');
-      if (c) cfg = Object.assign(cfg, c);
-      else {
-        const old = JSON.parse(localStorage.getItem(OLD_CFG_KEY) || 'null');
-        if (old) {
-          cfg.sound = old.sound | 0;
-          cfg.joystick = old.joystick | 0;
-          cfg.video = old.video | 0;
-          // Old v1 stored browser keyCode values; keys are reset to the
-          // original DOS defaults and the new config is written below.
-        }
-      }
-    } catch (_) {}
     e.cc_sound_init();
+    e.cc_shell_init();
+    const cfg = CCPersist.loadConfig(localStorage);
     e.cc_shell_set_config(cfg.sound, cfg.joystick, cfg.video);
+    for (let i = 0; i < 4; i++) e.cc_shell_set_key(i, cfg.keys[i]);
     audio.setEnabled(cfg.sound);
-    if (Array.isArray(cfg.keys))
-      for (let i = 0; i < 4; i++)
-        if ((cfg.keys[i] | 0) >= 0 && (cfg.keys[i] | 0) <= 0x7F)
-          e.cc_shell_set_key(i, cfg.keys[i] | 0);
+    CCPersist.loadHighScores(localStorage, e, copyString);
+    CCPersist.saveConfig(localStorage, cfg);
+
     function persistConfig() {
-      cfg.sound = e.cc_shell_sound_on();
-      cfg.joystick = e.cc_shell_joystick_on();
-      cfg.video = e.cc_shell_video_alt();
-      cfg.keys = [0, 1, 2, 3].map(i => e.cc_shell_key_for_action(i));
-      audio.setEnabled(cfg.sound);
-      try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (_) {}
-    }
-    function loadHighScores() {
-      try {
-        const arr = JSON.parse(localStorage.getItem(HS_KEY) || 'null');
-        if (Array.isArray(arr)) {
-          for (let i = 0; i < arr.length && i < 10; i++)
-            if (arr[i] && typeof arr[i].score === 'number')
-              e.cc_shell_hiscore_set(i, copyString(String(arr[i].name || '')),
-                                     arr[i].score);
-        }
-      } catch (_) {}
+      const c = {
+        version: 2,
+        sound: e.cc_shell_sound_on(),
+        joystick: e.cc_shell_joystick_on(),
+        video: e.cc_shell_video_alt(),
+        keys: [0, 1, 2, 3].map(i => e.cc_shell_key_for_action(i))
+      };
+      audio.setEnabled(c.sound);
+      CCPersist.saveConfig(localStorage, c);
     }
     function persistHighScores() {
-      const arr = [];
-      for (let i = 0; i < e.cc_shell_hiscore_count(); i++) {
-        const p = e.cc_shell_hiscore_name(i);
-        const s = new Uint8Array(e.memory.buffer);
-        let name = '';
-        for (let j = 0; j < 64; j++) {
-          const ch = s[p + j];
-          if (!ch) break;
-          name += String.fromCharCode(ch);
-        }
-        arr.push({ name, score: e.cc_shell_hiscore_score(i) >>> 0 });
-      }
-      try { localStorage.setItem(HS_KEY, JSON.stringify(arr)); } catch (_) {}
+      CCPersist.saveHighScores(localStorage, e);
     }
-    loadHighScores();
-    e.cc_shell_init();
-    loadHighScores();
-    if (Array.isArray(cfg.keys))
-      for (let i = 0; i < 4; i++)
-        if ((cfg.keys[i] | 0) >= 0 && (cfg.keys[i] | 0) <= 0x7F)
-          e.cc_shell_set_key(i, cfg.keys[i] | 0);
-    persistConfig();
 
     // ---- rendering ------------------------------------------------------
     function present() {
@@ -205,26 +148,11 @@
       if (!e.cc_shell_request_pending()) return;
       const kind = e.cc_shell_request_kind();
       const slot = e.cc_shell_request_slot();
-      const key = 'cc1.save.' + slot;
       let ok = 0;
-      if (kind === 1) {
-        const n = e.cc_state_save(stateP, stateSize);
-        if (n > 0) {
-          try {
-            localStorage.setItem(key, b64encode(mem().subarray(stateP, stateP + n)));
-            ok = 1;
-          } catch (_) {}
-        }
-      } else if (kind === 2) {
-        try {
-          const raw = localStorage.getItem(key);
-          if (raw) {
-            const bytes = b64decode(raw);
-            mem().set(bytes, stateP);
-            ok = e.cc_state_load(stateP, bytes.length) ? 1 : 0;
-          }
-        } catch (_) {}
-      }
+      if (kind === 1)
+        ok = CCPersist.saveSlot(localStorage, slot, e, stateP, stateSize, mem) ? 1 : 0;
+      else if (kind === 2)
+        ok = CCPersist.loadSlot(localStorage, slot, e, stateP, stateSize, mem, true) ? 1 : 0;
       e.cc_shell_request_done(ok);
       render();
     }
@@ -309,7 +237,7 @@
       if (soundTicks > 32) soundTicks = 32;
       soundAccum -= soundTicks * TICK_MS;
       handleRequest();
-      if (e.cc_shell_state() === 4 && navigator.getGamepads) {
+      if (e.cc_shell_state() === 4 && e.cc_shell_joystick_on() && navigator.getGamepads) {
         const pads = navigator.getGamepads();
         let gp = null;
         for (const p of pads) { if (p) { gp = p; break; } }

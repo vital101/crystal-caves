@@ -24,6 +24,7 @@ There is no root Makefile; the build lives in `wasm/`.
 | `make test-messages` | In-game message trigger causes (positive/negative) |
 | `make test-text` | Oracle-exact text-window frame/fill/text fixtures |
 | `make test-shell` | Shell flow, text/PCX screens, save/restore, high scores, finale |
+| `make test-persist` | Phase 7 save format/round-trips, high scores and config persistence |
 | `make test-exactness` | P5.R5 timing/story/high-score/scan-code exactness fixtures |
 | `make test-keymap` | Browser physical-key → DOS scan-code mapping |
 | `make test-sound` | Sound driver, trace asset, JS synth and shell sound fixtures |
@@ -139,6 +140,14 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   captured intro/finale page order, original high-score defaults/sort/tie and
   20-character name entry, DOS scan-code key redefine, and browser
   `KeyboardEvent.code` → set-1 scan-code mapping.
+- Phase 7 is implemented: the save snapshot is `CCS2` v2 with a CRC and
+  atomic validation, v1 `CCS1` slots migrate, and `wasm/persist.js` validates
+  config/high-score/slot data before touching wasm state.  Mid-hub and
+  mid-cave round-trips (including subsequent-frame determinism), corrupt/
+  oversized slots, high-score reload and config/key-binding reload are
+  covered by `notes/persist.md` / `make test-persist`.  The original hub-only
+  save restriction, `CC1.HS` defaults/sort/tie rules and `CC1.CFG` fields are
+  preserved; see `notes/persist.md` for the original file layouts.
 - Known shell limitations: browser smoke coverage of `game.html`
   localStorage/save/restore is still pending; joystick uses the Gamepad API;
   the original blinking input cursor is not drawn in shell text windows;
@@ -207,6 +216,10 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - `notes/cell_fixtures.json` — committed cell/contact/exit oracle trace (`make test-cells`)
 - `notes/handlers.*`, `notes/oracle_catalog.json`, `notes/oracle_objects.json`, `notes/level_table.json`, `notes/gameplay.md`
 - `notes/shell.md` — Phase 5 HUD/text/menu/save notes
+- `notes/persist.md` — Phase 7 save format/validation and original CC1.HS/CC1.CFG/save-record layouts
+- `notes/persist_v1_fixture.json` — real Phase 5 `CCS1` save for migration regression
+- `wasm/persist.js` — browser localStorage config/high-score/slot adapter
+- `wasm/test_persist.js` — Phase 7 persistence regression
 - `notes/sound_fixtures.json` — committed 36-ID sound-driver trace (`make test-sound`)
 - `notes/sound_synth_fixtures.json` — Python-reference JS synth hashes
 - `notes/sound_shell_fixtures.json` — recovered shell sound call sites

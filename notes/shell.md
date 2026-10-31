@@ -28,7 +28,8 @@ Known limitations / deliberate browser substitutions:
   persists and follows the exact original `[0x513E]` gating semantics.
 - `CC1.CFG`/`CC1.HS` file I/O is replaced by `localStorage` JSON.  The C-side
   high-score table and sort/name-entry rules are the original rules; only the
-  storage format is a browser substitution.
+  storage format is a browser substitution.  The original file layouts and the
+  Phase 7 validation/migration rules are in `notes/persist.md`.
 
 ## Assets
 
@@ -136,16 +137,19 @@ a wall) while preserving score/lives/cave flags.
 
 Save/restore is hub-only, matching the original restriction.  The C layer
 raises a request (`cc_shell_request_pending/kind/slot`); `game.html` stores or
-loads `cc_state_save/cc_state_load` bytes from `localStorage` and calls
-`cc_shell_request_done()`.  The snapshot is versioned (`CCS1`, v1) and includes
-objects, cells, globals, RNG, cave flags, score/lives/ammo and checkpoints.
+loads `cc_state_save/cc_state_load_ex` bytes through `wasm/persist.js` and
+calls `cc_shell_request_done()`.  The snapshot is versioned (`CCS2`, v2) and
+includes objects, cells, globals, RNG, cave flags, score/lives/ammo and
+checkpoints.  v1 (`CCS1`) slots are migrated on load.  See `notes/persist.md`
+for the header/CRC/validation details and the original DOS save record.
 
 High scores and config use `localStorage` keys `cc1.hiscores.v1` and
 `cc1.config.v2`.  High-score defaults, qualification, sort/tie and name-entry
 rules are the original rules (see below).  Config stores sound/joystick/video
 and four DOS scan codes.  `cc1.config.v1` keys were browser `keyCode` values;
 v1 is read only for sound/joystick/video and the keys reset to the DOS
-defaults.
+defaults.  `wasm/persist.js` validates both formats and rewrites a normalized
+v2 config.  See `notes/persist.md` for the original CC1.HS/CC1.CFG layouts.
 
 ## Exactness verification (P5.R5)
 
@@ -238,6 +242,7 @@ make test-hud              # oracle HUD fixtures
 make test-text             # oracle text-window frame/fill/text fixtures
 make test-messages         # in-game message trigger causes
 make test-shell            # shell flow, save/restore, high scores, finale
+make test-persist          # Phase 7 save/high-score/config persistence
 make test-exactness        # P5.R5 timing/story/high-score/scan-code fixtures
 make test-keymap           # browser physical-key → DOS scan-code mapping
 make test-oracle-exactness # regenerate shell exactness fixtures/header

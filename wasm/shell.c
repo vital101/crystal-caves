@@ -48,8 +48,7 @@ static int g_sound_on = 1;
 static int g_joystick_on = 0;
 static int g_video_alt = 0;
 
-static HiScore g_hiscores[10];
-static int g_hiscore_count;
+static HiScore g_hiscores[HISCORE_COUNT];
 static char g_name[24];
 static int g_name_len;
 static int g_warp_value = -1;
@@ -159,10 +158,9 @@ void cc_shell_init(void) {
     g_request_kind = 0;
     g_request_slot = -1;
     clear_pages();
-    g_hiscore_count = HISCORE_COUNT;
     for (int i = 0; i < HISCORE_COUNT; i++) {
         scopy(g_hiscores[i].name, g_hiscore_default_names[i],
-              sizeof(g_hiscores[i].name));
+              HISCORE_NAME_MAX + 1);
         g_hiscores[i].score = g_hiscore_default_scores[i];
     }
     g_name[0] = 0;
@@ -358,21 +356,20 @@ void cc_shell_request_done(int ok) {
 
 /* ---- high scores -------------------------------------------------------- */
 
-int cc_shell_hiscore_count(void) { return g_hiscore_count; }
+int cc_shell_hiscore_count(void) { return HISCORE_COUNT; }
 const char *cc_shell_hiscore_name(int i) {
-    return (i >= 0 && i < g_hiscore_count) ? g_hiscores[i].name : "";
+    return (i >= 0 && i < HISCORE_COUNT) ? g_hiscores[i].name : "";
 }
 unsigned int cc_shell_hiscore_score(int i) {
-    return (i >= 0 && i < g_hiscore_count) ? g_hiscores[i].score : 0;
+    return (i >= 0 && i < HISCORE_COUNT) ? g_hiscores[i].score : 0;
 }
 void cc_shell_hiscore_set(int i, const char *name, unsigned int score) {
     if (i < 0 || i >= HISCORE_COUNT) return;
-    scopy(g_hiscores[i].name, name ? name : "", sizeof(g_hiscores[i].name));
+    /* Names are displayed/entered as 20 characters in the original. */
+    scopy(g_hiscores[i].name, name ? name : "", HISCORE_NAME_MAX + 1);
     g_hiscores[i].score = score;
-    if (g_hiscore_count < i + 1) g_hiscore_count = i + 1;
 }
 int cc_shell_hiscore_qualifies(unsigned int score) {
-    if (g_hiscore_count < HISCORE_COUNT) return 1;
     return score > g_hiscores[HISCORE_COUNT - 1].score;
 }
 void cc_shell_hiscore_add(const char *name, unsigned int score) {
@@ -384,10 +381,8 @@ void cc_shell_hiscore_add(const char *name, unsigned int score) {
     if (pos >= HISCORE_COUNT) return;
     for (int i = HISCORE_COUNT - 1; i > pos; i--)
         g_hiscores[i] = g_hiscores[i - 1];
-    scopy(g_hiscores[pos].name, name ? name : "",
-          sizeof(g_hiscores[pos].name));
+    scopy(g_hiscores[pos].name, name ? name : "", HISCORE_NAME_MAX + 1);
     g_hiscores[pos].score = score;
-    g_hiscore_count = HISCORE_COUNT;
 }
 
 /* ---- config ------------------------------------------------------------- */
@@ -676,6 +671,16 @@ static void start_finale_story(void) {
                     CC_SHELL_ENDING, 2, 1);
 }
 
+/* The original "Game saved." and "You can only restore..." windows say
+ * "Press ESCAPE"; all other message windows accept any key. */
+static int message_escape_only(void) {
+    if (g_state != CC_SHELL_MESSAGE) return 0;
+    if (g_page_index < 0 || g_page_index >= g_page_count) return 0;
+    int block = g_pages[g_page_index].block;
+    return block == SHELL_TEXT_MESSAGE_SAVED ||
+           block == SHELL_TEXT_MESSAGE_RESTORE_HUB_ONLY;
+}
+
 static int text_key(int key) {
     if (key == CC_KEY_ESC) {
             if (g_story_kind == 1) {
@@ -694,6 +699,7 @@ static int text_key(int key) {
             g_state = g_return_state;
             return 1;
     }
+    if (message_escape_only()) return 1;
     if (key == 0) return 1;
     g_page_index++;
     int pages = g_story_pages ? g_story_page_count : g_page_count;
