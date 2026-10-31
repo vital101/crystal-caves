@@ -41,9 +41,15 @@ const DIR = __dirname;
     for (let i = 0; i < 4; i++) e.cc_objects_step_full();
     if (e.cc_cur_level() !== id + 2)
       throw new Error(`hub door ${id} loaded level ${e.cc_cur_level()}`);
-    if (solidAt(e.cc_player_x(), e.cc_player_y()))
-      throw new Error(`hub door ${id} spawn inside a wall ` +
-                      `(${e.cc_player_x()},${e.cc_player_y()})`);
+    const px = e.cc_player_x(), py = e.cc_player_y();
+    if (solidAt(px, py))
+      throw new Error(`hub door ${id} spawn inside a wall (${px},${py})`);
+    // The loader ignores the hub-door cell in a cave and uses the Y-token
+    // start, so the transition spawn must equal a fresh load of that cave.
+    e.cc_objects_init(id + 2);
+    if (px !== e.cc_player_x() || py !== e.cc_player_y())
+      throw new Error(`hub door ${id} spawn (${px},${py}) is not the cave ` +
+                      `start (${e.cc_player_x()},${e.cc_player_y()})`);
   }
 
   // Enter cave 1 through hub door 1 at (5,8).  The hub door's cell (4,8) is
@@ -73,6 +79,50 @@ const DIR = __dirname;
   if (e.cc_cave_flag(1) !== 0) throw new Error("cave 1 completion flag was not cleared");
   if (solidAt(e.cc_player_x(), e.cc_player_y()))
     throw new Error("cave exit spawn is inside solid geometry");
+  // 0x5098/0x509A hold the player's cave cell; 0xD694 copies it to
+  // 0x2B72/0x2B74, so the hub entry is the same cell with a centred camera.
+  if (e.cc_player_x() !== 37 * 16 || e.cc_player_y() !== 17 * 16)
+    throw new Error(`cave exit spawn ${e.cc_player_x()},${e.cc_player_y()}, ` +
+                    "expected 592,272");
+  if (e.cc_cam_x() !== 320 || e.cc_cam_y() !== 172)
+    throw new Error(`cave exit camera ${e.cc_cam_x()},${e.cc_cam_y()}, ` +
+                    "expected 320,172");
+
+  // Every cave exit re-enters the hub at the same cell (0x5098/0x509A) with
+  // the camera centred on it.
+  const word = (c, r, off) =>
+    (e.cc_cell_byte(c, r, off) & 0xFF) |
+    ((e.cc_cell_byte(c, r, off + 1) & 0xFF) << 8);
+  for (let lv = 3; lv <= 18; lv++) {
+    e.cc_objects_init(lv);
+    let ex = null;
+    for (let r = 0; r < 25 && !ex; r++)
+      for (let c = 0; c < 40; c++) {
+        const w3 = word(c, r, 0x06), w5 = word(c, r, 0x0A);
+        if (w5 === 0x0C && (w3 === 0x11 || w3 === 0x0D)) { ex = [c, r]; break; }
+      }
+    if (!ex) throw new Error(`level ${lv} exit cell not found`);
+    e.cc_global_set(0x4611, ex[0] * 16 + 3);
+    e.cc_global_set(0x4613, ex[1] * 16);
+    e.cc_global_set(0xA0F5, 1);
+    e.cc_global_set(0x513C, 1);
+    e.cc_global_set(0xA0BE, lv - 2);
+    // Stop on the frame the hub loads: later frames apply gravity.
+    for (let i = 0; i < 19; i++) {
+      e.cc_objects_step_full();
+      if (e.cc_cur_level() === 2) break;
+    }
+    if (e.cc_cur_level() !== 2)
+      throw new Error(`level ${lv} exit loaded level ${e.cc_cur_level()}`);
+    if (e.cc_player_x() !== ex[0] * 16 || e.cc_player_y() !== ex[1] * 16)
+      throw new Error(`level ${lv} hub spawn ${e.cc_player_x()},` +
+                      `${e.cc_player_y()}, expected ${ex[0] * 16},${ex[1] * 16}`);
+    const cx = Math.max(0, Math.min(0x140, ex[0] * 16 - 0xA0));
+    const cy = Math.max(0, Math.min(0xC8, ex[1] * 16 - 0x64));
+    if (e.cc_cam_x() !== cx || e.cc_cam_y() !== cy)
+      throw new Error(`level ${lv} hub camera ${e.cc_cam_x()},` +
+                      `${e.cc_cam_y()}, expected ${cx},${cy}`);
+  }
 
   console.log("PASS: hub door and cave exit transitions load the correct levels");
 })().catch((err) => { console.error(err); process.exit(1); });

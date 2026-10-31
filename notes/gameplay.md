@@ -100,10 +100,14 @@ frame state can be compared directly with the oracle.
   spawn override from `[0x2B72]/[0x2B74]`); `0xD360`/`0xD412` are the cave
   exit animation, completion flag clear, all-caves check and hub load.
   The loader (`0xB1A9`) only honours the override when it matches the
-  destination's entry cell; a hub-door cell has no meaning in a cave.  The C
-  port mirrors this by falling back to the destination's Y-token start when
-  the requested spawn is inside solid geometry (`apply_level_state` /
-  `test_levels.js` covers all 16 hub doors).
+  destination's entry cell: hub → cave always uses the cave's Y-token start
+  (a hub-door cell has no meaning in a cave), while cave → hub uses the
+  player's cell captured when the exit prompt starts (`0x168D7` stores it in
+  `[0x5098]/[0x509A]`, `0xD694` copies it to `[0x2B72]/[0x2B74]`).  The
+  camera is centred on the spawn (`col*16-0xA0`, `row*16-0x64`, clamped);
+  `apply_level_overlay` deliberately skips `[0x512E]/[0x5130]` because the
+  fixture overlay was captured without an override.
+  `test_levels.js` covers all 16 hub doors and all 16 cave exits.
 - Level args: `0` = hub, `1..16` = caves, `0xFFFF` = intro, `0xFFFE` =
   finale.  `cc_load_arg()` / `cc_level_exit()` use this mapping.
 - Dynamic cell rendering is handled by `cc_render_cells` /

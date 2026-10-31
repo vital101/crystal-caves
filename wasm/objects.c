@@ -2266,6 +2266,17 @@ phase2:
                 }
                 S->g_a0f6 = 1;
                 S->exit_step = 0;
+                /* 0x168D7 stores the player's rounded cell in
+                 * [0x5098]/[0x509A]; 0xD694 copies it to
+                 * [0x2B72]/[0x2B74] for the hub load. */
+                {
+                    int pc = (int)S->player_x / 16;
+                    int pr = (int)S->player_y / 16;
+                    if ((int)S->player_x % 16 >= 8) pc++;
+                    if ((int)S->player_y % 16 >= 8) pr++;
+                    S->spawn_col_override = (uint16_t)pc;
+                    S->spawn_row_override = (uint16_t)pr;
+                }
             }
         } else if (S->g_a106) {
             helper_a110_clear();
@@ -3696,6 +3707,8 @@ static void exit_to_hub_frame(void) {
         S->g_3394 = 1;
     }
     S->next_level = 0;
+    /* [0x2B72]/[0x2B74] were captured from the player's cell when the exit
+     * prompt started (0x168D7); keep them for the hub load. */
     play_sound(0x14);
     load_arg(0);
 }
@@ -4213,15 +4226,23 @@ static void apply_level_state(int level, int use_start, int fresh) {
         /* Initial spawn cell from the Y token / generated level-start data. */
         S->player_x = st->f_4611;
         S->player_y = st->f_4613;
+        S->cam_x = st->f_512e;
+        S->cam_y = st->f_5130;
     } else {
-        /* Transition spawn override ([0x2B72]/[0x2B74]). */
+        /* Transition spawn override ([0x2B72]/[0x2B74]).  The loader uses the
+         * cell and centres the camera on it (0xB1A9): cam_x = col*16 - 0xA0,
+         * cam_y = row*16 - 0x64, clamped to the 320x200 view bounds. */
         S->player_x = (int16_t)(S->spawn_col_override * 16);
         S->player_y = (int16_t)(S->spawn_row_override * 16);
+        S->cam_x = (int16_t)(S->player_x - 0xA0);
+        S->cam_y = (int16_t)(S->player_y - 0x64);
+        if (S->cam_x < 0) S->cam_x = 0;
+        if (S->cam_x > 0x140) S->cam_x = 0x140;
+        if (S->cam_y < 0) S->cam_y = 0;
+        if (S->cam_y > 0xC8) S->cam_y = 0xC8;
         S->spawn_col_override = 0xffff;
         S->spawn_row_override = 0;
     }
-    S->cam_x = st->f_512e;
-    S->cam_y = st->f_5130;
     S->player_block = st->f_4619;
     S->anim_timer = st->f_461b;
     S->shape_b = st->f_461d;
@@ -4379,6 +4400,10 @@ static void apply_level_overlay(int level) {
         uint16_t val = ov_rd16(glob_p + i * 5 + 3);
         (void)size;
         if (off == 0x02A6 || off == 0x02A8) continue;  /* live RNG */
+        /* The camera depends on the actual spawn override ([0x2B72]/[0x2B74]);
+         * apply_level_state owns it.  The fixture overlay was captured without
+         * an override, so replaying its camera would undo a cave->hub spawn. */
+        if (off == 0x512E || off == 0x5130) continue;
         cc_global_set(off, val);
     }
     draw_n_raw = ov_rd16(p); p += 2;
@@ -4481,21 +4506,13 @@ static void load_level(int level, int new_game, int fresh_image, int sound_start
     S->obj_cursor = g_level_cursor[level];
     S->a0f8 = 0;
     S->cur_level = (int16_t)level;
-    apply_level_state(level, S->spawn_col_override == 0xffff,
-                      new_game || fresh_image);
+    /* The destination entry cell decides whether the door override is used:
+     * cave -> hub spawns at the matching hub door ([0x2B72]/[0x2B74]),
+     * while hub -> cave always uses the cave's Y-token start (the loader's
+     * comparison fails because a hub cell has no meaning in a cave). */
+    int use_start = (S->spawn_col_override == 0xffff) || (level != 2);
+    apply_level_state(level, use_start, new_game || fresh_image);
     if (!new_game && !fresh_image) apply_level_overlay(level);
-    /* The original loader only honours [0x2B72]/[0x2B74] when they match the
-     * destination's entry cell (0xB1A9); a hub-door cell has no meaning in a
-     * cave, and using it can put the player inside solid geometry.  If the
-     * requested spawn is blocked, fall back to the destination's Y-token
-     * start, which is what the loader does when the override does not match. */
-    if (cc_cell_collide(level, S->player_x, S->player_y, 0, 0)) {
-        const cc_level_start_t *st = &g_level_start_state[level];
-        S->player_x = st->f_4611;
-        S->player_y = st->f_4613;
-        S->cam_x = st->f_512e;
-        S->cam_y = st->f_5130;
-    }
     if (level >= 2) S->g_a0cc = (uint16_t)count_crystal_cells();
 }
 
