@@ -90,7 +90,7 @@ startup:
 
 # Emscripten path (produces app.js + app.wasm)
 emcc: assets
-	$(EMCC) render.c objects.c -O2 -o app.js -s WASM=1 \
+	$(EMCC) render.c objects.c text.c shell.c sound.c -O2 -o app.js -s WASM=1 \
 	  -s EXPORTED_FUNCTIONS='[$(foreach s,$(EXPORTS),_$(s)),_malloc,_free]' \
 	  -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","HEAPU8"]' \
 	  -s ALLOW_MEMORY_GROWTH=1

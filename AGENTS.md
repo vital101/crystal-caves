@@ -7,7 +7,7 @@ There is no root Makefile; the build lives in `wasm/`.
 | Command | Description |
 |---|---|
 | `make clang` | Build freestanding wasm via Homebrew LLVM (default) |
-| `make emcc` | Emscripten build (needs `emcc` on PATH) |
+| `make emcc` | Emscripten build (needs `emcc` on PATH; secondary, not in CI) |
 | `make test-all` | Data checks + all-19 render + gameplay/loader/text/shell regression |
 | `make test-render-all` | Pixel-diff every level against `out/oracle_L*.png` |
 | `make test-data` | Run `../tools/check_oracle.py` (structural oracle assertions) |

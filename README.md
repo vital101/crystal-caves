@@ -27,7 +27,8 @@ repository is a research/decompilation project.
 | Oracle regeneration | Python venv with `tools/requirements.txt` (`capstone`, `unicorn`) |
 | Browser smoke test | npm + `playwright` (test-only; see `wasm/package.json`) |
 
-The Emscripten build (`make emcc`) additionally needs `emcc` on `PATH`.
+The Emscripten build (`make emcc`) additionally needs `emcc` on `PATH`; it is a
+secondary back-end and is not exercised by CI.
 
 ## Build
 
