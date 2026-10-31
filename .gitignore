@@ -11,6 +11,7 @@ __pycache__/
 # Generated build/test outputs
 wasm/render.wasm
 wasm/assets/
+wasm/node_modules/
 wasm/out_wasm_level*.png
 wasm/oracle_level*.json
 

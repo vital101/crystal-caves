@@ -168,6 +168,15 @@ test-oracle-shell: clang
 	node test_hud.js
 	node test_text.js
 
+# Headless browser smoke test (Playwright; test-only npm dependency).
+# test_browser.js prints SKIP with exit 0 when playwright is not installed.
+test-browser: clang
+	node test_browser.js
+
+# Regenerate the framebuffer hashes after an intentional rendering change.
+test-browser-update: clang
+	node test_browser.js --update
+
 # Compatibility aliases: save coverage lives in test_persist.js; the exact
 # high-score table/sort/name-entry coverage lives in test_exactness.js.
 test-save: test-persist
@@ -236,4 +245,4 @@ test-all: test-data test-render-all test-view test-objects test-gameplay test-in
 clean:
 	rm -f $(OUT) app.js app.wasm out_wasm_level*.png oracle_level*.json
 
-.PHONY: clang emcc assets data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-persist test-exactness test-keymap test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-all clean
+.PHONY: clang emcc assets data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-persist test-exactness test-keymap test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update test-all clean

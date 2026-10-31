@@ -29,6 +29,7 @@
 <script>
 (() => {
   const W = 320, H = 200;
+  const TEST_MODE = new URLSearchParams(location.search).has('test');
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
   const diag = document.getElementById('diag');
@@ -277,6 +278,102 @@
         else renderShell();
       }
       requestAnimationFrame(frame);
+    }
+
+    // ---- automated test hook (only with ?test=1) ------------------------
+    /* The browser smoke test drives the game explicitly instead of waiting on
+     * requestAnimationFrame: fixed inputs, fixed step counts, stable output.
+     * Normal play never sees this object and keeps the rAF loop. */
+    if (TEST_MODE) {
+      const readStr = (p) => {
+        const m = mem();
+        let s = '';
+        for (let i = 0; i < 64; i++) {
+          const c = m[p + i];
+          if (!c) break;
+          s += String.fromCharCode(c);
+        }
+        return s;
+      };
+      const hashBytes = (u8) => {
+        let h = 0x811c9dc5;
+        for (let i = 0; i < u8.length; i++) {
+          h ^= u8[i];
+          h = Math.imul(h, 0x01000193);
+        }
+        return h >>> 0;
+      };
+      const fbHash = () => {
+        const fb = e.cc_view_framebuffer();
+        return hashBytes(new Uint8Array(e.memory.buffer, fb, W * H * 4));
+      };
+      const nonBlack = () => {
+        const fb = e.cc_view_framebuffer();
+        const u8 = new Uint8Array(e.memory.buffer, fb, W * H * 4);
+        let n = 0;
+        for (let i = 0; i < W * H; i++)
+          if (u8[i * 4] || u8[i * 4 + 1] || u8[i * 4 + 2]) n++;
+        return n;
+      };
+      const stateHash = () => {
+        const n = e.cc_state_save(stateP, stateSize);
+        if (!(n > 0)) return 0;
+        return hashBytes(new Uint8Array(e.memory.buffer, stateP, n));
+      };
+      const step = (n) => {
+        for (let i = 0; i < n; i++) {
+          e.cc_objects_step_full();
+          e.cc_hud_tick();
+          e.cc_shell_step();
+        }
+        render();
+      };
+      window.__cc = {
+        ready: false,
+        exports: e,
+        state: () => e.cc_shell_state(),
+        level: () => e.cc_cur_level(),
+        player: () => [e.cc_player_x(), e.cc_player_y()],
+        ammo: () => e.cc_ammo(),
+        score: () => e.cc_score() >>> 0,
+        hudActive: () => e.cc_shell_hud_active(),
+        key: (k) => e.cc_shell_key(k),
+        keyScan: (s) => e.cc_shell_key_scan(s),
+        input: (scan, down) => e.cc_input_scan(scan, down),
+        stepTicks: (n) => e.cc_shell_step_ticks(n),
+        step,
+        render,
+        handleRequest,
+        fbHash,
+        nonBlack,
+        stateHash,
+        saveSlot: (slot) =>
+          CCPersist.saveSlot(localStorage, slot, e, stateP, stateSize, mem),
+        loadSlot: (slot, hubOnly) =>
+          CCPersist.loadSlot(localStorage, slot, e, stateP, stateSize, mem,
+                             hubOnly !== false),
+        saveConfig: persistConfig,
+        saveHighScores: persistHighScores,
+        setConfig: (sound, joystick, video) =>
+          e.cc_shell_set_config(sound, joystick, video),
+        config: () => [e.cc_shell_sound_on(), e.cc_shell_joystick_on(),
+                       e.cc_shell_video_alt()],
+        addHiscore: (name, score) =>
+          e.cc_shell_hiscore_add(copyString(name), score),
+        hiscore: (i) => ({
+          name: readStr(e.cc_shell_hiscore_name(i)),
+          score: e.cc_shell_hiscore_score(i) >>> 0,
+        }),
+        storage: () => ({
+          config: localStorage.getItem(CCPersist.CFG_KEY),
+          hiscores: localStorage.getItem(CCPersist.HS_KEY),
+          save0: localStorage.getItem(CCPersist.SAVE_PREFIX + '0'),
+        }),
+      };
+      diag.textContent = 'test-ready';
+      renderShell();
+      window.__cc.ready = true;
+      return;
     }
 
     diag.textContent = 'ready — ' + e.cc_shell_state();
