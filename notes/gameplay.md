@@ -78,7 +78,10 @@ frame state can be compared directly with the oracle.
   (`DS:0x4638`), and `0x251D`/`0x2850`/`0x2241` drive the slash.
 - `0xEAEA` status timers and the `0x5124` death/restart states
   (`0xD17D`, `0xD1C6`, `0xD342`) with `0xCF46` checkpoint restore,
-  `0xD15C` reload and `0xD140` latch are ported.
+  `0xD15C` reload and `0xD140` latch are ported.  `0xD17D` starts with the
+  real death animation `0x0FC5:0xB7B7` (phases 0..4, shapes
+  `1/8/0xA/0xB/0x10`, `[0x4623]/[0x4625]` = slot-1 `p18`/`p1a`) and restarts
+  when it returns 1; omitting it left the player frozen.
 
 ## Cells, crystals, exits and hub doors (Phase 3)
 

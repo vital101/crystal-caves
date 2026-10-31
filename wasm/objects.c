@@ -3934,10 +3934,79 @@ static void restart_sequence(void) {
     restore_checkpoint();
 }
 
-/* 0xD17D: death state 1 - wait for input/restart timer. */
+/* 0x0FC5:0xB7B7: player death animation.  Uses [0x4623]/[0x4625]
+ * (slot-1 p18/p1a) as phase/frame and returns 1 when the final phase ends. */
+static int death_animation(void) {
+    uint16_t *phase = &S->obj[1].p18;
+    uint16_t *frame = &S->obj[1].p1a;
+    int done = 0;
+
+    switch (*phase) {
+        case 0:
+            if (*frame == 0) {
+                S->player_block = 0x11;
+                S->anim_timer = 1;
+                S->shape_player = 1;
+                S->obj[1].p16 = 6;
+            }
+            if (*frame > 0xC && S->anim_timer <= S->obj[1].p16)
+                S->anim_timer = (uint16_t)(S->anim_timer + 1u);
+            (*frame)++;
+            if (*frame > 0x18) { *frame = 0; (*phase)++; }
+            break;
+        case 1:
+            if (*frame == 0) {
+                S->anim_timer = 1;
+                S->shape_player = 8;
+                S->obj[1].p16 = 2;
+            }
+            if (*frame < 9) player_anim_next();
+            (*frame)++;
+            if (*frame > 0xE) { *frame = 0; (*phase)++; }
+            break;
+        case 2:
+            if (*frame == 0) {
+                S->anim_timer = 1;
+                S->shape_player = 0xA;
+            }
+            (*frame)++;
+            if (*frame > 0xE) { *frame = 0; (*phase)++; }
+            break;
+        case 3:
+            if (*frame == 0) {
+                S->anim_timer = 1;
+                S->shape_player = 0xB;
+                S->obj[1].p16 = 5;
+            }
+            if (*frame < 0xF) player_anim_next();
+            (*frame)++;
+            if (*frame == 0xF) { *frame = 0; (*phase)++; }
+            break;
+        case 4:
+            if (*frame == 0) {
+                S->anim_timer = 1;
+                S->shape_player = 0x10;
+                S->obj[1].p16 = 2;
+            }
+            if (*frame == 3) player_anim_next();
+            (*frame)++;
+            if (*frame > 0x14) done = 1;
+            break;
+        default:
+            done = 1;
+            break;
+    }
+    return done;
+}
+
+/* 0xD17D: death state 1 - play the death animation, then wait for restart. */
 static void death_state1(void) {
+    if (death_animation()) {
+        restart_sequence();
+        return;
+    }
     if ((S->g_2b5e > 0 && S->g_2b5e < 0x80 && S->obj[1].p18 > 0) ||
-        S->input_fire)
+        S->input_fire || S->input_joystick_fire)
         restart_sequence();
 }
 

@@ -269,6 +269,27 @@ function applySeed(want, seed) {
       compareSnap(want, `${sc.name} frame ${f + 1}`);
     }
   }
+  // ---- 0xD17D death animation (state 1) --------------------------------
+  // A lethal hit enters this state; the player must animate through the
+  // 0x0FC5:0xB7B7 phases and then restart, not freeze.
+  e.cc_objects_init(3);
+  e.cc_global_set(0x5124, 1);
+  const deathShapes = new Set();
+  let deathRestarted = false;
+  for (let i = 0; i < 140; i++) {
+    e.cc_objects_step_full();
+    deathShapes.add(e.cc_obj_shape(1));
+    if (e.cc_global_get(0x5124) === 0) { deathRestarted = true; break; }
+  }
+  if (!deathRestarted) fail("death.state1", "animation never restarted");
+  for (const sh of [1, 8, 10, 11, 16])
+    if (!deathShapes.has(sh))
+      fail("death.state1", `missing death shape ${sh} (${[...deathShapes]})`);
+  if (e.cc_cur_level() !== 3)
+    fail("death.state1", `restart loaded level ${e.cc_cur_level()}`);
+  if (e.cc_player_x() !== 288 || e.cc_player_y() !== 224)
+    fail("death.state1", `restart spawn ${e.cc_player_x()},${e.cc_player_y()}`);
+
   if (failures) {
     console.error(`\n${failures} mismatch(es) over ${frames} frames`);
     process.exit(1);
