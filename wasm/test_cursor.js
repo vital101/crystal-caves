@@ -44,6 +44,19 @@ function check(cond, msg) {
   pal.colors.forEach(([r, g, b], i) => { p32[i] = (r << 16) | (g << 8) | b; });
   e.cc_set_palette(pp);
 
+  // F2 cursor glyph bank: the animation uses glyphs 45..49 exactly as stored
+  // in the original CC1-F2.MNI.  Glyph 49 is a byte-for-byte duplicate of 46
+  // in the shipped art, so the five-frame cycle has four distinct images.
+  const originalF2 = fs.readFileSync(
+    path.join(__dirname, "..", "extracted", "CC1-F2.MNI")).slice(3, 3 + 2000);
+  const glyph = (bank, i) => bank.slice(i * 40, (i + 1) * 40);
+  check(f2.length === 2000, "F2 bank is 50 x 40-byte glyphs");
+  check(Buffer.compare(f2, originalF2) === 0, "F2 export matches CC1-F2.MNI");
+  check(Buffer.compare(glyph(f2, 46), glyph(f2, 49)) === 0,
+        "F2 glyph 49 repeats glyph 46 (original art)");
+  check(Buffer.compare(glyph(f2, 45), glyph(f2, 46)) !== 0,
+        "F2 glyphs 45 and 46 are distinct");
+
   // Enter the intro story so page 0 ends with "Press Any Key ^".
   e.cc_shell_init();
   e.cc_shell_key(ENTER);            // logo -> attract

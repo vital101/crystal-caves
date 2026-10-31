@@ -1,6 +1,13 @@
 {
  "blocks": [
   {
+   "id": "menu_quit_dos",
+   "start": 70783,
+   "lines": [
+    "Quit to DOS (Y-N) ^"
+   ]
+  },
+  {
    "id": "story_twibbles",
    "start": 71127,
    "lines": [
@@ -155,35 +162,68 @@
    "start": 78035,
    "lines": [
     "ORDER ALL THREE AMAZING EPISODES!",
+    "",
     "    Please specify disk size:",
     "         5.25\"  or  3.5\"",
+    "",
     "   To order send $33, check or",
     "   money order (USA funds) to:",
+    "",
     "         Apogee Software",
     "         P.O. Box 476386",
     "     Garland, TX 75043  (USA)",
+    "",
     "     Or CALL NOW toll free:",
     "         1-800-852-5659",
     "      (Visa and MasterCard)",
+    "",
     "         Press Any Key ^"
    ]
   },
   {
-   "id": "ordering",
+   "id": "ordering_offer",
    "start": 78888,
    "lines": [
     "   HOW TO ORDER CRYSTAL CAVES!",
+    "",
     "     Order now and receive:",
+    "",
     "  * All three amazing episodes",
     "  * The hints and tricks sheet",
     "  * The secret cheat code",
     "  * Exciting new bonus games",
+    "",
     "    To order, call toll free:",
     "         1-800-852-5659",
     "      (Visa and MasterCard)",
+    "",
     " Foreign orders:  Please look at",
     "    the \"FOREIGN ORDERS\" menu.",
+    "",
     "    Continued...Press Any Key"
+   ]
+  },
+  {
+   "id": "ordering_episodes",
+   "start": 79757,
+   "lines": [
+    "   HOW TO ORDER CRYSTAL CAVES!",
+    "",
+    " Crystal Caves consists of three",
+    "original and incredible episodes:",
+    "",
+    "  1) Troubles with Twibbles",
+    "  2) Slugging it Out",
+    "  3) Mylo vs. the Supernova",
+    "",
+    " You may order the entire series",
+    " for only $30, plus $3 shipping.",
+    "",
+    " Each episode is set on a unique",
+    "planet, with all-new dangers, new",
+    " levels, and all-new challenges.",
+    "",
+    "          Press Any Key ^"
    ]
   },
   {
@@ -527,7 +567,9 @@
     "O)rdering Info.   H)igh Scores",
     "F)oreign Orders   C)all our BBS",
     "V)ideo Support    A)bout Apogee",
+    "",
     "         Q)uit to DOS",
+    "",
     "               ^"
    ]
   },
@@ -547,7 +589,9 @@
     " R)estore Old Game",
     " S)ave Current Game",
     " Q)uit Current Game",
+    "",
     " ESC - Return to game",
+    "",
     "           ^"
    ]
   },
@@ -557,16 +601,90 @@
    "lines": [
     "       FOREIGN CUSTOMERS",
     "       -----------------",
+    "",
     "The following screens list our",
     "  dealers outside the United",
     "States, for Australia, Germany,",
     "   and the United Kingdom.",
+    "",
     "  These are official Apogee",
     "   dealers with the latest",
     "      games and updates.",
+    "",
     "If your country is not listed,",
     " you may order directly from",
     "Apogee by phone or USA check.",
+    "",
+    "        Press Any Key ^"
+   ]
+  },
+  {
+   "id": "foreign_au",
+   "start": 101930,
+   "lines": [
+    "      AUSTRALIAN CUSTOMERS",
+    "",
+    "Please order from Apogee@s",
+    "official Australian dealer:",
+    "",
+    "PRICE: $45 + $5 shipping.",
+    "",
+    "Manaccom",
+    "9 Camford Str.",
+    "Milton, Qld. 4064",
+    "",
+    "Phone: (07) 368-2366",
+    "Fax:   (07) 369-7589",
+    "",
+    "Use MasterCard, Visa, Bankcard,",
+    "American Express, or cheques.",
+    "",
+    "        Press Any Key ^"
+   ]
+  },
+  {
+   "id": "foreign_de",
+   "start": 102184,
+   "lines": [
+    "        GERMAN CUSTOMERS",
+    "",
+    "Price: 49,-- DM plus 10,-- DM",
+    "Total: 59,-- DM (Deutsche Mark)",
+    "",
+    "CDV-Software",
+    "Ettlingerstr. 5",
+    "7500 Karlsruhe 1  GERMANY",
+    "",
+    "Phone:  0721-22295",
+    "Fax:    0721-21314",
+    "",
+    "Use Visa, MasterCard, EuroCard,",
+    "American Express, cheque, money",
+    "order, or C.O.D.",
+    "",
+    "        Press Any Key ^"
+   ]
+  },
+  {
+   "id": "foreign_uk",
+   "start": 102445,
+   "lines": [
+    "    UNITED KINGDOM CUSTOMERS",
+    "",
+    "Price: /30 + /5 shipping",
+    "",
+    "Precision Software Applications",
+    "Tarnwood",
+    "10 High Str.",
+    "Tadlow, Near Royston",
+    "Harts. SG8 0ES  UK",
+    "",
+    "Phone: +44 (0) 767 233 02",
+    "",
+    "Credit cards, Access, cheques,",
+    "postal & Bankers orders.",
+    "Make cheques payable to PSA.",
+    "",
     "        Press Any Key ^"
    ]
   },
@@ -576,16 +694,20 @@
    "lines": [
     "   THE OFFICIAL APOGEE BBS",
     "   -----------------------",
+    "",
     "The SOFTWARE CREATIONS BBS is",
     " the home BBS for the latest",
     " Apogee games.  Check out our",
     "FREE \"Apogee\" file section for",
     "  new releases and updates.",
+    "",
     "       BBS phone lines:",
     "(508) 365-2359  2400 baud",
     "(508) 365-9825  9600 baud",
     "(508) 365-9668  14.4k dual HST",
+    "",
     "  Many node lines available!",
+    "",
     "        Press Any Key ^"
    ]
   },
@@ -594,17 +716,21 @@
    "start": 105615,
    "lines": [
     "     About Apogee Software",
+    "",
     "Our goal is to establish Apogee",
     "  as the leader in commercial",
     " quality shareware games. With",
     " enthusiasm and dedication we",
     "think our goal can be achieved.",
+    "",
     "However,  we need your support.",
     "Shareware is not free software.",
+    "",
     "  We thank you in advance for",
     "   your contribution to the",
     "  growing shareware community.",
     "      Your honesty pays...",
+    "",
     "        Press any key ^"
    ]
   },
@@ -642,17 +768,21 @@
    "start": 107736,
    "lines": [
     "    VIDEO BOARD COMPATIBILITY",
+    "",
     "    Some SuperVGA boards have",
     "   compatibility problems that",
     "  cause the screen to jerk when",
     "scrolling, or perform unreliably.",
+    "",
     " This is the fault of the video",
     " board makers not producing 100%",
     "  compatible graphics cards.",
+    "",
     " We have tried to support all the",
     "boards we know of, but if you have",
     "    problems, then toggle this",
     "   setting and see if it helps.",
+    "",
     "  Alternate video setting (Y-N) ^ "
    ]
   },

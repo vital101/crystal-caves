@@ -18,6 +18,7 @@ void cc_text_cursor_draw(int xcell, int ycell, int frame);
 int  cc_text_block_lines(int block_id);
 void cc_hud_tick(void);
 void cc_hud_render(void);
+void cc_hud_render_screen(void);
 
 #ifdef __cplusplus
 }

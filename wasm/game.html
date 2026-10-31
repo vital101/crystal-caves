@@ -131,7 +131,7 @@
         if (!blk || !sh) continue;
         e.cc_draw_object_view(blk, sh, e.cc_obj_x(s) - camX, e.cc_obj_y(s) - camY);
       }
-      if (e.cc_shell_hud_active()) e.cc_hud_render();
+      if (e.cc_shell_hud_active()) e.cc_hud_render_screen();
       if (e.cc_shell_overlay()) e.cc_shell_render();
       present();
     }
@@ -196,7 +196,10 @@
         else sendShellKey(code || (ev.key === ' ' ? KEY.ENTER : 0));
       }
       if (e.cc_shell_state() === 11 || e.cc_shell_state() === 12) persistHighScores();
-      if (e.cc_shell_state() === 6) persistConfig();
+      if (e.cc_shell_config_dirty()) {
+        persistConfig();
+        e.cc_shell_config_clear_dirty();
+      }
     });
     window.addEventListener('pointerdown', () => { audio.unlock(); });
     window.addEventListener('keyup', (ev) => {

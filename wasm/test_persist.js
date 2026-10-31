@@ -20,6 +20,12 @@ const hiscoreFixture = JSON.parse(fs.readFileSync(
   path.join(__dirname, '..', 'notes', 'hiscore_fixtures.json'), 'utf8'));
 const v1Fixture = JSON.parse(fs.readFileSync(
   path.join(__dirname, '..', 'notes', 'persist_v1_fixture.json'), 'utf8'));
+// Derive enum indices from the exported block table so adding shell blocks
+// does not silently shift the expected message ids.
+const blockTable = JSON.parse(fs.readFileSync(
+  path.join(__dirname, '..', 'out', 'portable', 'shell_text.json'), 'utf8'));
+const IDX = {};
+blockTable.blocks.forEach((b, i) => { IDX[b.id] = i; });
 
 let failures = 0;
 function assert(cond, msg) {
@@ -591,7 +597,7 @@ function applyConfig(e, cfg) {
            'shell save writes slot 0');
     inst.e.cc_shell_request_done(1);
     assert(inst.e.cc_shell_state() === 14, 'save result message');
-    assert(inst.e.cc_shell_message_block() === 30,
+    assert(inst.e.cc_shell_message_block() === IDX.message_saved,
            'save result uses the Game saved window');
     inst.e.cc_shell_key(13);       // Enter must be ignored
     assert(inst.e.cc_shell_state() === 14,
@@ -611,7 +617,7 @@ function applyConfig(e, cfg) {
     assert(inst.e.cc_shell_request_pending() === 0,
            'cave save raises no request');
     assert(inst.e.cc_shell_state() === 14 &&
-           inst.e.cc_shell_message_block() === 31,
+           inst.e.cc_shell_message_block() === IDX.message_save_hub_only,
            'cave save shows the save-hub-only window');
     inst.e.cc_shell_key(13);
     assert(inst.e.cc_shell_state() === 4, 'cave save message dismisses');
@@ -621,7 +627,7 @@ function applyConfig(e, cfg) {
     assert(inst.e.cc_shell_request_pending() === 0,
            'cave restore raises no request');
     assert(inst.e.cc_shell_state() === 14 &&
-           inst.e.cc_shell_message_block() === 33,
+           inst.e.cc_shell_message_block() === IDX.message_restore_hub_only,
            'cave restore shows the restore-hub-only window');
     inst.e.cc_shell_key(13);       // Enter ignored
     assert(inst.e.cc_shell_state() === 14,
@@ -675,7 +681,7 @@ function applyConfig(e, cfg) {
            'corrupt restore slot fails');
     inst.e.cc_shell_request_done(0);
     assert(inst.e.cc_shell_state() === 14 &&
-           inst.e.cc_shell_message_block() === 22,
+           inst.e.cc_shell_message_block() === IDX.message_file_error,
            'corrupt restore shows File Error');
   }
 
@@ -685,13 +691,18 @@ function applyConfig(e, cfg) {
     toMenu(inst.e);
     for (const k of ['o', 'f', 'c', 'v', 'a']) {
       inst.e.cc_shell_key(key(k));
-      assert(inst.e.cc_shell_state() === 3,
-             'menu option ' + k + ' opens a text screen');
+      const want = k === 'v' ? 19 : 3;   // V is the Y/N video prompt
+      assert(inst.e.cc_shell_state() === want,
+             'menu option ' + k + ' opens its screen');
       assert(inst.e.cc_shell_request_pending() === 0,
              'menu option ' + k + ' performs no file I/O');
-      let guard = 0;
-      while (inst.e.cc_shell_state() === 3 && guard++ < 40)
-        inst.e.cc_shell_key(13);
+      if (k === 'v') {
+        inst.e.cc_shell_key(27);         // Esc leaves the video prompt
+      } else {
+        let guard = 0;
+        while (inst.e.cc_shell_state() === 3 && guard++ < 40)
+          inst.e.cc_shell_key(13);
+      }
       assert(inst.e.cc_shell_state() === 2,
              'menu option ' + k + ' returns to the menu');
     }

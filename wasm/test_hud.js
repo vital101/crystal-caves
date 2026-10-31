@@ -100,5 +100,56 @@ const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'notes', 
     console.log('PASS HUD cadence (18 ticks, extra renders ignored)');
   }
 
+  // Composite frame: the viewport crop already applies the full camera scroll,
+  // so the screen HUD must stay at a fixed x for every [0x512E] sub-pixel.
+  const hudHash = (fn) => {
+    e.cc_view_clear(0);
+    fn();
+    const fb = e.cc_view_framebuffer();
+    const u8 = new Uint8Array(e.memory.buffer, fb, 320 * 200 * 4);
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < 320 * 200; i++) {
+      h ^= u8[i * 4]; h = Math.imul(h, 16777619);
+      h ^= u8[i * 4 + 1]; h = Math.imul(h, 16777619);
+      h ^= u8[i * 4 + 2]; h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  };
+  e.cc_global_set(0x509E, 3);
+  e.cc_global_set(0x509C, 27);
+  e.cc_global_set(0x50A2, 12);
+  e.cc_global_set(0x50A5, 2407);
+  e.cc_global_set(0x50A7, 0);
+  e.cc_global_set(0xA0C4, 0xFFFF);
+  e.cc_global_set(0xA0C6, 0);
+  e.cc_global_set(0xA0FB, 0);
+  let fixed = null, moves = 0;
+  for (let k = 0; k < 8; k++) {
+    e.cc_global_set(0x512E, k);
+    const h = hudHash(() => e.cc_hud_render_screen());
+    if (fixed === null) fixed = h;
+    else if (h !== fixed) moves++;
+  }
+  if (moves) {
+    console.log(`HUD screen render moved with the sub-pixel (${moves} frames)`);
+    fail++;
+  } else {
+    console.log('PASS HUD screen render stays fixed during scroll');
+  }
+  let oracleMoves = 0;
+  let oracleFirst = null;
+  for (let k = 0; k < 8; k++) {
+    e.cc_global_set(0x512E, k);
+    const h = hudHash(() => e.cc_hud_render());
+    if (oracleFirst === null) oracleFirst = h;
+    else if (h !== oracleFirst) oracleMoves++;
+  }
+  if (!oracleMoves) {
+    console.log('HUD oracle render should still apply [0x512E]&7');
+    fail++;
+  } else {
+    console.log('PASS HUD oracle render keeps the original pan offset');
+  }
+
   if (fail) process.exit(1);
 })();

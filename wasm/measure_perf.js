@@ -52,7 +52,7 @@ function read(p) { return fs.readFileSync(path.join(DIR, p)); }
       if (!blk || !sh) continue;
       e.cc_draw_object_view(blk, sh, e.cc_obj_x(s) - camX, e.cc_obj_y(s) - camY);
     }
-    if (e.cc_shell_hud_active()) e.cc_hud_render();
+    if (e.cc_shell_hud_active()) e.cc_hud_render_screen();
   }
 
   function stepFrame() {

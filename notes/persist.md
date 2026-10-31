@@ -163,13 +163,18 @@ future version under the same key is ignored.
 ## Browser substitutions
 
 - DOS file I/O, BBS dialing, ordering and foreign-order network calls are not
-  performed.  The original text screens are shown unchanged; the ordering /
-  BBS / foreign / video menu options are informational.
-- Quit-to-DOS returns to the title screen.
+  performed.  The original screens and page sequences are shown unchanged.
+- Quit to DOS shows the original "Quit to DOS (Y-N)" confirmation.  On Y the
+  browser stops at an exit screen (the original returns to the DOS prompt);
+  any key restarts the attract sequence.
 - Joystick uses the Gamepad API and is gated by the persisted joystick toggle.
-- Video is stored but is a no-op.
-- The `^` marker is the input position; the original 5-frame cursor animation (F2 glyphs 45..49, one frame every 21 ticks) is drawn there by the shell renderer.
-- Title/credits scroll remains approximated by the original 432-tick duration.
+- Video is a real persisted setting: the compatibility screen's Y/N prompt
+  writes the alternate-video flag (`[0xA0EC]`).  The browser renderer has no
+  alternate mode, so the flag does not change the output.
+- The `^` marker is the input position; the original 5-frame cursor animation
+  (F2 glyphs 45..49, one frame every 21 ticks) is drawn there by the shell
+  renderer.  Glyph 49 is a byte-for-byte duplicate of glyph 46 in the original
+  F2 bank, so the cycle has four distinct images.
 
 ## Tests
 

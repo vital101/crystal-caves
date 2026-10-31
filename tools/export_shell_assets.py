@@ -251,6 +251,41 @@ def split_instruction_pages(blocks):
     return out
 
 
+def apply_menu_fixture(blocks):
+    """Override the menu/information blocks with the real handler buffers.
+
+    The static text tables omit the blank spacer rows that the handlers insert
+    at run time, so the oracle capture in notes/menu_fixtures.json is the only
+    exact source for these windows.  Blocks keep their original file offset so
+    the generated enum order stays stable.
+    """
+    path = os.path.join(HERE, "notes", "menu_fixtures.json")
+    if not os.path.exists(path):
+        return blocks
+    fixture = json.load(open(path))
+    pages = fixture.get("pages", {})
+    starts = {
+        "ordering_episodes": 0x1378D, "ordering_offer": 0x13428,
+        "ordering_disk": 0x130D3,
+        "foreign": 0x18CB1, "foreign_au": 0x18E2A, "foreign_de": 0x18F28,
+        "foreign_uk": 0x1902D,
+        "bbs": 0x19910, "about": 0x19C8F,
+        "menu_help": 0x17865, "menu_quit": 0x15DCB, "menu_main": 0x1745D,
+        "menu_video": 0x1A4D8, "menu_quit_dos": 0x1147F,
+    }
+    # "ordering" was the mis-identified first page; the fixture splits the
+    # three ordering pages into explicit ids.
+    blocks = [b for b in blocks if b["id"] != "ordering"]
+    by_id = {b["id"]: b for b in blocks}
+    for name, lines in pages.items():
+        if name in by_id:
+            by_id[name]["lines"] = list(lines)
+        else:
+            blocks.append({"id": name, "start": starts.get(name, 0),
+                           "lines": list(lines)})
+    return sorted(blocks, key=lambda b: (b["start"], b["id"]))
+
+
 def extract_text_blocks(mod):
     blocks = []
     for m in re.finditer(re.escape(SENTINEL), mod):
@@ -409,6 +444,7 @@ def main():
 
     # Text blocks.
     blocks = extract_text_blocks(mod)
+    blocks = apply_menu_fixture(blocks)
     json.dump({"blocks": blocks}, open(os.path.join(OUT, "shell_text.json"), "w"), indent=1)
     write_text_header(blocks)
 

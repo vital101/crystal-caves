@@ -99,6 +99,11 @@ frame state can be compared directly with the oracle.
 - Exit/door state: `0xD4E5` is hub-door entry (cell `w0` = destination arg,
   spawn override from `[0x2B72]/[0x2B74]`); `0xD360`/`0xD412` are the cave
   exit animation, completion flag clear, all-caves check and hub load.
+  The loader (`0xB1A9`) only honours the override when it matches the
+  destination's entry cell; a hub-door cell has no meaning in a cave.  The C
+  port mirrors this by falling back to the destination's Y-token start when
+  the requested spawn is inside solid geometry (`apply_level_state` /
+  `test_levels.js` covers all 16 hub doors).
 - Level args: `0` = hub, `1..16` = caves, `0xFFFF` = intro, `0xFFFE` =
   finale.  `cc_load_arg()` / `cc_level_exit()` use this mapping.
 - Dynamic cell rendering is handled by `cc_render_cells` /

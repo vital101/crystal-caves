@@ -18,16 +18,22 @@ const pal = JSON.parse(read('assets/palette.json'));
 
 const GAME = 4;
 const MESSAGE = 14;
+// Derive the enum indices from the exported block table so adding blocks
+// does not silently shift the expected message ids.
+const blockTable = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '..', 'out', 'portable', 'shell_text.json')));
+const IDX = {};
+blockTable.blocks.forEach((b, i) => { IDX[b.id] = i; });
 const BLOCK = {
-  last_crystal: 19,
-  stunned: 20,
-  more_crystals: 21,
-  red_mushroom: 25,
-  lever: 26,
-  power_shot: 27,
-  poison: 28,
-  gravity: 42,
-  perfect_health: 43
+  last_crystal: IDX.message_last_crystal,
+  stunned: IDX.message_stunned,
+  more_crystals: IDX.message_more_crystals,
+  red_mushroom: IDX.message_red_mushroom,
+  lever: IDX.message_lever,
+  power_shot: IDX.message_power_shot,
+  poison: IDX.message_poison,
+  gravity: IDX.message_gravity,
+  perfect_health: IDX.message_perfect_health
 };
 
 function assert(cond, msg) {

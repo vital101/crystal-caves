@@ -169,8 +169,15 @@ function check(cond, msg) {
   e.cc_shell_key(ENTER);
   check(state() === 2, "menu reached");
   e.cc_shell_key("q".charCodeAt(0));
+  check(state() === 18, "quit opens the Quit to DOS confirm");
+  e.cc_shell_key("n".charCodeAt(0));
+  check(state() === 2, "quit confirm N returns to the menu");
+  e.cc_shell_key("q".charCodeAt(0));
+  e.cc_shell_key("y".charCodeAt(0));
+  check(state() === 20, "quit confirm Y enters the DOS exit screen");
+  e.cc_shell_key(ENTER);
   check(state() === 15 && row() === 0 && phase() === 0,
-        "quit to title restarts at the title hold");
+        "quit to DOS restarts at the title hold");
 
   if (failures) {
     console.error(`\n${failures} failure(s)`);

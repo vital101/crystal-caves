@@ -278,8 +278,7 @@ void cc_hud_tick(void) {
     cc_global_set(0xa0c6, sub_t);
 }
 
-void cc_hud_render(void) {
-    unsigned char sub = (unsigned char)(gs(0x512e) & 7);
+static void hud_render_sub(unsigned char sub) {
     char buf[16];
     int x, y = 1;
 
@@ -364,4 +363,19 @@ void cc_hud_render(void) {
         }
         if (star) cc_view_draw_glyph(star, 28 * CELL_W + sub, y);
     }
+}
+
+/* Oracle-exact HUD for the standalone fixture: the original draws at
+ * x + ([0x512E] & 7) because the EGA horizontal pixel-pan register shifts the
+ * whole display by that amount. */
+void cc_hud_render(void) {
+    hud_render_sub((unsigned char)(gs(0x512e) & 7));
+}
+
+/* Composite game frame: the viewport crop already applies the full camera
+ * scroll (including the fine 0..7 pixels), so the HUD is drawn at its fixed
+ * screen position.  Adding the pan offset here would make the status row
+ * jitter against the scrolling map. */
+void cc_hud_render_screen(void) {
+    hud_render_sub(0);
 }

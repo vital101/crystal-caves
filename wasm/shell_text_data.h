@@ -5,6 +5,7 @@
 typedef struct { const char *const *lines; int count; } ShellTextBlock;
 
 enum {
+    SHELL_TEXT_MENU_QUIT_DOS,
     SHELL_TEXT_STORY_TWIBBLES,
     SHELL_TEXT_STORY_TWIBBLES2,
     SHELL_TEXT_STORY_FINALE,
@@ -15,7 +16,8 @@ enum {
     SHELL_TEXT_STORY_ENCYCLOPEDIA2,
     SHELL_TEXT_MESSAGE_PAUSE,
     SHELL_TEXT_ORDERING_DISK,
-    SHELL_TEXT_ORDERING,
+    SHELL_TEXT_ORDERING_OFFER,
+    SHELL_TEXT_ORDERING_EPISODES,
     SHELL_TEXT_HISCORE_TITLE,
     SHELL_TEXT_HISCORE_NAME,
     SHELL_TEXT_INSTRUCTIONS_1,
@@ -45,6 +47,9 @@ enum {
     SHELL_TEXT_MENU_MAIN,
     SHELL_TEXT_MENU_HELP,
     SHELL_TEXT_FOREIGN,
+    SHELL_TEXT_FOREIGN_AU,
+    SHELL_TEXT_FOREIGN_DE,
+    SHELL_TEXT_FOREIGN_UK,
     SHELL_TEXT_BBS,
     SHELL_TEXT_ABOUT,
     SHELL_TEXT_MESSAGE_GRAVITY,
@@ -57,6 +62,9 @@ enum {
     SHELL_TEXT_COUNT
 };
 
+static const char *const t_menu_quit_dos[] = {
+    "Quit to DOS (Y-N) ^",
+};
 static const char *const t_story_twibbles[] = {
     "You collect what you consider",
     " to be a fortune in precious",
@@ -173,31 +181,60 @@ static const char *const t_message_pause[] = {
 };
 static const char *const t_ordering_disk[] = {
     "ORDER ALL THREE AMAZING EPISODES!",
+    "",
     "    Please specify disk size:",
     "         5.25\"  or  3.5\"",
+    "",
     "   To order send $33, check or",
     "   money order (USA funds) to:",
+    "",
     "         Apogee Software",
     "         P.O. Box 476386",
     "     Garland, TX 75043  (USA)",
+    "",
     "     Or CALL NOW toll free:",
     "         1-800-852-5659",
     "      (Visa and MasterCard)",
+    "",
     "         Press Any Key ^",
 };
-static const char *const t_ordering[] = {
+static const char *const t_ordering_offer[] = {
     "   HOW TO ORDER CRYSTAL CAVES!",
+    "",
     "     Order now and receive:",
+    "",
     "  * All three amazing episodes",
     "  * The hints and tricks sheet",
     "  * The secret cheat code",
     "  * Exciting new bonus games",
+    "",
     "    To order, call toll free:",
     "         1-800-852-5659",
     "      (Visa and MasterCard)",
+    "",
     " Foreign orders:  Please look at",
     "    the \"FOREIGN ORDERS\" menu.",
+    "",
     "    Continued...Press Any Key",
+};
+static const char *const t_ordering_episodes[] = {
+    "   HOW TO ORDER CRYSTAL CAVES!",
+    "",
+    " Crystal Caves consists of three",
+    "original and incredible episodes:",
+    "",
+    "  1) Troubles with Twibbles",
+    "  2) Slugging it Out",
+    "  3) Mylo vs. the Supernova",
+    "",
+    " You may order the entire series",
+    " for only $30, plus $3 shipping.",
+    "",
+    " Each episode is set on a unique",
+    "planet, with all-new dangers, new",
+    " levels, and all-new challenges.",
+    "",
+    "          Press Any Key ^",
 };
 static const char *const t_hiscore_title[] = {
     "   Top Intergalactic Traders",
@@ -433,7 +470,9 @@ static const char *const t_menu_main[] = {
     "O)rdering Info.   H)igh Scores",
     "F)oreign Orders   C)all our BBS",
     "V)ideo Support    A)bout Apogee",
+    "",
     "         Q)uit to DOS",
+    "",
     "               ^",
 };
 static const char *const t_menu_help[] = {
@@ -449,52 +488,124 @@ static const char *const t_menu_help[] = {
     " R)estore Old Game",
     " S)ave Current Game",
     " Q)uit Current Game",
+    "",
     " ESC - Return to game",
+    "",
     "           ^",
 };
 static const char *const t_foreign[] = {
     "       FOREIGN CUSTOMERS",
     "       -----------------",
+    "",
     "The following screens list our",
     "  dealers outside the United",
     "States, for Australia, Germany,",
     "   and the United Kingdom.",
+    "",
     "  These are official Apogee",
     "   dealers with the latest",
     "      games and updates.",
+    "",
     "If your country is not listed,",
     " you may order directly from",
     "Apogee by phone or USA check.",
+    "",
+    "        Press Any Key ^",
+};
+static const char *const t_foreign_au[] = {
+    "      AUSTRALIAN CUSTOMERS",
+    "",
+    "Please order from Apogee@s",
+    "official Australian dealer:",
+    "",
+    "PRICE: $45 + $5 shipping.",
+    "",
+    "Manaccom",
+    "9 Camford Str.",
+    "Milton, Qld. 4064",
+    "",
+    "Phone: (07) 368-2366",
+    "Fax:   (07) 369-7589",
+    "",
+    "Use MasterCard, Visa, Bankcard,",
+    "American Express, or cheques.",
+    "",
+    "        Press Any Key ^",
+};
+static const char *const t_foreign_de[] = {
+    "        GERMAN CUSTOMERS",
+    "",
+    "Price: 49,-- DM plus 10,-- DM",
+    "Total: 59,-- DM (Deutsche Mark)",
+    "",
+    "CDV-Software",
+    "Ettlingerstr. 5",
+    "7500 Karlsruhe 1  GERMANY",
+    "",
+    "Phone:  0721-22295",
+    "Fax:    0721-21314",
+    "",
+    "Use Visa, MasterCard, EuroCard,",
+    "American Express, cheque, money",
+    "order, or C.O.D.",
+    "",
+    "        Press Any Key ^",
+};
+static const char *const t_foreign_uk[] = {
+    "    UNITED KINGDOM CUSTOMERS",
+    "",
+    "Price: /30 + /5 shipping",
+    "",
+    "Precision Software Applications",
+    "Tarnwood",
+    "10 High Str.",
+    "Tadlow, Near Royston",
+    "Harts. SG8 0ES  UK",
+    "",
+    "Phone: +44 (0) 767 233 02",
+    "",
+    "Credit cards, Access, cheques,",
+    "postal & Bankers orders.",
+    "Make cheques payable to PSA.",
+    "",
     "        Press Any Key ^",
 };
 static const char *const t_bbs[] = {
     "   THE OFFICIAL APOGEE BBS",
     "   -----------------------",
+    "",
     "The SOFTWARE CREATIONS BBS is",
     " the home BBS for the latest",
     " Apogee games.  Check out our",
     "FREE \"Apogee\" file section for",
     "  new releases and updates.",
+    "",
     "       BBS phone lines:",
     "(508) 365-2359  2400 baud",
     "(508) 365-9825  9600 baud",
     "(508) 365-9668  14.4k dual HST",
+    "",
     "  Many node lines available!",
+    "",
     "        Press Any Key ^",
 };
 static const char *const t_about[] = {
     "     About Apogee Software",
+    "",
     "Our goal is to establish Apogee",
     "  as the leader in commercial",
     " quality shareware games. With",
     " enthusiasm and dedication we",
     "think our goal can be achieved.",
+    "",
     "However,  we need your support.",
     "Shareware is not free software.",
+    "",
     "  We thank you in advance for",
     "   your contribution to the",
     "  growing shareware community.",
     "      Your honesty pays...",
+    "",
     "        Press any key ^",
 };
 static const char *const t_message_gravity[] = {
@@ -516,17 +627,21 @@ static const char *const t_menu_warp[] = {
 };
 static const char *const t_menu_video[] = {
     "    VIDEO BOARD COMPATIBILITY",
+    "",
     "    Some SuperVGA boards have",
     "   compatibility problems that",
     "  cause the screen to jerk when",
     "scrolling, or perform unreliably.",
+    "",
     " This is the fault of the video",
     " board makers not producing 100%",
     "  compatible graphics cards.",
+    "",
     " We have tried to support all the",
     "boards we know of, but if you have",
     "    problems, then toggle this",
     "   setting and see if it helps.",
+    "",
     "  Alternate video setting (Y-N) ^ ",
 };
 static const char *const t_message_steering[] = {
@@ -547,6 +662,7 @@ static const char *const t_message_landed[] = {
 };
 
 static const ShellTextBlock g_shell_text_blocks[] = {
+    { t_menu_quit_dos, 1 }, /* SHELL_TEXT_MENU_QUIT_DOS @ 0x1147f */
     { t_story_twibbles, 8 }, /* SHELL_TEXT_STORY_TWIBBLES @ 0x115d7 */
     { t_story_twibbles2, 13 }, /* SHELL_TEXT_STORY_TWIBBLES2 @ 0x1181a */
     { t_story_finale, 13 }, /* SHELL_TEXT_STORY_FINALE @ 0x11ba0 */
@@ -556,8 +672,9 @@ static const ShellTextBlock g_shell_text_blocks[] = {
     { t_story_encyclopedia1, 13 }, /* SHELL_TEXT_STORY_ENCYCLOPEDIA1 @ 0x12936 */
     { t_story_encyclopedia2, 13 }, /* SHELL_TEXT_STORY_ENCYCLOPEDIA2 @ 0x12a90 */
     { t_message_pause, 3 }, /* SHELL_TEXT_MESSAGE_PAUSE @ 0x13007 */
-    { t_ordering_disk, 12 }, /* SHELL_TEXT_ORDERING_DISK @ 0x130d3 */
-    { t_ordering, 12 }, /* SHELL_TEXT_ORDERING @ 0x13428 */
+    { t_ordering_disk, 17 }, /* SHELL_TEXT_ORDERING_DISK @ 0x130d3 */
+    { t_ordering_offer, 17 }, /* SHELL_TEXT_ORDERING_OFFER @ 0x13428 */
+    { t_ordering_episodes, 17 }, /* SHELL_TEXT_ORDERING_EPISODES @ 0x1378d */
     { t_hiscore_title, 4 }, /* SHELL_TEXT_HISCORE_TITLE @ 0x13c63 */
     { t_hiscore_name, 4 }, /* SHELL_TEXT_HISCORE_NAME @ 0x13eb7 */
     { t_instructions_1, 13 }, /* SHELL_TEXT_INSTRUCTIONS_1 @ 0x13ff2 */
@@ -584,15 +701,18 @@ static const ShellTextBlock g_shell_text_blocks[] = {
     { t_message_key_redefine, 6 }, /* SHELL_TEXT_MESSAGE_KEY_REDEFINE @ 0x16dfd */
     { t_menu_key_unavailable, 3 }, /* SHELL_TEXT_MENU_KEY_UNAVAILABLE @ 0x16ff1 */
     { t_menu_key_redefine, 2 }, /* SHELL_TEXT_MENU_KEY_REDEFINE @ 0x170bd */
-    { t_menu_main, 10 }, /* SHELL_TEXT_MENU_MAIN @ 0x1745d */
-    { t_menu_help, 14 }, /* SHELL_TEXT_MENU_HELP @ 0x17865 */
-    { t_foreign, 13 }, /* SHELL_TEXT_FOREIGN @ 0x18cb1 */
-    { t_bbs, 13 }, /* SHELL_TEXT_BBS @ 0x19910 */
-    { t_about, 13 }, /* SHELL_TEXT_ABOUT @ 0x19c8f */
+    { t_menu_main, 12 }, /* SHELL_TEXT_MENU_MAIN @ 0x1745d */
+    { t_menu_help, 16 }, /* SHELL_TEXT_MENU_HELP @ 0x17865 */
+    { t_foreign, 17 }, /* SHELL_TEXT_FOREIGN @ 0x18cb1 */
+    { t_foreign_au, 18 }, /* SHELL_TEXT_FOREIGN_AU @ 0x18e2a */
+    { t_foreign_de, 17 }, /* SHELL_TEXT_FOREIGN_DE @ 0x18f28 */
+    { t_foreign_uk, 17 }, /* SHELL_TEXT_FOREIGN_UK @ 0x1902d */
+    { t_bbs, 17 }, /* SHELL_TEXT_BBS @ 0x19910 */
+    { t_about, 17 }, /* SHELL_TEXT_ABOUT @ 0x19c8f */
     { t_message_gravity, 6 }, /* SHELL_TEXT_MESSAGE_GRAVITY @ 0x1a026 */
     { t_message_perfect_health, 3 }, /* SHELL_TEXT_MESSAGE_PERFECT_HEALTH @ 0x1a1b1 */
     { t_menu_warp, 2 }, /* SHELL_TEXT_MENU_WARP @ 0x1a290 */
-    { t_menu_video, 13 }, /* SHELL_TEXT_MENU_VIDEO @ 0x1a4d8 */
+    { t_menu_video, 17 }, /* SHELL_TEXT_MENU_VIDEO @ 0x1a4d8 */
     { t_message_steering, 3 }, /* SHELL_TEXT_MESSAGE_STEERING @ 0x1a806 */
     { t_message_surprise, 2 }, /* SHELL_TEXT_MESSAGE_SURPRISE @ 0x1a8c8 */
     { t_message_landed, 5 }, /* SHELL_TEXT_MESSAGE_LANDED @ 0x1a96a */

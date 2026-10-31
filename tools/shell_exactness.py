@@ -216,6 +216,158 @@ def _read_text_lines(mu):
     return lines
 
 
+# ---- R7: menu information screens (ordering/foreign/BBS/video/quit) --------
+#
+# Each main-menu information option copies its text into the DS:0x163C line
+# buffer and then renders it.  The static text tables do not contain the blank
+# spacer rows (the handlers insert them with `mov byte [di+0x163C],0`), so the
+# only exact source is the real handler's buffer.  These entry points and the
+# render call sites are the ones the main menu dispatches to (0x0FC5:0x7914).
+
+MENU_ENTRY = 0x17564
+MENU_INPUT = 0x17729          # menu key read (after the text is built)
+
+MENU_PAGE_SITES = {
+    # ordering: episodes -> offer -> disk
+    0x13AEE: "ordering_episodes",
+    0x1377A: "ordering_offer",
+    0x13415: "ordering_disk",
+    # foreign: intro -> Australia -> Germany -> UK
+    0x19329: "foreign",
+    0x19526: "foreign_au",
+    0x19714: "foreign_de",
+    0x19902: "foreign_uk",
+    # single-page screens
+    0x19C81: "bbs",
+    0x1A018: "about",
+    0x17BDE: "menu_help",
+    0x15EFE: "menu_quit",
+}
+MENU_PAGE_ENTRY = {
+    "ordering_episodes": 0x1390A, "ordering_offer": 0x1390A,
+    "ordering_disk": 0x1390A,
+    "foreign": 0x19130, "foreign_au": 0x19130, "foreign_de": 0x19130,
+    "foreign_uk": 0x19130,
+    "bbs": 0x19A88, "about": 0x19E1F,
+    "menu_help": 0x17978, "menu_quit": 0x15E01,
+}
+VIDEO_SETUP = 0x1A688          # text + Y/N prompt; sets [0xA0EC]
+QUIT_CONFIRM = 0x114A1         # "Quit to DOS (Y-N)"; sets [0x3396]
+
+
+def _capture_menu_pages():
+    """Run each information handler and snapshot its line buffer per page."""
+    pages = {}
+
+    def run(entry, sites):
+        mu, _ = _machine()
+        KEYS.clear()
+        KEYS.extend([0x1C] * 80)   # Enter advances every "Press Any Key"
+        seen = set()
+
+        def code(uc, addr, size, user):
+            ip = uc.reg_read(UC_X86_REG_IP)
+            load = (uc.reg_read(UC_X86_REG_CS) << 4) + ip
+            name = sites.get(load)
+            if name is None:
+                return
+            if name not in pages:
+                pages[name] = _read_text_lines(mu)
+            seen.add(name)
+            if len(seen) >= len(sites):
+                uc.emu_stop()
+                return
+            # Skip the render/wait call so the handler continues to the next
+            # page instead of blocking on a key.
+            uc.reg_write(UC_X86_REG_IP, (ip + 3) & 0xFFFF)
+
+        mu.hook_add(UC_HOOK_CODE, code)
+        _far(mu, entry, [])
+
+    # Ordering pages are reached through one handler chain.
+    run(MENU_PAGE_ENTRY["ordering_episodes"],
+        {s: n for s, n in MENU_PAGE_SITES.items()
+         if n.startswith("ordering")})
+    # Foreign pages are inline in one handler.
+    run(MENU_PAGE_ENTRY["foreign"],
+        {s: n for s, n in MENU_PAGE_SITES.items()
+         if n.startswith("foreign")})
+    for name in ("bbs", "about", "menu_help", "menu_quit"):
+        run(MENU_PAGE_ENTRY[name],
+            {s: n for s, n in MENU_PAGE_SITES.items() if n == name})
+
+    # Main menu text (built before the first key read).
+    mu, _ = _machine()
+    KEYS.clear()
+    KEYS.extend([0x01, 0x01])
+    grabbed = [False]
+
+    def menu_code(uc, addr, size, user):
+        ip = uc.reg_read(UC_X86_REG_IP)
+        load = (uc.reg_read(UC_X86_REG_CS) << 4) + ip
+        if load == MENU_INPUT and not grabbed[0]:
+            grabbed[0] = True
+            pages["menu_main"] = _read_text_lines(mu)
+            uc.emu_stop()
+
+    mu.hook_add(UC_HOOK_CODE, menu_code)
+    _far(mu, MENU_ENTRY, [])
+
+    # Video compatibility screen (Y/N prompt) and the quit-to-DOS confirm.
+    # The page is complete just before the input call; snapshot there instead
+    # of running the modal wait loop.
+    for name, entry, site in (("menu_video", VIDEO_SETUP, 0x1A7C0),
+                              ("menu_quit_dos", QUIT_CONFIRM, 0x114E4)):
+        mu, _ = _machine()
+        KEYS.clear()
+        grabbed = [False]
+
+        def stop_code(uc, addr, size, user, site=site, name=name,
+                      grabbed=grabbed, mu=mu):
+            ip = uc.reg_read(UC_X86_REG_IP)
+            load = (uc.reg_read(UC_X86_REG_CS) << 4) + ip
+            if load == site and not grabbed[0]:
+                grabbed[0] = True
+                pages[name] = _read_text_lines(mu)
+                uc.emu_stop()
+
+        mu.hook_add(UC_HOOK_CODE, stop_code)
+        _far(mu, entry, [])
+
+    return pages
+
+
+def menu_fixture():
+    pages = _capture_menu_pages()
+
+    return {
+        "source": "original menu information handlers (0x0FC5 segment); "
+                  "line buffers captured after each page is built",
+        "entry_points": {
+            "menu": MENU_ENTRY,
+            "ordering": 0x1390A,
+            "foreign": 0x19130,
+            "bbs": 0x19A88,
+            "about": 0x19E1F,
+            "help": 0x17978,
+            "quit_menu": 0x15E01,
+            "video": VIDEO_SETUP,
+            "quit": QUIT_CONFIRM,
+        },
+        "pages": pages,
+        "video_prompt": {
+            "text": "Alternate video setting (Y-N)",
+            "keys": {"yes": 0x15, "no": 0x31, "escape": 0x01},
+            "effect": "Y sets [0xA0EC]=1, N/Esc set [0xA0EC]=0",
+        },
+        "quit_prompt": {
+            "text": "Quit to DOS (Y-N)",
+            "keys": {"yes": 0x15, "no": 0x31, "escape": 0x01},
+            "effect": "Y sets [0x3396]=1, N/Esc set [0x3396]=0",
+        },
+    }
+
+
 def highscore_defaults():
     mu, _ = _machine()
     _far(mu, BASE + 0x8738, [])
@@ -519,6 +671,18 @@ def key_names():
     return {str(k): names.get(k, "NULL") for k in range(0x80)}
 
 def main():
+    if "--menus" in sys.argv:
+        print("menu information screens")
+        fixture = menu_fixture()
+        for name, lines in fixture["pages"].items():
+            print("  %-20s %d lines" % (name, len(lines)))
+        print("  video prompt", fixture["video_prompt"])
+        print("  quit prompt", fixture["quit_prompt"])
+        out = os.path.join(ROOT, "notes", "menu_fixtures.json")
+        with open(out, "w") as f:
+            json.dump(fixture, f, indent=1)
+        print("wrote", out)
+        return
     if "--flow" in sys.argv:
         print("title/credits flow")
         flow = title_flow_fixture()

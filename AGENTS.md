@@ -23,6 +23,7 @@ There is no root Makefile; the build lives in `wasm/`.
 | `make test-hud` | Oracle-exact HUD fixtures (real HUD routine) |
 | `make test-messages` | In-game message trigger causes (positive/negative) |
 | `make test-text` | Oracle-exact text-window frame/fill/text fixtures |
+| `make test-menus` | Ordering/foreign/BBS/about/video/quit-to-DOS screens vs. the real handlers |
 | `make test-shell` | Shell flow, text/PCX screens, save/restore, high scores, finale |
 | `make test-shell-flow` | Exact title/credits scroll from the committed flow fixture |
 | `make test-cursor` | 5-frame input cursor animation at the `^` marker |
@@ -37,6 +38,7 @@ There is no root Makefile; the build lives in `wasm/`.
 | `make test-oracle-exactness` | Regenerate shell exactness fixtures/header |
 | `make test-oracle-shell` | Regenerate `notes/hud_fixtures.json` + `notes/text_fixtures.json`, then compare |
 | `make test-oracle-shell-flow` | Regenerate `notes/shell_flow_fixtures.json` from the real title loop, then compare |
+| `make test-oracle-menus` | Regenerate `notes/menu_fixtures.json` from the real menu handlers, then compare |
 | `make test-oracle-cells` | Regenerate `notes/cell_fixtures.json` with Unicorn, then compare |
 | `make test-oracle-physics` | Regenerate physics fixtures from the real routines, then compare (needs venv deps) |
 | `make test-oracle-objects` | Compare C object/cell state with the Unicorn oracle, levels 2 and 3 (needs venv deps) |
@@ -159,8 +161,11 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   save restriction, `CC1.HS` defaults/sort/tie rules and `CC1.CFG` fields are
   preserved; see `notes/persist.md` for the original file layouts.
 - Known shell limitations: joystick uses the Gamepad API.  The title/credits
-  scroll and the input cursor now follow the original routines
-  (`test-shell-flow`, `test-cursor`).
+  scroll, the input cursor, the ordering/foreign/BBS/about screens, the video
+  Y/N toggle and the quit-to-DOS confirmation now follow the original routines
+  (`test-shell-flow`, `test-cursor`, `test-menus`).  Quit-to-DOS shows the
+  original confirm and then a browser exit screen; video is a persisted flag
+  with no alternate renderer.
 - Phase 8 is implemented: `make test-all` covers the full committed-fixture
   suite with an unknown-handler guard, `make test-browser` runs
   title → hub → save/restore → finale in headless Chromium via real key
@@ -175,8 +180,9 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   Priority/preemption, `[0x513E]` toggle semantics, shell page/high-score/
   ending effects, the level-start effect and the ID-26 finale wait are wired.
   `notes/sound_fixtures.json` has 36 exact tick traces; `make test-sound`
-  passes.  Coverage is complete: ID 7 is the player sprite-draw effect
-  (`0x0F74C`, host hook `cc_player_draw_sound()`), ID 2 is an unused bank
+  passes.  Coverage is complete: ID 7 is the animated-draw effect
+  (`0x0F74C`, host hook `cc_player_draw_sound()`; only while the object's
+  draw state is non-zero, never while walking), ID 2 is an unused bank
   entry with a negative test, the logo plays ID 32, the attract loop is
   silent and menu accept plays ID 33.
 
@@ -226,6 +232,8 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - `notes/handler_fixtures.json` — committed per-handler trace (`make test-handlers`)
 - `notes/loader_fixtures.json` — committed transition trace (`make test-loader`)
 - `notes/text_fixtures.json` — committed text-window oracle trace (`make test-text`)
+- `notes/menu_fixtures.json` — committed menu information-screen buffers
+  (ordering/foreign/BBS/about/help/quit/video) (`make test-menus`)
 - `notes/shell_exactness_fixtures.json`, `notes/hiscore_fixtures.json`,
   `notes/keymap_fixtures.json` — P5.R5 shell exactness fixtures
   (`make test-exactness`, `make test-oracle-exactness`)

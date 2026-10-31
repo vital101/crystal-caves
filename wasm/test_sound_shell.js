@@ -61,17 +61,20 @@ async function main() {
   if (!includes(introEndLog, 36)) fail("intro.sound36", "missing " + introEndLog);
   eq("level_start.current", e.cc_sound_current_id(), 36);
 
-  // ---- ID 7: player sprite-draw walk sound ----------------------------
+  // ---- ID 7: player sprite-draw effect --------------------------------
+  // 0x0F74C plays ID 7 only on the animated draw path (object state != 0),
+  // i.e. a hit/transform/dissolve, never while walking.
   e.cc_sound_log_clear();
-  e.cc_input_set(0x338F, 1);          /* right */
-  let walked = 0;
-  for (let i = 0; i < 8 && !walked; i++) {
-    e.cc_objects_step_full();
-    e.cc_player_draw_sound();
-    walked = includes(log(), 7);
-  }
-  e.cc_input_set(0x338F, 0);
-  if (!walked) fail("walk.sound7", "missing " + log());
+  e.cc_global_set(0xA0EA, 0);          /* not invulnerable */
+  e.cc_obj_set(1, 0, 1);               /* player draw state = 1 */
+  e.cc_player_draw_sound();
+  e.cc_obj_set(1, 0, 0);
+  if (!includes(log(), 7)) fail("draw.sound7", "missing " + log());
+
+  // ...and the standing (state 0) path must stay silent.
+  e.cc_sound_log_clear();
+  e.cc_player_draw_sound();
+  if (includes(log(), 7)) fail("draw.sound7.idle", "unexpected " + log());
 
   // ---- all caves -> ID 26 fanfare + wait ------------------------------
   e.cc_global_set(0xA0FB, 1);

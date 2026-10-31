@@ -81,6 +81,7 @@ static int g_request_slot;
 static int g_sound_on = 1;
 static int g_joystick_on = 0;
 static int g_video_alt = 0;
+static int g_config_dirty = 0;
 
 static HiScore g_hiscores[HISCORE_COUNT];
 static char g_name[24];
@@ -200,6 +201,7 @@ void cc_shell_init(void) {
     g_request_pending = 0;
     g_request_kind = 0;
     g_request_slot = -1;
+    g_config_dirty = 0;
     clear_pages();
     for (int i = 0; i < HISCORE_COUNT; i++) {
         scopy(g_hiscores[i].name, g_hiscore_default_names[i],
@@ -230,11 +232,21 @@ int cc_shell_message_block(void) {
     return g_pages[g_page_index].block;
 }
 
+static int prompt_block(void) {
+    if (g_state == CC_SHELL_VIDEO) return SHELL_TEXT_MENU_VIDEO;
+    if (g_state == CC_SHELL_QUIT_CONFIRM) return SHELL_TEXT_MENU_QUIT_DOS;
+    if (g_state == CC_SHELL_QUIT) return SHELL_TEXT_MENU_QUIT;
+    if (g_state == CC_SHELL_HELP) return SHELL_TEXT_MENU_HELP;
+    return -1;
+}
+
 int cc_shell_page_count(void) {
     return g_story_pages ? g_story_page_count : g_page_count;
 }
 int cc_shell_page_index(void) { return g_page_index; }
 int cc_shell_page_line_count(void) {
+    int pb = prompt_block();
+    if (pb >= 0) return g_shell_text_blocks[pb].count;
     if (g_story_pages) {
         if (g_page_index < 0 || g_page_index >= g_story_page_count) return 0;
         return g_story_pages[g_page_index].count;
@@ -243,6 +255,11 @@ int cc_shell_page_line_count(void) {
     return PAGE_LINES;
 }
 const char *cc_shell_page_line(int index) {
+    int pb = prompt_block();
+    if (pb >= 0) {
+        if (index < 0 || index >= g_shell_text_blocks[pb].count) return "";
+        return g_shell_text_blocks[pb].lines[index];
+    }
     if (g_story_pages) {
         if (g_page_index < 0 || g_page_index >= g_story_page_count)
             return "";
@@ -261,10 +278,17 @@ const char *cc_shell_page_line(int index) {
 
 int cc_shell_hud_active(void) { return g_state == CC_SHELL_GAME; }
 int cc_shell_overlay(void) {
-    return g_state == CC_SHELL_PAUSE || g_state == CC_SHELL_HELP ||
-           g_state == CC_SHELL_QUIT || g_state == CC_SHELL_SAVE ||
-           g_state == CC_SHELL_RESTORE || g_state == CC_SHELL_WARP ||
-           g_state == CC_SHELL_MESSAGE;
+    if (g_state == CC_SHELL_PAUSE || g_state == CC_SHELL_HELP ||
+        g_state == CC_SHELL_QUIT || g_state == CC_SHELL_SAVE ||
+        g_state == CC_SHELL_RESTORE || g_state == CC_SHELL_WARP ||
+        g_state == CC_SHELL_MESSAGE) return 1;
+    /* The video/quit prompts are modal over the in-game help/quit menus, but
+     * full screens when opened from the main menu. */
+    if (g_state == CC_SHELL_VIDEO || g_state == CC_SHELL_QUIT_CONFIRM)
+        return g_return_state == CC_SHELL_HELP ||
+               g_return_state == CC_SHELL_QUIT ||
+               g_return_state == CC_SHELL_GAME;
+    return 0;
 }
 
 void cc_shell_message(int block_id) {
@@ -421,7 +445,9 @@ void cc_shell_step_ticks(int ticks) {
                g_state == CC_SHELL_QUIT || g_state == CC_SHELL_SAVE ||
                g_state == CC_SHELL_RESTORE || g_state == CC_SHELL_WARP ||
                g_state == CC_SHELL_KEY_REDEFINE ||
-               g_state == CC_SHELL_KEY_CONFIRM) {
+               g_state == CC_SHELL_KEY_CONFIRM ||
+               g_state == CC_SHELL_QUIT_CONFIRM ||
+               g_state == CC_SHELL_VIDEO || g_state == CC_SHELL_DOS) {
         cursor_step(ticks);
     }
     if (g_finale_pending) {
@@ -507,6 +533,8 @@ void cc_shell_hiscore_add(const char *name, unsigned int score) {
 int cc_shell_sound_on(void) { return g_sound_on; }
 int cc_shell_joystick_on(void) { return g_joystick_on; }
 int cc_shell_video_alt(void) { return g_video_alt; }
+int cc_shell_config_dirty(void) { return g_config_dirty; }
+void cc_shell_config_clear_dirty(void) { g_config_dirty = 0; }
 int cc_shell_key_redefine_active(void) {
     return g_state == CC_SHELL_KEY_REDEFINE;
 }
@@ -765,6 +793,46 @@ void cc_shell_render(void) {
                                           g_pages[g_page_index].start,
                                           PAGE_LINES, g_cursor_frame);
             break;
+        case CC_SHELL_VIDEO:
+            /* Modal over the main menu or the in-game help menu. */
+            if (g_return_state == CC_SHELL_MENU) {
+                cc_draw_screen(1);
+                draw_block_centered(SHELL_TEXT_MENU_MAIN, 0, PAGE_LINES);
+            } else if (g_return_state == CC_SHELL_HELP) {
+                draw_block_centered(SHELL_TEXT_MENU_HELP, 0, PAGE_LINES);
+            } else if (g_return_state == CC_SHELL_QUIT) {
+                draw_block_centered(SHELL_TEXT_MENU_QUIT, 0, PAGE_LINES);
+            }
+            draw_block_centered_frame(SHELL_TEXT_MENU_VIDEO, 0,
+                                      PAGE_LINES, g_cursor_frame);
+            break;
+        case CC_SHELL_QUIT_CONFIRM:
+            if (g_return_state == CC_SHELL_MENU) {
+                cc_draw_screen(1);
+                draw_block_centered(SHELL_TEXT_MENU_MAIN, 0, PAGE_LINES);
+            } else if (g_return_state == CC_SHELL_QUIT) {
+                draw_block_centered(SHELL_TEXT_MENU_QUIT, 0, PAGE_LINES);
+            }
+            draw_block_centered_frame(SHELL_TEXT_MENU_QUIT_DOS, 0,
+                                      PAGE_LINES, g_cursor_frame);
+            break;
+        case CC_SHELL_DOS: {
+            /* Original exits to DOS; the browser stops here with an exit
+             * screen and any key restarts the attract sequence. */
+            int cx = cc_global_get(0x512e);
+            int cy = cc_global_get(0x5130);
+            int scroll = cc_global_get(0x2b5c);
+            cc_global_set(0x512e, 0);
+            cc_global_set(0x5130, 0);
+            cc_global_set(0x2b5c, 0);
+            cc_view_clear(0);
+            draw_prompt_text(40, 88, "Crystal Caves has ended.");
+            draw_prompt_text(16, 104, "Press any key to restart. ^");
+            cc_global_set(0x512e, cx);
+            cc_global_set(0x5130, cy);
+            cc_global_set(0x2b5c, scroll);
+            break;
+        }
         case CC_SHELL_GAME:
         default:
             break;
@@ -801,6 +869,25 @@ static void start_intro_story(void) {
     g_pending_score = cc_score();
     set_story_pages(g_intro_pages, g_intro_page_count,
                     CC_SHELL_GAME, 1, 0);
+}
+
+/* Main-menu / help video compatibility prompt (0x1A688): the original sets
+ * [0xA0EC]=1 for Y and 0 for N/Esc. */
+static void start_video_prompt(int return_state) {
+    g_return_state = return_state;
+    clear_pages();
+    g_state = CC_SHELL_VIDEO;
+    cursor_reset();
+    cc_sound_play(35);
+}
+
+/* "Quit to DOS (Y-N)" confirm (0x114A1): Y sets [0x3396]=1, N/Esc clear it. */
+static void start_quit_confirm(int return_state) {
+    g_return_state = return_state;
+    clear_pages();
+    g_state = CC_SHELL_QUIT_CONFIRM;
+    cursor_reset();
+    cc_sound_play(35);
 }
 
 static void start_instructions(int return_state) {
@@ -941,22 +1028,31 @@ int cc_shell_key(int key) {
                 start_instructions(CC_SHELL_MENU);
             } else if (k == 'o') {
                 {
-                    const int blocks[2] = { SHELL_TEXT_ORDERING_DISK,
-                                            SHELL_TEXT_ORDERING };
-                    set_pages(blocks, 2, CC_SHELL_MENU, 0, -1);
+                    static const int blocks[3] = {
+                        SHELL_TEXT_ORDERING_EPISODES,
+                        SHELL_TEXT_ORDERING_OFFER,
+                        SHELL_TEXT_ORDERING_DISK
+                    };
+                    set_pages(blocks, 3, CC_SHELL_MENU, 0, -1);
                 }
             } else if (k == 'h') {
                 enter_high_score();
             } else if (k == 'f') {
-                show_block(SHELL_TEXT_FOREIGN, CC_SHELL_MENU);
+                {
+                    static const int blocks[4] = {
+                        SHELL_TEXT_FOREIGN, SHELL_TEXT_FOREIGN_AU,
+                        SHELL_TEXT_FOREIGN_DE, SHELL_TEXT_FOREIGN_UK
+                    };
+                    set_pages(blocks, 4, CC_SHELL_MENU, 0, -1);
+                }
             } else if (k == 'c') {
                 show_block(SHELL_TEXT_BBS, CC_SHELL_MENU);
             } else if (k == 'v') {
-                show_block(SHELL_TEXT_MENU_VIDEO, CC_SHELL_MENU);
+                start_video_prompt(CC_SHELL_MENU);
             } else if (k == 'a') {
                 show_block(SHELL_TEXT_ABOUT, CC_SHELL_MENU);
             } else if (k == 'q' || key == CC_KEY_ESC) {
-                scroll_reset();
+                start_quit_confirm(CC_SHELL_MENU);
             }
             return 1;
         }
@@ -1013,15 +1109,17 @@ int cc_shell_key(int key) {
                 start_instructions(CC_SHELL_HELP);
             } else if (k == 't') {
                 g_sound_on = !g_sound_on;
+                g_config_dirty = 1;
                 /* Exact original semantics: [0x513E] only gates future
                  * play_sound calls; the current effect finishes. */
                 cc_sound_set_enabled(g_sound_on);
             } else if (k == 'j') {
                 g_joystick_on = !g_joystick_on;
+                g_config_dirty = 1;
             } else if (k == 'c') {
                 show_block(SHELL_TEXT_MESSAGE_JOYSTICK_CALIBRATE, CC_SHELL_HELP);
             } else if (k == 'v') {
-                show_block(SHELL_TEXT_MENU_VIDEO, CC_SHELL_HELP);
+                start_video_prompt(CC_SHELL_HELP);
             } else if (k == 'k') {
                 g_key_action = 0;
                 for (int i = 0; i < 4; i++) g_key_tmp[i] = g_keys[i];
@@ -1042,7 +1140,9 @@ int cc_shell_key(int key) {
         }
         case CC_SHELL_QUIT: {
             int k = lower(key);
-            if (k == 'd' || k == 't') {
+            if (k == 'd') {
+                start_quit_confirm(CC_SHELL_QUIT);
+            } else if (k == 't') {
                 cc_sound_stop();
                 scroll_reset();
             } else if (k == 'm') {
@@ -1053,6 +1153,37 @@ int cc_shell_key(int key) {
             }
             return 1;
         }
+        case CC_SHELL_VIDEO: {
+            int k = lower(key);
+            if (k == 'y') {
+                g_video_alt = 1;
+                g_config_dirty = 1;
+                g_state = g_return_state;
+            } else if (k == 'n') {
+                g_video_alt = 0;
+                g_config_dirty = 1;
+                g_state = g_return_state;
+            } else if (key == CC_KEY_ESC) {
+                g_state = g_return_state;
+            }
+            return 1;
+        }
+        case CC_SHELL_QUIT_CONFIRM: {
+            int k = lower(key);
+            if (k == 'y') {
+                cc_sound_stop();
+                g_state = CC_SHELL_DOS;
+            } else if (k == 'n' || key == CC_KEY_ESC) {
+                g_state = g_return_state;
+            }
+            return 1;
+        }
+        case CC_SHELL_DOS:
+            /* The original terminates and returns to DOS.  In the browser we
+             * stop the game loop and show an exit screen; any key restarts
+             * the attract sequence. */
+            scroll_reset();
+            return 1;
         case CC_SHELL_SAVE:
         case CC_SHELL_RESTORE:
             if (key >= '0' && key <= '9') {

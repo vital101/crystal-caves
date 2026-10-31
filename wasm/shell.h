@@ -23,7 +23,11 @@ enum cc_shell_state {
     CC_SHELL_MESSAGE,
     CC_SHELL_CREDITS,
     CC_SHELL_KEY_REDEFINE,
-    CC_SHELL_KEY_CONFIRM
+    CC_SHELL_KEY_CONFIRM,
+    /* Appended so the existing numeric ids stay stable for game.html. */
+    CC_SHELL_QUIT_CONFIRM,
+    CC_SHELL_VIDEO,
+    CC_SHELL_DOS
 };
 
 /* Key values used by the shell (JS maps browser keys to these). */
@@ -75,6 +79,9 @@ int  cc_shell_sound_on(void);
 int  cc_shell_joystick_on(void);
 int  cc_shell_video_alt(void);
 void cc_shell_set_config(int sound, int joystick, int video);
+/* Set when a menu/help action changed persisted config (video toggle). */
+int  cc_shell_config_dirty(void);
+void cc_shell_config_clear_dirty(void);
 
 /* High score table (persisted by JS). */
 int  cc_shell_hiscore_count(void);

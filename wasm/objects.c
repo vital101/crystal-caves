@@ -472,12 +472,6 @@ static int cell_special_px(int16_t x, int16_t y) {
     return 0;
 }
 
-/* Draw-time walk sound flag.  0x0F74C plays ID 7 from the player sprite
- * draw when its animation counter is non-zero; the host renderer calls
- * cc_player_draw_sound() once per game frame so the oracle step fixtures
- * (which exclude the draw routine) stay exact. */
-static int g_player_moved;
-
 /* 0x1F9A:0x310 anim_next(1): advance the player object animation frame. */
 static void player_anim_next(void) {
     S->anim_timer = (uint16_t)(S->anim_timer + 1u);
@@ -744,7 +738,6 @@ static void cc_horizontal(void) {
                 }
                 S->player_x = wadd(S->player_x, S->walk_speed);
                 player_anim_next();
-                g_player_moved = 1;
             }
         }
     }
@@ -763,7 +756,6 @@ static void cc_horizontal(void) {
                 }
                 S->player_x = wsub(S->player_x, S->walk_speed);
                 player_anim_next();
-                g_player_moved = 1;
             }
         }
     }
@@ -4011,7 +4003,6 @@ static void death_state3(void) {
 
 /* Exact 0xF4E6 frame dispatch. */
 void cc_objects_step_full(void) {
-    g_player_moved = 0;
     if (S->g_a0f6) {
         exit_to_hub_frame();
     } else if (S->g_a0f7) {
@@ -4038,11 +4029,16 @@ void cc_objects_step_full(void) {
     sync_player_object();
 }
 
-/* 0x0F74C player sprite-draw sound.  In one-player mode [0x2C0] is 0, so
- * the original plays ID 7 whenever the animated (counter != 0) sprite is
- * drawn; the C draw is host-side, so the page calls this after each step. */
+/* 0x0F74C player sprite-draw sound.  The original takes this path only when
+ * the player's draw state ([0x45E0], the object record's state word) is
+ * non-zero, i.e. during a hit/transform/dissolve animation -- NOT while
+ * walking.  [0xA0EA] >= 4 suppresses it for the player.  The C draw is
+ * host-side, so the page calls this after each step. */
 void cc_player_draw_sound(void) {
-    if (g_player_moved) play_sound(7);
+    ObjectEntry *p = &S->obj[1];
+    if (p->state == 0 || p->state == 2) return;
+    if (S->g_a0ea >= 4) return;
+    play_sound(7);
 }
 
 /* ---------------------------------------------------------------- collision
@@ -4488,6 +4484,18 @@ static void load_level(int level, int new_game, int fresh_image, int sound_start
     apply_level_state(level, S->spawn_col_override == 0xffff,
                       new_game || fresh_image);
     if (!new_game && !fresh_image) apply_level_overlay(level);
+    /* The original loader only honours [0x2B72]/[0x2B74] when they match the
+     * destination's entry cell (0xB1A9); a hub-door cell has no meaning in a
+     * cave, and using it can put the player inside solid geometry.  If the
+     * requested spawn is blocked, fall back to the destination's Y-token
+     * start, which is what the loader does when the override does not match. */
+    if (cc_cell_collide(level, S->player_x, S->player_y, 0, 0)) {
+        const cc_level_start_t *st = &g_level_start_state[level];
+        S->player_x = st->f_4611;
+        S->player_y = st->f_4613;
+        S->cam_x = st->f_512e;
+        S->cam_y = st->f_5130;
+    }
     if (level >= 2) S->g_a0cc = (uint16_t)count_crystal_cells();
 }
 

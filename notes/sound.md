@@ -160,13 +160,13 @@ Trigger coverage (all 36 IDs classified):
 
 - 34 IDs are emitted by the C gameplay/shell code and covered by the combat,
   handler, cell, cave and shell fixtures.
-- **ID 7** is a player sprite-draw effect at `0x0F74C/0x0F757` (the second
-  player-draw path taken when the animation counter `[0x45E0]` is non-zero;
-  `[0x2C0]` is the player index, `[0xA0EA]` the invulnerability timer).  The
-  original plays it while drawing the animated sprite, not from the update
-  routine, so the committed step fixtures (which exclude the draw) do not
-  contain it.  The host renderer calls `cc_player_draw_sound()` once per game
-  step; `wasm/test_sound_shell.js` covers the hook.
+- **ID 7** is a sprite-draw effect at `0x0F74C/0x0F757`.  The original only
+  takes the animated draw path when the object's state word `[0x45E0]` is
+  non-zero (hit/transform/dissolve), and skips the sound for the player when
+  `[0xA0EA] >= 4`.  It is **not** a walk sound: `[0x45E0]` stays 0 while
+  walking, so the standing-sprite path is silent.  The host renderer calls
+  `cc_player_draw_sound()` once per game step; `wasm/test_sound_shell.js`
+  covers the state != 0 path and the silent standing path.
 - **ID 2** has no far call site, no near call site (`push cs; call 0x021F`
   in segment `0x1F9A`) and no data-table reference in the load module.  It is
   an unused bank entry; `wasm/test_sound_shell.js` asserts no tested path emits it.

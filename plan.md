@@ -1,4 +1,4 @@
-# Crystal Caves Ep.1 — Remaining Work
+# Crystal Caves Ep.1 — Implementation Plan and Status
 
 Goal: a faithful browser/WASM port of the shareware Episode 1.
 
@@ -61,13 +61,18 @@ Verified baseline:
 - Phase 8 is complete: the full committed-fixture suite runs in `make test-all`
   with an unknown-handler guard, the headless browser smoke test covers
   title -> hub -> save/restore -> finale via real key events, GitHub Actions
-  builds/tests on Ubuntu, and the `-Oz` build is ~152 KB with ~1.2 ms level
+  builds/tests on Ubuntu, and the `-Oz` build is ~158 KB with ~1.2 ms level
   frames against the 57.1 ms budget.  The root `README.md` and
   `notes/regression.md` document build/run and coverage.
-- Current verification: `make test-all` passes **384** checks and
+- R6–R8 close the remaining shell fidelity items: the ordering (3 pages),
+  foreign (4 dealer pages), BBS and about screens use the real handler
+  buffers (including the blank spacer rows), the video compatibility screen
+  is a persisted Y/N setting, quit-to-DOS has the original confirmation and a
+  browser exit screen, and the F2 cursor bank is locked to the original asset.
+- Current verification: `make test-all` passes **451** checks and
   `make test-browser` passes title -> hub -> save/restore -> finale.
 
-## Remaining work
+## Optional fidelity items
 
 All required gameplay, shell, persistence, sound and regression phases are
 complete, and the optional fidelity items below are now implemented.
@@ -81,10 +86,12 @@ accepted and documented.
 | R3 | Input cursor | **DONE** — 5-frame F2 glyph animation (45..49) at the `^` marker every 21 ticks; `test-cursor` |
 | R4 | Sound IDs 2/7 + title/menu trace | **DONE** — ID 7 from the player-draw hook, ID 2 proved unused, logo ID 32 + silent attract + menu ID 33 covered |
 | R5 | Regression and docs closure | **DONE** — fixtures/docs regenerated; `test-all`, `test-browser` and `perf` green |
+| R6 | Ordering/foreign/BBS/about screens | **DONE** — 3 ordering pages, 4 foreign pages (AU/DE/UK dealers), BBS and about; exact handler buffers incl. blank spacer rows; `test-menus` |
+| R7 | Video toggle + quit to DOS | **DONE** — video Y/N prompt writes the persisted alternate-video flag; quit confirmation (`Quit to DOS (Y-N)`) for the main menu and in-game D)os, then a browser exit screen; `test-menus` |
+| R8 | F2 cursor glyph audit | **DONE** — export matches `CC1-F2.MNI`; glyph 49 is a byte-for-byte duplicate of 46 in the original bank; `test-cursor` |
 
-R1 was the enabler for R2–R4.  All five items are implemented; the recovered
-model and the execution record are in
-[Remaining work execution plan](#remaining-work-execution-plan).
+R1 was the enabler for R2–R7.  The recovered model and the execution record
+are in [Fidelity execution plan](#fidelity-execution-plan).
 
 ## Critical path
 
@@ -476,8 +483,8 @@ Completed Phase 5 polish:
 Remaining Phase 5 polish (see the checklist at the end of this phase):
 
 - automated headless browser smoke coverage is done in Phase 8
-  (`make test-browser`); title/credits scroll is still approximated by the
-  original 432-tick duration.
+  (`make test-browser`); the title/credits scroll is now the exact R2
+  row-by-row routine (`test-shell-flow`).
 
 Goal: complete the non-gameplay shell around the already-exact gameplay core:
 status HUD, text windows, PCX screens, title/menu flow, story/finale
@@ -664,10 +671,11 @@ story page order/timing is verified by P5.R5.
 - Key redefine screen using original labels and scan-code table; browser key
   capture; persist in config.
 - Browser substitutions:
-  - DOS quit → return to title / informational message,
-  - BBS/foreign/ordering → original text screens with "not available in
-    browser" note; no external calls,
-  - video toggle → stored no-op,
+  - DOS quit → original "Quit to DOS (Y-N)" confirm, then a browser exit
+    screen (any key restarts the attract),
+  - BBS/foreign/ordering → the original page sequences unchanged; no external
+    calls,
+  - video toggle → persisted alternate-video flag (no alternate renderer),
   - joystick → optional Gamepad API mapping; calibration screen preserved or
     auto-calibrated.
 - Tests: help navigation, pause/resume, quit-to-title/main-level, warp, key
@@ -924,11 +932,12 @@ Acceptance:
 - Regression suite fails on any oracle divergence (committed fixtures and the
   unknown-handler guard).
 
-## Remaining work execution plan (R1–R5, implemented)
+## Fidelity execution plan
 
-Scope was R1–R5 below.  Joystick calibration is explicitly out of scope: the
+Scope was R1–R8.  Joystick calibration is explicitly out of scope: the
 Gamepad API path and the informational calibration screen are accepted browser
-substitutions.  DOS-only file/BBS/ordering behavior is also out of scope.
+substitutions.  DOS-only file/BBS/ordering network behavior is also out of
+scope; the original screens and page sequences are reproduced.
 
 Dependency order:
 
@@ -936,8 +945,11 @@ Dependency order:
 R1 (oracle harness)
  ├─> R2 (title/credits scroll)
  ├─> R3 (text cursor)
- └─> R4 (sound IDs 2/7 + title/menu trace; static ID audit can start early)
-R2 + R3 + R4 ─> R5 (regression/docs closure)
+ ├─> R4 (sound IDs 2/7 + title/menu trace; static ID audit can start early)
+ └─> R6 (menu info screens; needs the real handler buffers)
+R2 + R3 + R4 + R6 ─> R5 (regression/docs closure)
+R6 ─> R7 (video toggle + quit to DOS)
+R3 ─> R8 (F2 cursor glyph audit)
 ```
 
 ### R1 — Shell oracle harness (P5.R6)
@@ -1087,27 +1099,70 @@ Acceptance:
 Acceptance:
 
 - Full suite plus browser smoke and perf are green.
-- No stale "not implemented" claims remain for R1–R4.
+- No stale "not implemented" claims remain for R1–R8.
 - `plan.md` lists only genuinely open work.
+
+### R6 — Ordering/foreign/BBS/about screens
+
+1. Extend `tools/shell_exactness.py` with `--menus`: run the real information
+   handlers (0x1390A ordering chain, 0x19130 foreign, 0x19A88 BBS, 0x19E1F
+   about, 0x17978 help, 0x15E01 quit submenu) and snapshot the DS:0x163C line
+   buffer for each page.
+2. Emit `notes/menu_fixtures.json`; keep the ordering pages as
+   `ordering_episodes` (0x1378D), `ordering_offer` (0x13428) and
+   `ordering_disk` (0x130D3), and the foreign pages as `foreign` (intro),
+   `foreign_au`, `foreign_de`, `foreign_uk`.
+3. Have `tools/export_shell_assets.py` override/add those blocks from the
+   fixture, preserving the handler-inserted blank spacer rows that the static
+   text tables lack.  Regenerate `shell_text.json` / `shell_text_data.h`.
+4. Implement the multi-page flows in `wasm/shell.c` and add `test-menus`;
+   regenerate `notes/text_fixtures.json` for the corrected menu/help/about
+   windows.
+
+Acceptance: every page line matches the real handler buffer; the main
+menu/help/about/video windows use the correct height; `test-text` still
+passes at 0 differing pixels.
+
+### R7 — Video toggle and quit to DOS
+
+1. Implement `0x1A688` as an interactive Y/N prompt: Y sets the
+   alternate-video flag (`[0xA0EC]`), N/Esc clear it.  Persist the flag through
+   the config layer (`cc_shell_config_dirty`).
+2. Implement `0x114A1`'s `Quit to DOS (Y-N)` confirmation for the main menu
+   Q/Esc and the in-game quit submenu D)os.  Y enters a browser exit screen
+   (the original returns to DOS); N/Esc cancels back to the calling state.
+3. Wire the new states into the renderer (modal over menu/help/quit), the
+   cursor cadence and `game.html`'s config persistence.
+
+Acceptance: Y/N/Esc behave as the original and the config survives a reload.
+
+### R8 — F2 cursor glyph audit
+
+1. Lock the exported F2 bank to `CC1-F2.MNI` in `test-cursor`.
+2. Assert the original art quirk: glyph 49 is a byte-for-byte duplicate of
+   glyph 46, so the five-frame cycle has four distinct images.  Do not
+   "fix" the duplicate.
 
 ### Planned validation commands
 
-These targets do not exist yet; add them as part of R1/R5:
+Implemented targets:
 
 ```sh
 cd wasm
 make test-shell-flow          # fast committed fixture from R1
 make test-oracle-shell-flow   # regenerate with Unicorn + file/key shim
-make test-sound               # existing sound driver/synth/shell checks
+make test-menus               # ordering/foreign/BBS/about/video/quit
+make test-oracle-menus        # regenerate menu buffers + text fixtures
+make test-sound               # sound driver/synth/shell checks
 make test-all
 make test-browser
 make perf
 ```
 
 Relative effort: R1 medium, R2 medium, R3 small/medium, R4 small/medium,
-R5 small.  R2 is the visible-fidelity item; R1 is the largest enabler.  R4's
-static ID audit can run in parallel with R1, but its title/menu fixture waits
-for R1.
+R5 small, R6 medium, R7 small/medium, R8 small.  R2 is the visible-fidelity
+item; R1 is the largest enabler.  R4's static ID audit could run in parallel
+with R1; R6 depends on the same harness.
 
 ## Validation commands
 
@@ -1124,6 +1179,7 @@ make test-caves              # committed all-cave full-frame fixtures
 make test-cells              # committed cell/contact/exit fixtures
 make test-hud                # oracle-exact HUD fixtures
 make test-text               # oracle-exact text-window fixtures
+make test-menus              # ordering/foreign/BBS/about/video/quit screens
 make test-messages           # in-game message trigger causes
 make test-shell              # shell flow/save/high-score/finale fixtures
 make test-persist            # Phase 7 save format/round-trip/high-score/config
@@ -1136,6 +1192,7 @@ make perf                    # wasm size + frame-budget measurement
 make test-oracle-sound       # regenerate sound traces (Unicorn) and compare
 make test-oracle-exactness   # regenerate shell exactness fixtures/header
 make test-oracle-shell       # regenerate HUD + text fixtures
+make test-oracle-menus       # regenerate menu info-screen fixtures
 make test-oracle-handlers    # regenerate handler fixtures (Unicorn)
 make test-oracle-loader      # regenerate transition fixtures (Unicorn)
 make test-oracle-caves       # regenerate all-cave fixtures (Unicorn)
@@ -1163,6 +1220,7 @@ PASS: hub door and cave exit transitions load the correct levels
 PASS: mutable cell renderer matches baked; crystal clear changed 150 pixels
 PASS: HUD matches the real routine (4 boundary cases)
 PASS: text windows match the real renderer (23 fixtures, 0 px)
+PASS: ordering/foreign/BBS/about/video/quit screens match the real handlers
 PASS: shell flow, story/finale, save/restore, high scores
 PASS: Phase 7 save format, mid-hub/cave round-trips, corrupt slots
 PASS: high scores/config survive reload; v1 save/config migration
@@ -1207,6 +1265,8 @@ PASS: shell exactness fixtures regenerate via make test-oracle-exactness
 - `notes/regression.md` — Phase 8 coverage matrix and build-size notes. (Phase 5).
 - `wasm/test_hud.js` — HUD-vs-oracle regression.
 - `wasm/test_text.js` — text-window frame/fill/text oracle regression.
+- `wasm/test_menus.js` / `notes/menu_fixtures.json` — ordering/foreign/BBS/
+  about/video/quit-to-DOS page buffers and prompt flows.
 - `wasm/test_shell.js` — shell flow/save/high-score/finale regression.
 - `wasm/test_persist.js` — Phase 7 save format/round-trip/high-score/config regression.
 - `wasm/persist.js` — browser localStorage config/high-score/slot adapter.
@@ -1250,7 +1310,7 @@ PASS: shell exactness fixtures regenerate via make test-oracle-exactness
 - `extracted/CC1.TTL/APG/CDT/END`, `CC1-*.SND`, `CC1-F1/F2/SPL.MNI` — remaining assets.
 
 
-## Completion record (R1–R5)
+## Completion record (R1–R8)
 
 Implemented after the plan was written:
 
@@ -1277,5 +1337,22 @@ Implemented after the plan was written:
   unused bank entry with a negative test.
 - **R5** — docs updated (`notes/shell.md`, `persist.md`, `gameplay.md`,
   `physics.md`, `sound.md`, `regression.md`, `README.md`, `AGENTS.md`);
-  `make test-all` = 384 PASS, `make test-browser` PASS, `make perf` within
+  `make test-all` = 451 PASS, `make test-browser` PASS, `make perf` within
   the frame budget.
+- **R6** — `tools/shell_exactness.py --menus` runs the real information
+  handlers and records their line buffers in `notes/menu_fixtures.json`.
+  Ordering shows the episodes → offer → disk pages (0x1390A chain), foreign
+  shows the intro plus the Australian/German/UK dealer pages (0x19130), and
+  BBS/about are single pages.  The handlers insert blank spacer rows that the
+  static text tables lack; `export_shell_assets.py` overrides those blocks
+  from the fixture.  `test-menus` compares every page line; `test-text` was
+  regenerated for the corrected menu/help/about windows.
+- **R7** — the video compatibility screen (0x1A688) is an interactive Y/N
+  prompt that writes the alternate-video flag (`[0xA0EC]`) and is persisted
+  through the config layer (new `cc_shell_config_dirty`).  Quit to DOS
+  (0x114A1) shows the original `Quit to DOS (Y-N)` confirmation from both the
+  main menu and the in-game D)os option; Y enters a browser exit screen and
+  any key restarts the attract, N/Esc cancels.
+- **R8** — `test-cursor` now also locks the F2 bank to `CC1-F2.MNI` and
+  asserts the original glyph 49 = glyph 46 duplicate; the animation uses
+  glyphs 45..49 exactly as stored.

@@ -20,9 +20,17 @@ Known limitations / deliberate browser substitutions:
   values to those scan codes; E0-extended keys are normalized.
 - Joystick uses the Gamepad API when present; the original calibration screen
   is informational.
-- BBS/foreign/ordering/video options show the original text screens with
-  browser-appropriate behaviour (no DOS file I/O or network calls).
-- Quit to DOS returns to the title screen.
+- Ordering, foreign orders and the BBS show the original multi-page screens
+  (including the three dealer pages and the disk-size/address page) exactly as
+  the original handlers build them.  No DOS file I/O, dialing or network calls
+  are performed.
+- Video support is a real setting: the compatibility screen's Y/N prompt
+  writes the alternate-video flag and it is persisted in the config.  The
+  browser renderer has no alternate mode, so the flag is stored but the
+  rendered output is identical (documented substitution).
+- Quit to DOS shows the original "Quit to DOS (Y-N)" confirmation.  On Y the
+  browser stops at an exit screen (the original returns to the DOS prompt);
+  any key restarts the attract sequence.
 - Sound is implemented in Phase 6 (`notes/sound.md`); the help sound toggle
   persists and follows the exact original `[0x513E]` gating semantics.
 - `CC1.CFG`/`CC1.HS` file I/O is replaced by `localStorage` JSON.  The C-side
@@ -75,7 +83,14 @@ status row at `y = 1` with the glyph blitter `0x28B5:0x1A4D`.
   25/26..27/28; `[0xA0C4]` decrements when `[0xA0C6]` wraps at `0x11`.
 - all-caves summary: `Crystals: ` label at cell 9 + 7 px and four SPL digits
   at cells 19..22.
-- all x positions add `[0x512E] & 7`.
+- all x positions add `[0x512E] & 7` in `cc_hud_render()` (the standalone
+  oracle entry).  In the original the EGA horizontal pixel-pan register shifts
+  the whole display by that amount, which is why the HUD compensates.
+
+`cc_hud_render_screen()` is the composite game-frame entry: the viewport crop
+already applies the full camera scroll (including the 0..7 fine pixels), so
+the HUD is drawn at its fixed screen x.  Using `cc_hud_render()` there made the
+status row jitter against the scrolling map; `test_hud.js` locks both paths.
 
 `tools/oracle_shell.py` runs the real routine with the original MNI buffers and
 EGA plane hooks, producing `notes/hud_fixtures.json` (four boundary cases).
@@ -121,11 +136,30 @@ then restore the player's camera globals.
 LOGO -> CREDITS -> TITLE -> MENU -> TEXT/STORY -> GAME
 GAME -> HELP/PAUSE/QUIT/SAVE/RESTORE/WARP -> GAME
 GAME all-caves -> FINALE story -> ENDING -> HISCORE/NAME_ENTRY
+MENU -> QUIT_CONFIRM -> DOS (Y) / MENU (N, Esc)
+MENU|HELP -> VIDEO -> MENU|HELP (Y/N/Esc)
+HELP -> QUIT -> QUIT_CONFIRM -> DOS (Y) / QUIT (N, Esc)
 ```
 
 Main-menu keys (scan-code letters in the original): N new game, R restore,
 S story, I instructions, O ordering, H high scores, F foreign, C BBS, V video,
 A about, Q/Esc quit.  Enter/Space start a new game.
+
+Menu information screens (exact handler buffers in
+`notes/menu_fixtures.json`, compared by `make test-menus`):
+
+- O: `ordering_episodes` -> `ordering_offer` -> `ordering_disk` (0x1390A,
+  0x13596, 0x13231).
+- F: `foreign` -> `foreign_au` -> `foreign_de` -> `foreign_uk` (0x19130).
+- C: `bbs` (0x19A88).  A: `about` (0x19E1F).
+- V: `menu_video` with the original Y/N prompt; Y sets the alternate-video
+  flag (`[0xA0EC]` in the original), N/Esc clear it (0x1A688).
+- Q/Esc: `menu_quit_dos` confirm (0x114A1); Y exits, N/Esc cancels.  The
+  in-game quit submenu's D)os option uses the same confirm.
+
+The blank spacer rows in these windows are inserted by the handlers, not
+present in the static text tables, so the exported blocks are overridden from
+the oracle capture (`tools/shell_exactness.py --menus`).
 
 In-game: Esc/F1 help, P pause.  Help: I instructions, T sound, J joystick,
 C calibration text, V video, K key redefine, R restore, S save, Q quit,
@@ -162,6 +196,9 @@ title sound log.
 
 Committed fixtures:
 
+- `notes/menu_fixtures.json` — exact line buffers for the ordering (3 pages),
+  foreign (4 pages), BBS, about, help, in-game quit, video and quit-to-DOS
+  screens, captured from the real handlers (`--menus`).
 - `notes/shell_exactness_fixtures.json` — attract/logo tick constants,
   intro/finale page line buffers, high-score screen lines and framebuffer
   hash.
