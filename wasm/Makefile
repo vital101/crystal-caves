@@ -230,7 +230,8 @@ test-oracle-objects: clang
 	$(PYTHON) ../tools/emulate_game.py 3 120 --json > oracle_level3.json
 	node test_oracle_objects.js oracle_level3.json
 
-test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-persist test-exactness test-keymap test-sound
+test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-persist test-exactness test-sound
+# NOTE: test-keymap is already run by test-exactness; keep it as its own target.
 
 clean:
 	rm -f $(OUT) app.js app.wasm out_wasm_level*.png oracle_level*.json

@@ -284,6 +284,10 @@ function applySeed(want, seed) {
     console.error(`\n${failures} mismatch(es) over ${frames} frames`);
     process.exit(1);
   }
+  if (e.cc_unknown_handler_hits() !== 0) {
+    console.error(`unknown handler dispatches: ${e.cc_unknown_handler_hits()}`);
+    process.exit(1);
+  }
   console.log(`PASS: ${fixture.scenarios.length} handler scenarios, ` +
               `${frames} frames match oracle`);
 })().catch((err) => { console.error(err); process.exit(1); });

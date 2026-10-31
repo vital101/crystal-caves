@@ -30,8 +30,8 @@
  *
  * Player start comes from g_level_start (the Y-token cell at load time),
  * NOT from kind-1 objects: kind 1 / slot 1 is the player (handler 0x1fb9,
- * a noop retf 6).  Score / collectibles / lives are zero-stubs until the
- * real cell-based rules are derived (no kind-1 collectible loop remains).
+ * a noop retf 6).  Score/crystals/ammo/health/lives are driven by the cell
+ * event handler (0x0FC5:0xBB26) and combat paths; see notes/gameplay.md.
  */
 
 #include "objects.h"
@@ -3514,9 +3514,10 @@ static void step_objects(void) {
         ObjectEntry *o = &S->obj[s];
         int32_t x_new = o->x + (int32_t)o->vx * o->speed;
         int32_t y_new = o->y + (int32_t)o->vy * o->speed;
-        handler_fn h = handler_for(o->handler);
 
         if (o->kind == 0) continue;         /* empty slot */
+
+        handler_fn h = handler_for(o->handler);
 
         if (o->ready) {                     /* state advance for ready objects */
             if (o->state == 0) o->state = 1;

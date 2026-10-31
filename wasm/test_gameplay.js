@@ -6,9 +6,11 @@
 //   * Player (slot 1, kind 1, handler 0x1fb9) starts at the Y-token cell
 //     converted to pixels (row*16, col*16).
 //   * Map spawn count matches the oracle anchor for the level.
-//   * score/collectibles/lives/level_complete are zero-stubs (no kind-1
-//     collectible loop remains).
-//   * Stepping with input does not mutate score/collectibles (they stay 0).
+//   * Level-fact counters: hub starts at 0 score / 0 crystals, 3 lives /
+//     3 health / 5 ammo; cave 3 holds 14 crystals.
+//   * Walking the hub (which has no collectible cells) leaves score and
+//     crystals untouched.  Full collection rules are covered by
+//     test_cells.js / test_combat.js.
 const fs = require("fs");
 const path = require("path");
 
@@ -38,11 +40,7 @@ const SPAWN_COUNTS = {
   console.log(`Level ${level}:`);
 
   // Slot 1 must be the player (kind 1, handler 0x1fb9).
-  const p = { kind: e.cc_obj_kind(1), state: e.cc_obj_state(1), handler: e.cc_obj_cursor() };
-  const h1 = (() => {
-    // read handler off slot 1 via the object record isn't exported per-slot;
-    // use kind/state instead.
-  })();
+  const p = { kind: e.cc_obj_kind(1), state: e.cc_obj_state(1) };
   console.log(`  slot1 kind=${p.kind} state=${p.state} (expect kind=1 state=0)`);
   if (p.kind !== 1) throw new Error("slot 1 is not kind 1 (player)");
 
