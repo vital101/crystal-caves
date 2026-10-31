@@ -1,0 +1,102 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      oracle_targets:
+        description: 'Space-separated oracle make targets to regenerate'
+        required: false
+        default: 'test-oracle-physics test-oracle-combat test-oracle-cells test-oracle-handlers test-oracle-loader test-oracle-caves'
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    name: build + deterministic suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld
+          llvm_dir=$(dirname "$(readlink -f "$(command -v clang)")")
+          if [ ! -x "$llvm_dir/wasm-ld" ]; then
+            echo "wasm-ld not found in $llvm_dir" >&2
+            exit 1
+          fi
+          echo "LLVM=$llvm_dir" >> "$GITHUB_ENV"
+          "$llvm_dir/clang" --version
+          "$llvm_dir/wasm-ld" --version
+
+      - name: Build
+        run: make -C wasm clang LLVM="$LLVM"
+
+      - name: Regression suite (committed fixtures)
+        run: make -C wasm test-all LLVM="$LLVM"
+
+      - name: wasm size
+        run: |
+          size=$(stat -c%s wasm/render.wasm)
+          echo "render.wasm: $size bytes" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  browser:
+    name: headless browser smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld
+          llvm_dir=$(dirname "$(readlink -f "$(command -v clang)")")
+          if [ ! -x "$llvm_dir/wasm-ld" ]; then
+            echo "wasm-ld not found in $llvm_dir" >&2
+            exit 1
+          fi
+          echo "LLVM=$llvm_dir" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: wasm/package-lock.json
+
+      - name: Install browser test dependencies
+        working-directory: wasm
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Browser smoke test
+        run: make -C wasm test-browser LLVM="$LLVM"
+
+  oracle:
+    name: oracle regeneration (manual)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld
+          llvm_dir=$(dirname "$(readlink -f "$(command -v clang)")")
+          echo "LLVM=$llvm_dir" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install oracle dependencies
+        run: pip install -r tools/requirements.txt
+
+      - name: Regenerate and compare oracle fixtures
+        run: make -C wasm ${{ github.event.inputs.oracle_targets }} LLVM="$LLVM"
