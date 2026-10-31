@@ -900,7 +900,9 @@ Implemented:
 
 Acceptance:
 
-- Clean checkout builds and passes the full suite (CI).
+- Clean checkout builds and passes the full suite (CI).  A local fresh-clone
+  simulation ran `make test-all` (336 PASS) and `make test-browser` green;
+  deliberately perturbing one physics fixture made the suite exit 1.
 - Playable from title to finale with no known gameplay stubs (browser smoke +
   node shell fixtures).
 - Regression suite fails on any oracle divergence (committed fixtures and the
