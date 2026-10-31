@@ -2266,17 +2266,6 @@ phase2:
                 }
                 S->g_a0f6 = 1;
                 S->exit_step = 0;
-                /* 0x168D7 stores the player's rounded cell in
-                 * [0x5098]/[0x509A]; 0xD694 copies it to
-                 * [0x2B72]/[0x2B74] for the hub load. */
-                {
-                    int pc = (int)S->player_x / 16;
-                    int pr = (int)S->player_y / 16;
-                    if ((int)S->player_x % 16 >= 8) pc++;
-                    if ((int)S->player_y % 16 >= 8) pr++;
-                    S->spawn_col_override = (uint16_t)pc;
-                    S->spawn_row_override = (uint16_t)pr;
-                }
             }
         } else if (S->g_a106) {
             helper_a110_clear();
@@ -2447,6 +2436,7 @@ phase2:
             S->exit_row = (int16_t)row;
             S->exit_step = 0;
             S->g_a0f7 = 1;
+            S->g_2f6 = 0xBEEF; /* DEBUG */
             play_sound(3);
             memcpy_(S->checkpoint_block, S->level_block, 0x21);
         }
@@ -3707,8 +3697,8 @@ static void exit_to_hub_frame(void) {
         S->g_3394 = 1;
     }
     S->next_level = 0;
-    /* [0x2B72]/[0x2B74] were captured from the player's cell when the exit
-     * prompt started (0x168D7); keep them for the hub load. */
+    /* 0xD4CC loads the hub without touching [0x2B72]/[0x2B74]: they still
+     * hold the hub-door entry cell, so the player returns beside that door. */
     play_sound(0x14);
     load_arg(0);
 }
@@ -4240,8 +4230,9 @@ static void apply_level_state(int level, int use_start, int fresh) {
         if (S->cam_x > 0x140) S->cam_x = 0x140;
         if (S->cam_y < 0) S->cam_y = 0;
         if (S->cam_y > 0xC8) S->cam_y = 0xC8;
-        S->spawn_col_override = 0xffff;
-        S->spawn_row_override = 0;
+        /* Do not clear [0x2B72]/[0x2B74]: the loader only reads them, and the
+         * cave exit reuses the hub door entry value to place the player next
+         * to the door on return. */
     }
     S->player_block = st->f_4619;
     S->anim_timer = st->f_461b;
@@ -4404,6 +4395,7 @@ static void apply_level_overlay(int level) {
          * apply_level_state owns it.  The fixture overlay was captured without
          * an override, so replaying its camera would undo a cave->hub spawn. */
         if (off == 0x512E || off == 0x5130) continue;
+        if (off == 0xA0E0) S->g_2f6 = 0xDEAD; /* DEBUG */
         cc_global_set(off, val);
     }
     draw_n_raw = ov_rd16(p); p += 2;
