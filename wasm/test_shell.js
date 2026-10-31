@@ -70,13 +70,14 @@ function assert(cond, msg) {
   assert(nonBlack() > 1000, 'logo screen renders');
 
   e.cc_shell_key(13);
-  assert(e.cc_shell_state() === 15, 'logo -> credits');
+  assert(e.cc_shell_state() === 15, 'logo -> title/credits attract');
   e.cc_shell_render();
-  assert(nonBlack() > 1000, 'credits screen renders');
+  assert(nonBlack() > 1000, 'title screen renders in the attract');
+  e.cc_shell_step_ticks(433 + 400);
+  e.cc_shell_render();
+  assert(nonBlack() > 1000, 'scrolled credits screen renders');
   e.cc_shell_key(13);
-  assert(e.cc_shell_state() === 1, 'credits -> title');
-  e.cc_shell_key(13);
-  assert(e.cc_shell_state() === 2, 'title -> menu');
+  assert(e.cc_shell_state() === 2, 'key in the attract -> menu');
   e.cc_shell_render();
   assert(nonBlack() > 5000, 'main menu renders over title');
 
@@ -171,9 +172,9 @@ function assert(cond, msg) {
   e.cc_shell_key(key('q'));       // help -> quit submenu
   assert(e.cc_shell_state() === 7, 'quit submenu');
   e.cc_shell_key(key('t'));       // quit -> title
-  assert(e.cc_shell_state() === 1, 'quit to title');
+  assert(e.cc_shell_state() === 15, 'quit restarts the title attract');
 
-  e.cc_shell_key(13);             // title -> menu
+  e.cc_shell_key(13);             // attract -> menu
   e.cc_shell_key(key('i'));       // instructions
   assert(e.cc_shell_state() === 3, 'instructions screen');
   for (let i = 0; i < 30 && e.cc_shell_state() === 3; i++) e.cc_shell_key(13);

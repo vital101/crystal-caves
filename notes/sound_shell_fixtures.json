@@ -21,9 +21,9 @@
   },
   {
    "address": "0x1aaef",
-   "action": "ending screen",
+   "action": "Apogee logo (loads cc1.apg) before its 721-tick hold",
    "id": 32,
-   "evidence": "ending screen setup before wait"
+   "evidence": "0x1AAA0 loads cc1.apg, plays ID 32 at 0x1AAEB, then waits [0x2B60] > 0x2D0"
   },
   {
    "address": "0xfb37",
@@ -36,6 +36,12 @@
    "action": "level start",
    "id": 36,
    "evidence": "0xCF00 level-start/restart routine"
+  },
+  {
+   "address": "0xedbf",
+   "id": 32,
+   "action": "ending screen setup",
+   "evidence": "0xEDBF play_sound(0x20) before the CC1.END sequence"
   }
  ],
  "finale_wait": {
@@ -48,6 +54,9 @@
  "priority": "Exact 0x1FBBF: new priority >= current priority preempts; lower priority is ignored.",
  "notes": [
   "The full main-menu/title flow is not driven end-to-end by an oracle in Phase 6; the call sites above are statically recovered and the C shell test asserts the integration.",
-  "ID 33 is attempted on new-game selection but the immediately following story/level load clears [0x513f], so it is usually inaudible in the fast browser load, matching the original loader reset."
+  "ID 33 is attempted on new-game selection but the immediately following story/level load clears [0x513f], so it is usually inaudible in the fast browser load, matching the original loader reset.",
+  "The title/credits attract loop (0x0FC5:0x8265, 0x17EB5..0x180D8) issues no play_sound calls; the whole scroll is silent.",
+  "ID 7 is a player sprite-draw effect (0x0F74C/0x0F757): the original plays it while drawing the animated player sprite. The host renderer calls cc_player_draw_sound() once per game step, so the step fixtures (which exclude the draw routine) stay oracle-exact.",
+  "ID 2 has no far or near call site in the load module and is not referenced by any data table; it is an unused bank entry."
  ]
 }

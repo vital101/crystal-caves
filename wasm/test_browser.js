@@ -136,12 +136,10 @@ function startServer() {
     }
   }
   async function newGame() {
-    await press('Enter');                       // logo -> credits
-    check((await state()) === 15, 'logo -> credits');
-    await press('Enter');                       // credits -> title
-    check((await state()) === 1, 'credits -> title');
-    await press('Enter');                       // title -> menu
-    check((await state()) === 2, 'title -> menu');
+    await press('Enter');                       // logo -> attract
+    check((await state()) === 15, 'logo -> attract');
+    await press('Enter');                       // attract -> menu
+    check((await state()) === 2, 'attract -> menu');
     await press('n');
     check((await state()) === 3, 'new game enters intro story');
     for (let i = 0; i < 8 && (await state()) === 3; i++) await press('Enter');
@@ -157,16 +155,16 @@ function startServer() {
     await expectHash('logo');
 
     await press('Enter');
-    check((await state()) === 15, 'logo -> credits');
-    check((await nonBlack()) > 1000, 'credits screen renders content');
-    await expectHash('credits');
+    check((await state()) === 15, 'logo -> attract');
+    check((await nonBlack()) > 1000, 'title frame renders content');
+    await expectHash('attract_title');
+
+    await page.evaluate(() => window.__cc.stepTicks(433 + 400));
+    await render();
+    await expectHash('attract_credits');
 
     await press('Enter');
-    check((await state()) === 1, 'credits -> title');
-    await expectHash('title');
-
-    await press('Enter');
-    check((await state()) === 2, 'title -> menu');
+    check((await state()) === 2, 'attract -> menu');
     await expectHash('menu');
 
     await press('n');
@@ -218,7 +216,6 @@ function startServer() {
 
     await boot(false);                          // reload; localStorage survives
     check((await state()) === 0, 'reload returns to the logo');
-    await press('Enter');
     await press('Enter');
     await press('Enter');
     check((await state()) === 2, 'reload reaches the main menu');

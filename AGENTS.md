@@ -24,6 +24,8 @@ There is no root Makefile; the build lives in `wasm/`.
 | `make test-messages` | In-game message trigger causes (positive/negative) |
 | `make test-text` | Oracle-exact text-window frame/fill/text fixtures |
 | `make test-shell` | Shell flow, text/PCX screens, save/restore, high scores, finale |
+| `make test-shell-flow` | Exact title/credits scroll from the committed flow fixture |
+| `make test-cursor` | 5-frame input cursor animation at the `^` marker |
 | `make test-persist` | Phase 7 save format/round-trips, high scores and config persistence |
 | `make test-exactness` | P5.R5 timing/story/high-score/scan-code exactness fixtures |
 | `make test-keymap` | Browser physical-key → DOS scan-code mapping |
@@ -34,6 +36,7 @@ There is no root Makefile; the build lives in `wasm/`.
 | `make test-oracle-sound` | Regenerate the Unicorn sound trace, then compare |
 | `make test-oracle-exactness` | Regenerate shell exactness fixtures/header |
 | `make test-oracle-shell` | Regenerate `notes/hud_fixtures.json` + `notes/text_fixtures.json`, then compare |
+| `make test-oracle-shell-flow` | Regenerate `notes/shell_flow_fixtures.json` from the real title loop, then compare |
 | `make test-oracle-cells` | Regenerate `notes/cell_fixtures.json` with Unicorn, then compare |
 | `make test-oracle-physics` | Regenerate physics fixtures from the real routines, then compare (needs venv deps) |
 | `make test-oracle-objects` | Compare C object/cell state with the Unicorn oracle, levels 2 and 3 (needs venv deps) |
@@ -155,9 +158,9 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   covered by `notes/persist.md` / `make test-persist`.  The original hub-only
   save restriction, `CC1.HS` defaults/sort/tie rules and `CC1.CFG` fields are
   preserved; see `notes/persist.md` for the original file layouts.
-- Known shell limitations: joystick uses the Gamepad API; the original
-  blinking input cursor is not drawn in shell text windows; title scroll is
-  approximated from the original tick-driven sequence.
+- Known shell limitations: joystick uses the Gamepad API.  The title/credits
+  scroll and the input cursor now follow the original routines
+  (`test-shell-flow`, `test-cursor`).
 - Phase 8 is implemented: `make test-all` covers the full committed-fixture
   suite with an unknown-handler guard, `make test-browser` runs
   title → hub → save/restore → finale in headless Chromium via real key
@@ -172,9 +175,10 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   Priority/preemption, `[0x513E]` toggle semantics, shell page/high-score/
   ending effects, the level-start effect and the ID-26 finale wait are wired.
   `notes/sound_fixtures.json` has 36 exact tick traces; `make test-sound`
-  passes.  Remaining coverage audit: IDs 2 and 7 have no C gameplay trigger
-  (ID 7's static site is `0xF74C/0xF757`); full title/menu shell sound flow is
-  still statically mapped rather than oracle-driven end-to-end.
+  passes.  Coverage is complete: ID 7 is the player sprite-draw effect
+  (`0x0F74C`, host hook `cc_player_draw_sound()`), ID 2 is an unused bank
+  entry with a negative test, the logo plays ID 32, the attract loop is
+  silent and menu accept plays ID 33.
 
 ## Tooling Entrypoints
 

@@ -287,3 +287,24 @@ void cc_draw_screen(int idx) {
         for (int x = 0; x < SCREEN_W; x++)
             view_pixel(x, y, src[y * SCREEN_W + x]);
 }
+
+/* Vertical crop of two stacked 320x200 screens: rows 0..199 come from `top`,
+ * rows 200..399 from `bottom`.  `row` is the virtual-screen row shown at the
+ * top of the viewport (0..200).  This is the original title/credits bounce
+ * (cc1.ttl over cc1.cdt) without modelling the CRTC start register. */
+void cc_draw_screen_rows(int top, int bottom, int row) {
+    if (!g_screens) { cc_view_clear(0); return; }
+    if (top < 0) top = 0;
+    if (bottom < 0) bottom = 0;
+    if (row < 0) row = 0;
+    if (row > SCREEN_H) row = SCREEN_H;
+    for (int y = 0; y < SCREEN_H; y++) {
+        int sy = row + y;
+        const unsigned char *src = (sy < SCREEN_H)
+            ? g_screens + (unsigned)top * SCREEN_W * SCREEN_H + sy * SCREEN_W
+            : g_screens + (unsigned)bottom * SCREEN_W * SCREEN_H +
+                  (sy - SCREEN_H) * SCREEN_W;
+        for (int x = 0; x < SCREEN_W; x++)
+            view_pixel(x, y, src[x]);
+    }
+}

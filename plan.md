@@ -12,11 +12,12 @@ Locked decisions:
 
 ## Current baseline
 
-Verified today:
+Verified baseline:
 
 - Static level rendering is pixel-exact on all 19 levels (`make test-render-all`).
-- Level-2 object state matches the Unicorn oracle for 10 frames.
-- Level-3 object state matches the Unicorn oracle for 120 frames.
+- Object/cell state matches the Unicorn oracle across the committed object,
+  combat, handler, loader and all-cave fixtures (16 caves / 370 frames, 74
+  combat scenarios / 624 frames, 235 handler scenarios / 376 frames).
 - Full mutable 20-byte cells are exported as `out/portable/cells.bin` and
   verified byte-for-byte against the oracle.
 - All 46 object handlers are implemented (Phase 4).
@@ -63,17 +64,27 @@ Verified today:
   builds/tests on Ubuntu, and the `-Oz` build is ~152 KB with ~1.2 ms level
   frames against the 57.1 ms budget.  The root `README.md` and
   `notes/regression.md` document build/run and coverage.
+- Current verification: `make test-all` passes **384** checks and
+  `make test-browser` passes title -> hub -> save/restore -> finale.
 
-Important remaining work:
+## Remaining work
 
-- Phase 5 polish: title scroll visual parity is approximated from the
-  original tick-driven sequence (manual browser smoke is automated in Phase 8).
-- Sound (Phase 6) is implemented; IDs 2/7 trigger-coverage audit and a
-  full oracle-driven title/menu sound flow remain optional follow-ups.
-- Phase 7 (save/high-score/config hardening) is complete; see
-  `notes/persist.md` and `make test-persist`.
-- Phase 8 is complete; see `notes/regression.md`, `README.md`, and
-  `.github/workflows/ci.yml`.
+All required gameplay, shell, persistence, sound and regression phases are
+complete, and the optional fidelity items below are now implemented.
+Joystick calibration is **not** planned: the Gamepad API substitution is
+accepted and documented.
+
+| ID | Item | Current state |
+|---|---|---|
+| R1 | Full shell oracle harness (P5.R6) | **DONE** — `tools/shell_exactness.py --flow` runs the real title loop and emits `notes/shell_flow_fixtures.json`; `make test-oracle-shell-flow` / `test-shell-flow` |
+| R2 | Exact title/credits scroll | **DONE** — TTL/CDT stacked crop, 433-tick holds, 201-row traverses at 2 ticks/row; key opens the menu; `test-shell-flow` |
+| R3 | Input cursor | **DONE** — 5-frame F2 glyph animation (45..49) at the `^` marker every 21 ticks; `test-cursor` |
+| R4 | Sound IDs 2/7 + title/menu trace | **DONE** — ID 7 from the player-draw hook, ID 2 proved unused, logo ID 32 + silent attract + menu ID 33 covered |
+| R5 | Regression and docs closure | **DONE** — fixtures/docs regenerated; `test-all`, `test-browser` and `perf` green |
+
+R1 was the enabler for R2–R4.  All five items are implemented; the recovered
+model and the execution record are in
+[Remaining work execution plan](#remaining-work-execution-plan).
 
 ## Critical path
 
@@ -82,8 +93,10 @@ Important remaining work:
 3. Implement cell collection, exits, and hub door flow. (done)
 4. Port remaining handlers and finish all 16 caves. (done)
 5. Add HUD, menus, save/high scores (done in Phase 5); finish sound in Phase 6
-   and Phase 5 polish items.
+   (done).
 6. Build full regression coverage and release (Phase 8; Phase 7 done).
+7. Close optional fidelity: shell oracle harness (R1), title/credits scroll
+   (R2), text cursor (R3), sound audit (R4), regression/docs (R5).
 
 ## Phase 1 — Exact player physics and startup data (COMPLETE)
 
@@ -788,9 +801,12 @@ make test-all
   set-1 scan codes and the original labels/confirmation flow.  Browser
   substitutions are documented in `notes/shell.md`.  Validation:
   `make test-exactness`, `make test-keymap`, `make test-oracle-exactness`.
-- **P5.R6 — Full shell oracle (optional supporting work).**  Add the INT 21h
-  file shim and scripted INT 16h keys to run the original title/menu flow for
-  end-to-end screen/state comparison.
+- **P5.R6 — Full shell oracle (OPEN; execution R1).**  Extend the existing
+  `tools/shell_exactness.py` INT 21h/INT 16h shim from story/high-score
+  routines to the original title/credits/menu flow, with framebuffer, CRTC
+  scroll and sound-event capture.  This is also the capture source for R2
+  (scroll offsets/framebuffers), R3 (cursor blink) and R4 (title/menu sound
+  events).
 
 ## Phase 6 — Sound (IMPLEMENTED)
 
@@ -826,9 +842,9 @@ Implemented:
   `make test-sound`, `make test-oracle-sound`.
 
 Acceptance: met for the 36 banked effects and the shell integration.
-Remaining coverage audit: IDs 2 and 7 have no C gameplay trigger (ID 7's
-static site is `0xF74C/0xF757`); the full title/menu shell sequence is
-statically mapped rather than captured end-to-end.
+Remaining coverage audit (execution R4): IDs 2 and 7 have no C gameplay
+trigger (ID 7's static site is `0xF74C/0xF757`); the full title/menu shell
+sequence is statically mapped rather than captured end-to-end.
 
 ## Phase 7 — Save/high-score/config hardening (COMPLETE)
 
@@ -908,14 +924,190 @@ Acceptance:
 - Regression suite fails on any oracle divergence (committed fixtures and the
   unknown-handler guard).
 
-## Immediate next actions
+## Remaining work execution plan (R1–R5, implemented)
 
-1. Optional Phase 6 follow-up: audit the remaining ID 2/7 gameplay trigger
-   sites and add end-to-end title/menu sound capture if desired.
-2. Phase 8 is complete (`README.md`, `notes/regression.md`,
-   `.github/workflows/ci.yml`, `make test-browser`, `make perf`).  Remaining
-   optional polish: title-scroll visual parity, the shell text cursor, and a
-   full oracle-driven title/menu sound capture.
+Scope was R1–R5 below.  Joystick calibration is explicitly out of scope: the
+Gamepad API path and the informational calibration screen are accepted browser
+substitutions.  DOS-only file/BBS/ordering behavior is also out of scope.
+
+Dependency order:
+
+```text
+R1 (oracle harness)
+ ├─> R2 (title/credits scroll)
+ ├─> R3 (text cursor)
+ └─> R4 (sound IDs 2/7 + title/menu trace; static ID audit can start early)
+R2 + R3 + R4 ─> R5 (regression/docs closure)
+```
+
+### R1 — Shell oracle harness (P5.R6)
+
+Goal: run the original title/credits/menu path under Unicorn and emit
+deterministic per-tick screen, scroll, cursor and sound fixtures.
+
+1. Extend `tools/shell_exactness.py` (do not start a second harness):
+   - reuse the existing INT 21h file shim (`open`/`read`/`close`/`seek`) and
+     INT 16h scripted-key queue;
+   - add a title-flow runner that enters `0x0FC5:0x82D0` (linear `0x17F20`)
+     with the real startup DS;
+   - script: full no-key run, key during credits, key during title, Esc/Q;
+   - log `[0x2B60]` (sequence tick), `[0x2B5C]` (display start/pixel offset),
+     the far-call arguments to `0x28B5:0x11F` and `0x28B5:0x2DF5`, and
+     instrument the loop locals if the offset/direction cannot be inferred
+     from those values.
+2. Capture pixels, not just text:
+   - run the real EGA blitter hooks from `tools/oracle_shell.py` where possible;
+   - if the title loader/blitter cannot be run under the shim, capture the
+     source image plus CRTC start offset and reconstruct, then validate
+     selected frames against a real emulator capture;
+   - record 320x200 framebuffer hashes for every scroll offset and both
+     directions.
+3. Capture sound: hook `lcall 0x1F9A:0x021F`, record ID and tick, and include
+   the `[0x513F]`/priority state where relevant.
+4. Emit `notes/shell_flow_fixtures.json` with stage boundaries, scroll offsets,
+   framebuffer hashes, key-skip behavior, cursor on/off samples and sound
+   events.  Keep compressed frames only where hashes are insufficient.
+5. Add `make test-oracle-shell-flow` (regenerate) and `make test-shell-flow`
+   (fast compare).  Add the fast target to `test-all` once it is deterministic
+   and cheap; keep regeneration out of CI's normal job.
+6. Document the harness and fixture schema in `notes/shell.md` and
+   `notes/regression.md`.
+
+Acceptance:
+
+- The original flow reaches the main menu with only the shim, no patched
+  control flow.
+- Re-running the oracle produces byte-identical fixtures.
+- The fixture contains enough data to verify R2 (scroll), R3 (cursor) and R4
+  (title/menu sound) without re-running Unicorn in the fast suite.
+
+### R2 — Exact title/credits scroll
+
+Recovered loop (verify while executing): linear `0x17F20` /
+`0x0FC5:0x82D0` keeps offset `[bp-4]` in `0..0xC8` and direction `[bp-2]` in
+`{+1,-1}`, draws via `0x28B5:0x11F` at `offset` (forward) or `0xC8-offset`
+(reverse), writes `[0x2B5C]`, increments the offset, resets to 0 and flips
+direction after `>0xC8`, and stops when `[0x2B60] > 0x1B0` or a key is
+pressed.  The current shell instead shows two captured screens for 216 ticks
+each.
+
+1. Add explicit scroll state to `wasm/shell.c` (offset, direction, elapsed
+   ticks, key-skip latch).  Keep the `CC_SHELL_CREDITS`/`CC_SHELL_TITLE` API
+   and state names if possible; carry one continuous 432-tick offset across
+   both stages to match the original.
+2. Implement `cc_shell_scroll_render()` using the R1 source image and the exact
+   CRTC start offset.  Resolve from R1 whether the visible rows repeat the
+   image, expose adjacent VRAM, or need extra exported rows; do not fake the
+   effect by reusing the static screenshot at a guessed offset.
+3. Advance the scroll only from `cc_shell_step_ticks()` at 140.06 Hz.  Keep
+   `cc_shell_render()` pure and make sure `game.html` cannot double-step.
+4. Add a debug/test getter such as `cc_shell_scroll_offset()` and
+   `cc_shell_scroll_direction()`.
+5. Fixtures: compare framebuffer hashes for every offset 0..200 in both
+   directions, both stage boundaries, the 432-tick stop, and key-skip paths.
+6. Update `notes/shell.md` to remove the scroll limitation.
+
+Acceptance:
+
+- Every captured title/credits frame matches the oracle.
+- Key skip lands in the menu at the same tick as the original.
+- `make test-shell`, `make test-exactness`, `make test-browser` stay green.
+
+### R3 — Blinking text cursor
+
+1. Trace the original input/window path (the `^` marker path around the
+   `0x10314` text renderer and the name-entry/key-redefine loops) to recover:
+   caret cell/pixel position, glyph (underline/block/character), colour,
+   blink period in PIT ticks, phase reset on key/page change, and whether the
+   cursor is drawn by the text routine or a separate input overlay.
+2. Extend R1 to capture cursor-on, cursor-off and mid-blink frames for:
+   press-any-key windows, high-score name entry, key redefine, and
+   save/restore/quit prompts.
+3. Implement a separate cursor overlay so existing
+   `cc_text_draw_block()` fixtures remain pixel-exact:
+   - add `cc_text_cursor_set(x, y, visible)` or equivalent;
+   - add `cc_text_cursor_tick()` driven by `cc_shell_step_ticks()`;
+   - draw the caret after the text block in `cc_shell_render()`.
+4. Wire every shell prompt that currently emits `^` (generic text pages,
+   name entry, key redefine/confirm, save/restore, quit, errors).
+5. Add pixel fixtures for cursor on/off and blink phase transitions; keep the
+   existing 23 text fixtures at 0 differing pixels when cursor is hidden.
+6. Update `notes/shell.md` and `notes/persist.md` cursor limitations.
+
+Acceptance:
+
+- Caret position, glyph and blink cadence match the oracle.
+- Text-window fixtures remain exact with the cursor disabled or phased off.
+- Browser name entry and key redefine still accept input normally.
+
+### R4 — Sound IDs 2/7 and title/menu trace
+
+1. Complete the sound call-site map:
+   - scan for `mov ax,id; push ax; lcall 0x1F9A:0x021F` and register/dynamic
+     callers;
+   - record any site that loads the ID indirectly;
+   - add the map to `notes/sound.md`.
+2. ID 7: trace the path around `0xF74C/0xF757` (`[0x2C0]`, `[0xA0EA]`, the
+   player/object draw loop), determine its exact condition and cadence, then
+   implement the trigger or document why it is unreachable in Episode 1.
+   Add a focused fixture for both branches if reachable.
+3. ID 2: direct-pattern scanning finds no `push 2` site.  Prove whether it is
+   loaded dynamically or unused; either implement the trigger and fixture or
+   document it as an unused bank entry with a negative test.
+4. Use R1 to capture the real title/credits/menu sound sequence (including
+   IDs 33, 35 and 34) and compare it with the C event log.  Add
+   `test_sound_shell_flow` or extend `wasm/test_sound_shell.js`.
+5. Update `notes/sound.md`, `notes/regression.md` and the sound coverage table.
+
+Acceptance:
+
+- All 36 IDs are classified: triggered with a fixture, or explicitly
+  unreachable with a documented reason.
+- Title/menu sound events match the oracle sequence and tick stamps.
+- No unknown ID or unexpected priority/preemption change appears.
+
+### R5 — Regression and docs closure
+
+1. Regenerate affected fixtures with the oracle targets, then run:
+   `make test-all`, `make test-browser`, `make perf`.
+2. Add `test-shell-flow` to `test-all` if its runtime is acceptable; leave
+   Unicorn regeneration in the manual `test-oracle-*` group.
+3. Update stale documentation found during this review:
+   - `notes/gameplay.md`: remove the claim that cave-to-hub transitions use a
+     fresh hub image; the v2 overlay already replays hub decorations/doors.
+   - `notes/physics.md`: replace the "Out of scope (left for later phases)"
+     section with a pointer to the completed Phase 2/3 fixtures.
+   - `notes/shell.md` / `notes/persist.md`: remove the title-scroll and cursor
+     limitations once R2/R3 land.
+   - `README.md`, `AGENTS.md`, `notes/regression.md`: add the new targets and
+     final coverage rows.
+4. Update this file's status table and phase notes after each commit.
+5. Commit in this order: R1 harness, R2 scroll, R3 cursor, R4 sound, R5 docs.
+
+Acceptance:
+
+- Full suite plus browser smoke and perf are green.
+- No stale "not implemented" claims remain for R1–R4.
+- `plan.md` lists only genuinely open work.
+
+### Planned validation commands
+
+These targets do not exist yet; add them as part of R1/R5:
+
+```sh
+cd wasm
+make test-shell-flow          # fast committed fixture from R1
+make test-oracle-shell-flow   # regenerate with Unicorn + file/key shim
+make test-sound               # existing sound driver/synth/shell checks
+make test-all
+make test-browser
+make perf
+```
+
+Relative effort: R1 medium, R2 medium, R3 small/medium, R4 small/medium,
+R5 small.  R2 is the visible-fidelity item; R1 is the largest enabler.  R4's
+static ID audit can run in parallel with R1, but its title/menu fixture waits
+for R1.
 
 ## Validation commands
 
@@ -1056,3 +1248,34 @@ PASS: shell exactness fixtures regenerate via make test-oracle-exactness
 - `notes/oracle_catalog.json`, `notes/oracle_objects.json` — ground truth.
 - `extracted/CC1-UNLZ.EXE` — original unpacked binary.
 - `extracted/CC1.TTL/APG/CDT/END`, `CC1-*.SND`, `CC1-F1/F2/SPL.MNI` — remaining assets.
+
+
+## Completion record (R1–R5)
+
+Implemented after the plan was written:
+
+- **R1** — `tools/shell_exactness.py --flow` runs the real title loop
+  `0x0FC5:0x8265` with the image/CRTC helpers stubbed and the 140.06 Hz
+  counter injected into the hold spins.  It records a 433-tick hold, 201
+  forward rows (0..200), 201 backward rows (200..0), the key-to-menu paths
+  and an empty sound log into `notes/shell_flow_fixtures.json`.
+  `make test-oracle-shell-flow` regenerates it; `make test-shell-flow`
+  compares the C port.
+- **R2** — `cc_draw_screen_rows()` composes the TTL-over-CDT 320x400 crop;
+  `shell.c` runs hold/forward/hold/backward in 140.06 Hz ticks (2 ticks per
+  row) and a key opens the menu.  `test_shell_flow.js` checks the row
+  sequence and six sampled frames in both directions.
+- **R3** — the marker `^` is still skipped by the printer, and the original
+  5-frame animation is drawn at its cell (F2 glyphs 45..49, 21 ticks per
+  frame, F1 glyph 8 as the background).  `test_cursor.js` verifies the
+  cadence, the wrap and the cell contents.  (Glyph 49 repeats 46 in the
+  original bank.)
+- **R4** — the logo plays ID 32 (`0x1AAEB`), the attract loop is silent, menu
+  accept plays ID 33.  ID 7 is a sprite-draw effect at `0x0F74C`; the page
+  calls `cc_player_draw_sound()` after each step so the oracle step fixtures
+  stay exact.  ID 2 has no call site (far or near) and is documented as an
+  unused bank entry with a negative test.
+- **R5** — docs updated (`notes/shell.md`, `persist.md`, `gameplay.md`,
+  `physics.md`, `sound.md`, `regression.md`, `README.md`, `AGENTS.md`);
+  `make test-all` = 384 PASS, `make test-browser` PASS, `make perf` within
+  the frame budget.

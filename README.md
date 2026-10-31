@@ -87,8 +87,9 @@ make perf              # wasm size + frame-budget measurement
 
 `make test-all` needs no virtualenv and no Unicorn: every fixture is committed
 under `notes/`.  It covers rendering, physics, combat, handlers, transitions,
-cells, HUD/text/messages, shell, save/restore, high scores, key mapping and
-sound.  `notes/regression.md` maps each subsystem to its target, fixture and
+cells, HUD/text/messages, shell, save/restore, high scores, key mapping,
+sound, the exact title/credits scroll (`test-shell-flow`) and the input
+cursor animation (`test-cursor`).  `notes/regression.md` maps each subsystem to its target, fixture and
 harness.
 
 The browser smoke test walks title → intro → hub, drives real keyboard input,

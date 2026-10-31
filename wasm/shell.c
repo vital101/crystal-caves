@@ -31,6 +31,40 @@ static int g_story_level;      /* -1 = no level background */
 static int g_finale_pending;
 static unsigned int g_pending_score;
 
+/* Title/credits attract loop (0x0FC5:0x8265).  phase is 0 = title hold,
+ * 1 = forward traverse, 2 = credits hold, 3 = backward traverse.  The
+ * original holds 433 PIT ticks at each end and advances one row per
+ * vertical retrace (~2 PIT ticks). */
+#define SCROLL_HOLD   CC_SHELL_ATTRACT_HOLD_TICKS
+#define SCROLL_ROWS   CC_SHELL_SCROLL_ROWS
+#define SCROLL_TICKS  CC_SHELL_SCROLL_TICKS_PER_ROW
+static int g_scroll_phase;
+static int g_scroll_frame;
+static int g_scroll_row;
+static int g_scroll_dir;
+static int g_scroll_ticks;
+
+/* Input cursor animation (0x0FC5:0x0A18): F2 glyphs 45..49 at the '^'
+ * marker cell, one frame every 21 PIT ticks (the original compares
+ * [0x2B60] > 0x14). */
+#define CURSOR_TICKS 21
+static int g_cursor_ticks;
+static int g_cursor_frame;
+
+static void cursor_reset(void) {
+    g_cursor_ticks = 0;
+    g_cursor_frame = 0;
+}
+
+static void cursor_step(int ticks) {
+    if (ticks <= 0) return;
+    g_cursor_ticks += ticks;
+    while (g_cursor_ticks >= CURSOR_TICKS) {
+        g_cursor_ticks -= CURSOR_TICKS;
+        g_cursor_frame = (g_cursor_frame % 5) + 1;
+    }
+}
+
 static TextPage g_pages[MAX_PAGES];
 static int g_page_count;
 static int g_page_index;
@@ -70,6 +104,7 @@ static void scopy(char *d, const char *s, int cap) {
 }
 
 static void clear_pages(void) {
+    cursor_reset();
     g_page_count = 0;
     g_page_index = 0;
     g_story_pages = 0;
@@ -94,6 +129,7 @@ static void set_pages(const int *blocks, int n, int return_state,
     g_story_kind = story_kind;
     g_story_level = story_level;
     g_state = CC_SHELL_TEXT;
+    cursor_reset();
     if (story_level >= 0) cc_objects_init_silent(story_level);
     /* Text-window page effect (0x23); 0x10930 plays it after drawing a page. */
     cc_sound_play(35);
@@ -109,6 +145,7 @@ static void set_story_pages(const ShellPageDef *pages, int n,
     g_story_kind = story_kind;
     g_story_level = story_level;
     g_state = CC_SHELL_TEXT;
+    cursor_reset();
     if (story_level >= 0) cc_objects_init_silent(story_level);
     /* 0x10930: page/window effect. */
     cc_sound_play(35);
@@ -147,6 +184,12 @@ static void begin_ending_fanfare(void) {
 void cc_shell_init(void) {
     g_state = CC_SHELL_LOGO;
     g_timer = 0;
+    cursor_reset();
+    g_scroll_phase = 0;
+    g_scroll_frame = 0;
+    g_scroll_row = 0;
+    g_scroll_dir = 1;
+    g_scroll_ticks = 0;
     g_wait_sound = 0;
     g_pending_ending = 0;
     g_return_state = CC_SHELL_MENU;
@@ -176,6 +219,8 @@ void cc_shell_init(void) {
     cc_shell_set_key(1, g_keys[1]);
     cc_shell_set_key(2, g_keys[2]);
     cc_shell_set_key(3, g_keys[3]);
+    /* 0x1AAEB: the Apogee logo plays ID 32 before its 721-tick hold. */
+    cc_sound_play(32);
 }
 
 int cc_shell_state(void) { return g_state; }
@@ -276,6 +321,79 @@ void cc_shell_finale_done(void) {
     }
 }
 
+/* ---- title/credits attract loop ---------------------------------------- */
+
+static void scroll_reset(void) {
+    g_scroll_phase = 0;
+    g_scroll_frame = 0;
+    g_scroll_row = 0;
+    g_scroll_dir = 1;
+    g_scroll_ticks = 0;
+    g_state = CC_SHELL_CREDITS;
+}
+
+static void scroll_enter_next(void) {
+    if (g_scroll_phase == 0) {
+        g_scroll_phase = 1;      /* forward: title -> credits */
+        g_scroll_frame = 0;
+        g_scroll_row = 0;
+        g_scroll_dir = 1;
+        g_state = CC_SHELL_CREDITS;
+    } else {
+        g_scroll_phase = 3;      /* backward: credits -> title */
+        g_scroll_frame = 0;
+        g_scroll_row = SCROLL_ROWS;
+        g_scroll_dir = -1;
+        g_state = CC_SHELL_TITLE;
+    }
+}
+
+/* One traversed frame is one vertical retrace.  The original draws 201 rows
+ * per pass (0..200 forward, 200..0 backward) and then holds the endpoint. */
+#define SCROLL_FRAMES (SCROLL_ROWS + 1)
+
+static void scroll_advance(int ticks) {
+    g_scroll_ticks += ticks;
+    for (;;) {
+        if (g_scroll_phase == 0 || g_scroll_phase == 2) {
+            if (g_scroll_ticks < SCROLL_HOLD) break;
+            g_scroll_ticks -= SCROLL_HOLD;
+            scroll_enter_next();
+            continue;
+        } else {
+            int steps = g_scroll_ticks / SCROLL_TICKS;
+            int take = SCROLL_FRAMES - g_scroll_frame;
+            if (steps <= 0) break;
+            if (steps >= take) {
+                g_scroll_ticks -= take * SCROLL_TICKS;
+                g_scroll_frame = SCROLL_FRAMES;
+            } else {
+                g_scroll_ticks -= steps * SCROLL_TICKS;
+                g_scroll_frame += steps;
+            }
+            if (g_scroll_frame >= SCROLL_FRAMES) {
+                if (g_scroll_phase == 1) {
+                    g_scroll_row = SCROLL_ROWS;
+                    g_scroll_phase = 2;      /* hold credits */
+                    g_state = CC_SHELL_TITLE;
+                } else {
+                    g_scroll_row = 0;
+                    g_scroll_dir = 1;
+                    g_scroll_phase = 0;      /* hold title */
+                    g_state = CC_SHELL_CREDITS;
+                }
+                continue;
+            }
+            g_scroll_row = (g_scroll_phase == 1)
+                ? g_scroll_frame : (SCROLL_ROWS - g_scroll_frame);
+        }
+    }
+}
+
+int cc_shell_scroll_row(void) { return g_scroll_row; }
+int cc_shell_scroll_dir(void) { return g_scroll_dir; }
+int cc_shell_scroll_phase(void) { return g_scroll_phase; }
+
 void cc_shell_step(void) { cc_shell_step_ticks(1); }
 
 void cc_shell_step_ticks(int ticks) {
@@ -293,19 +411,18 @@ void cc_shell_step_ticks(int ticks) {
     g_timer += ticks;
     if (g_state == CC_SHELL_LOGO) {
         if (g_timer > CC_SHELL_APOGEE_TICKS) {
-            g_state = CC_SHELL_CREDITS;
+            scroll_reset();
             g_timer = 0;
         }
-    } else if (g_state == CC_SHELL_CREDITS) {
-        if (g_timer > CC_SHELL_CREDITS_TICKS) {
-            g_state = CC_SHELL_TITLE;
-            g_timer = 0;
-        }
-    } else if (g_state == CC_SHELL_TITLE) {
-        if (g_timer > CC_SHELL_TITLE_TICKS) {
-            g_state = CC_SHELL_MENU;
-            g_timer = 0;
-        }
+    } else if (g_state == CC_SHELL_CREDITS || g_state == CC_SHELL_TITLE) {
+        scroll_advance(ticks);
+    } else if (g_state == CC_SHELL_TEXT || g_state == CC_SHELL_MESSAGE ||
+               g_state == CC_SHELL_PAUSE || g_state == CC_SHELL_HELP ||
+               g_state == CC_SHELL_QUIT || g_state == CC_SHELL_SAVE ||
+               g_state == CC_SHELL_RESTORE || g_state == CC_SHELL_WARP ||
+               g_state == CC_SHELL_KEY_REDEFINE ||
+               g_state == CC_SHELL_KEY_CONFIRM) {
+        cursor_step(ticks);
     }
     if (g_finale_pending) {
         g_finale_pending = 0;
@@ -436,6 +553,7 @@ void cc_shell_set_config(int sound, int joystick, int video) {
 /* ---- rendering ---------------------------------------------------------- */
 
 static void draw_lines_centered(const char *const *lines, int count);
+static void draw_lines_centered_frame(const char *const *lines, int count, int frame);
 
 static void draw_hiscore_screen(void) {
     char lines[17][40];
@@ -466,7 +584,7 @@ static void draw_hiscore_screen(void) {
     scopy(lines[15], " ", sizeof(lines[15]));
     scopy(lines[16], "         Press Any Key ^", sizeof(lines[16]));
     for (int i = 0; i < 17; i++) ptrs[i] = lines[i];
-    draw_lines_centered(ptrs, 17);
+    draw_lines_centered_frame(ptrs, 17, g_cursor_frame);
 }
 
 static void draw_name_entry(void) {
@@ -482,45 +600,63 @@ static void draw_name_entry(void) {
     ptrs[1] = line;
     ptrs[2] = " ";
     ptrs[3] = "   ";
-    draw_lines_centered(ptrs, 4);
+    draw_lines_centered_frame(ptrs, 4, g_cursor_frame);
 }
 
 /* Shell windows are screen-space UI: the original wrappers are called with
  * the window/camera offsets clear.  Keep the player's camera/scroll globals
  * untouched for the next game frame. */
-static void draw_block_centered(int block, int start, int max) {
+static void draw_block_centered_frame(int block, int start, int max,
+                                      int frame) {
     int cx = cc_global_get(0x512e);
     int cy = cc_global_get(0x5130);
     int scroll = cc_global_get(0x2b5c);
     cc_global_set(0x512e, 0);
     cc_global_set(0x5130, 0);
     cc_global_set(0x2b5c, 0);
-    cc_text_draw_block(block, start, max);
+    if (frame > 0) cc_text_draw_block_cursor(block, start, max, frame);
+    else cc_text_draw_block(block, start, max);
+    cc_global_set(0x512e, cx);
+    cc_global_set(0x5130, cy);
+    cc_global_set(0x2b5c, scroll);
+}
+
+static void draw_block_centered(int block, int start, int max) {
+    draw_block_centered_frame(block, start, max, 0);
+}
+
+static void draw_lines_centered_frame(const char *const *lines, int count,
+                                      int frame) {
+    int cx = cc_global_get(0x512e);
+    int cy = cc_global_get(0x5130);
+    int scroll = cc_global_get(0x2b5c);
+    cc_global_set(0x512e, 0);
+    cc_global_set(0x5130, 0);
+    cc_global_set(0x2b5c, 0);
+    if (frame > 0) cc_text_draw_lines_cursor(lines, count, frame);
+    else cc_text_draw_lines(lines, count);
     cc_global_set(0x512e, cx);
     cc_global_set(0x5130, cy);
     cc_global_set(0x2b5c, scroll);
 }
 
 static void draw_lines_centered(const char *const *lines, int count) {
-    int cx = cc_global_get(0x512e);
-    int cy = cc_global_get(0x5130);
-    int scroll = cc_global_get(0x2b5c);
-    cc_global_set(0x512e, 0);
-    cc_global_set(0x5130, 0);
-    cc_global_set(0x2b5c, 0);
-    cc_text_draw_lines(lines, count);
-    cc_global_set(0x512e, cx);
-    cc_global_set(0x5130, cy);
-    cc_global_set(0x2b5c, scroll);
+    draw_lines_centered_frame(lines, count, 0);
+}
+
+/* Plain pixel-positioned prompt; the trailing '^' marks the cursor cell. */
+static void draw_prompt_text(int x, int y, const char *s) {
+    cc_text_draw_string(x, y, s);
+    if (g_cursor_frame > 0) {
+        int col = slen(s) - 1;
+        cc_text_cursor_draw(x / 8 + col, y / 8, g_cursor_frame);
+    }
 }
 
 void cc_shell_render(void) {
     switch (g_state) {
         case CC_SHELL_LOGO:
             cc_draw_screen(0);
-            break;
-        case CC_SHELL_TITLE:
-            cc_draw_screen(1);
             break;
         case CC_SHELL_MENU:
             cc_draw_screen(1);
@@ -533,18 +669,21 @@ void cc_shell_render(void) {
                 cc_view_clear(0);
             if (g_story_pages) {
                 if (g_page_index < g_story_page_count)
-                    draw_lines_centered(g_story_pages[g_page_index].lines,
-                                        g_story_pages[g_page_index].count);
+                    draw_lines_centered_frame(
+                        g_story_pages[g_page_index].lines,
+                        g_story_pages[g_page_index].count, g_cursor_frame);
             } else if (g_page_index < g_page_count) {
-                draw_block_centered(g_pages[g_page_index].block,
-                                   g_pages[g_page_index].start, PAGE_LINES);
+                draw_block_centered_frame(g_pages[g_page_index].block,
+                                          g_pages[g_page_index].start,
+                                          PAGE_LINES, g_cursor_frame);
             }
             break;
         case CC_SHELL_ENDING:
             cc_draw_screen(3);
             break;
         case CC_SHELL_CREDITS:
-            cc_draw_screen(2);
+        case CC_SHELL_TITLE:
+            cc_draw_screen_rows(1, 2, g_scroll_row);
             break;
         case CC_SHELL_KEY_REDEFINE: {
             static const char *const prompt[4] = {
@@ -561,7 +700,7 @@ void cc_shell_render(void) {
             lines[3] = "Press ESC to cancel.";
             lines[4] = " ";
             cc_view_clear(0);
-            draw_lines_centered(lines, 5);
+            draw_lines_centered_frame(lines, 5, g_cursor_frame);
             break;
         }
         case CC_SHELL_KEY_CONFIRM: {
@@ -587,7 +726,7 @@ void cc_shell_render(void) {
             lines[4] = fire;
             lines[5] = "Are these selections ok (Y-N): ^";
             cc_view_clear(0);
-            draw_lines_centered(lines, 6);
+            draw_lines_centered_frame(lines, 6, g_cursor_frame);
             break;
         }
         case CC_SHELL_HISCORE:
@@ -597,29 +736,34 @@ void cc_shell_render(void) {
             draw_name_entry();
             break;
         case CC_SHELL_PAUSE:
-            draw_block_centered(SHELL_TEXT_MESSAGE_PAUSE, 0, PAGE_LINES);
+            draw_block_centered_frame(SHELL_TEXT_MESSAGE_PAUSE, 0,
+                                      PAGE_LINES, g_cursor_frame);
             break;
         case CC_SHELL_HELP:
-            draw_block_centered(SHELL_TEXT_MENU_HELP, 0, PAGE_LINES);
+            draw_block_centered_frame(SHELL_TEXT_MENU_HELP, 0,
+                                      PAGE_LINES, g_cursor_frame);
             break;
         case CC_SHELL_QUIT:
-            draw_block_centered(SHELL_TEXT_MENU_QUIT, 0, PAGE_LINES);
+            draw_block_centered_frame(SHELL_TEXT_MENU_QUIT, 0,
+                                      PAGE_LINES, g_cursor_frame);
             break;
         case CC_SHELL_SAVE:
             cc_view_fill_rect(40, 80, 240, 40, 1);
-            cc_text_draw_string(56, 92, "SAVE GAME (0 - 9) ^");
+            draw_prompt_text(56, 92, "SAVE GAME (0 - 9) ^");
             break;
         case CC_SHELL_RESTORE:
             cc_view_fill_rect(40, 80, 240, 40, 1);
-            cc_text_draw_string(56, 92, "RESTORE GAME (0 - 9) ^");
+            draw_prompt_text(56, 92, "RESTORE GAME (0 - 9) ^");
             break;
         case CC_SHELL_WARP:
-            draw_block_centered(SHELL_TEXT_MENU_WARP, 0, PAGE_LINES);
+            draw_block_centered_frame(SHELL_TEXT_MENU_WARP, 0,
+                                      PAGE_LINES, g_cursor_frame);
             break;
         case CC_SHELL_MESSAGE:
             if (g_page_index < g_page_count)
-                draw_block_centered(g_pages[g_page_index].block,
-                                   g_pages[g_page_index].start, PAGE_LINES);
+                draw_block_centered_frame(g_pages[g_page_index].block,
+                                          g_pages[g_page_index].start,
+                                          PAGE_LINES, g_cursor_frame);
             break;
         case CC_SHELL_GAME:
         default:
@@ -776,11 +920,9 @@ int cc_shell_key(int key) {
     g_timer = 0;
     switch (g_state) {
         case CC_SHELL_LOGO:
-            g_state = CC_SHELL_CREDITS;
+            scroll_reset();
             return 1;
         case CC_SHELL_CREDITS:
-            g_state = CC_SHELL_TITLE;
-            return 1;
         case CC_SHELL_TITLE:
             g_state = CC_SHELL_MENU;
             return 1;
@@ -814,7 +956,7 @@ int cc_shell_key(int key) {
             } else if (k == 'a') {
                 show_block(SHELL_TEXT_ABOUT, CC_SHELL_MENU);
             } else if (k == 'q' || key == CC_KEY_ESC) {
-                g_state = CC_SHELL_TITLE;
+                scroll_reset();
             }
             return 1;
         }
@@ -832,7 +974,7 @@ int cc_shell_key(int key) {
             }
             return 1;
         case CC_SHELL_HISCORE:
-            g_state = CC_SHELL_TITLE;
+            scroll_reset();
             return 1;
         case CC_SHELL_NAME_ENTRY:
             if (key == CC_KEY_BACKSPACE) {
@@ -902,7 +1044,7 @@ int cc_shell_key(int key) {
             int k = lower(key);
             if (k == 'd' || k == 't') {
                 cc_sound_stop();
-                g_state = CC_SHELL_TITLE;
+                scroll_reset();
             } else if (k == 'm') {
                 cc_load_arg(0);
                 g_state = CC_SHELL_GAME;
@@ -958,7 +1100,7 @@ int cc_shell_key(int key) {
             return 1;
         }
         default:
-            g_state = CC_SHELL_TITLE;
+            scroll_reset();
             return 1;
     }
 }

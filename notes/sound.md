@@ -156,10 +156,23 @@ original `play_sound` early return.
 | 35 | 3 | 11 | 7 | 23 | 0.164 |
 | 36 | 3 | 12 | 30 | 76 | 0.543 |
 
-Gameplay currently triggers 29 IDs.  IDs 2 and 7 have no C trigger yet; the
-static site at `0xF74C/0xF757` suggests ID 7 is tied to a player/object draw
-animation.  This is the remaining trigger-coverage audit item; it is not a
-missing bank or unknown-id error.
+Trigger coverage (all 36 IDs classified):
+
+- 34 IDs are emitted by the C gameplay/shell code and covered by the combat,
+  handler, cell, cave and shell fixtures.
+- **ID 7** is a player sprite-draw effect at `0x0F74C/0x0F757` (the second
+  player-draw path taken when the animation counter `[0x45E0]` is non-zero;
+  `[0x2C0]` is the player index, `[0xA0EA]` the invulnerability timer).  The
+  original plays it while drawing the animated sprite, not from the update
+  routine, so the committed step fixtures (which exclude the draw) do not
+  contain it.  The host renderer calls `cc_player_draw_sound()` once per game
+  step; `wasm/test_sound_shell.js` covers the hook.
+- **ID 2** has no far call site, no near call site (`push cs; call 0x021F`
+  in segment `0x1F9A`) and no data-table reference in the load module.  It is
+  an unused bank entry; `wasm/test_sound_shell.js` asserts no tested path emits it.
+- The title/credits attract loop (`0x0FC5:0x8265`) is silent; the Apogee logo
+  plays **ID 32** at `0x1AAEB` before its 721-tick hold, and menu accept plays
+  **ID 33** at `0x17773`.  `notes/sound_shell_fixtures.json` records both.
 
 ## Browser integration
 

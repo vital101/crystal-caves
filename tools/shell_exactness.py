@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """Capture the shell's observable exactness data from the original binary.
 
-This is a deliberately small P5.R6-style harness: it runs the individual
-shell routines that matter for P5.R5 (high-score defaults/display, story page
-wrappers, key-name lookup and default key codes) with a minimal DOS file shim
-and scripted keyboard input.  It does not try to run the complete menu flow.
+This is the P5.R6/R1 harness: it runs the individual shell routines that
+matter (high-score defaults/display, story page wrappers, key-name lookup,
+default key codes) with a minimal DOS file shim and scripted keyboard input.
+`--flow` runs the real title loop (0x0FC5:0x8265) with the image/CRTC helpers
+stubbed, injects the 140.06 Hz counter into the hold spins and records the
+hold length, row order, direction flips, key-to-menu paths and sound log.
 
 Outputs:
   notes/shell_exactness_fixtures.json
   notes/hiscore_fixtures.json
   notes/keymap_fixtures.json
+  notes/shell_flow_fixtures.json   (--flow)
 """
 import hashlib
 import json
@@ -29,7 +32,7 @@ from unicorn import (  # noqa: E402
 )
 from unicorn.x86_const import (  # noqa: E402
     UC_X86_REG_AX, UC_X86_REG_BX, UC_X86_REG_CX, UC_X86_REG_DX,
-    UC_X86_REG_DS, UC_X86_REG_IP, UC_X86_REG_FLAGS,
+    UC_X86_REG_DS, UC_X86_REG_IP, UC_X86_REG_FLAGS, UC_X86_REG_BP,
     UC_X86_REG_SP, UC_X86_REG_CS, UC_X86_REG_SS,
     UC_X86_INS_IN,
 )
@@ -306,6 +309,198 @@ def story_pages(entry):
     return pages
 
 
+# ---- R1: title/credits scroll flow ----------------------------------------
+#
+# The title routine (0x0FC5:0x8265, linear 0x17EB5) loads cc1.cdt into rows
+# 0..199 of the 320x400 VRAM buffer, copies it to rows 200..399, then loads
+# cc1.ttl over rows 0..199 and bounces the CRTC start row 0..200..0.  The
+# image loads and the CRTC/EGA helpers are stubbed here (their behaviour is
+# covered by export_shell_assets.py and render.c); what this harness verifies
+# is the real control flow: hold lengths, row order, direction flips and the
+# key path into the menu.
+
+TITLE_ENTRY = 0x8265        # 0x0FC5:0x8265, linear 0x17EB5
+TITLE_HOLD = 0x17F74        # initial hold spin
+TITLE_DRAW = 0x18024        # direction test + 0x28B5:0x11F call
+TITLE_FLIP_HOLD = 0x18074   # hold spin after a direction flip
+TITLE_MENU = 0x17564        # main menu entry (near call at 0x17F8A)
+HOLD_LIMIT = 0x1B0          # 432; loop exits when [0x2B60] > 432
+SCROLL_ROWS = 0xC8          # 200
+TITLE_KEY = 0x1C            # Enter (a make code in the {1..128} set)
+
+
+def _skip_far(uc, addr, seg, off):
+    n = E.retf_argbytes(MODULE, seg, off)
+    sp = uc.reg_read(UC_X86_REG_SP)
+    uc.reg_write(UC_X86_REG_SP, (sp + n) & 0xFFFF)
+    cs = uc.reg_read(UC_X86_REG_CS)
+    uc.reg_write(UC_X86_REG_IP, ((addr + 5) - (cs << 4)) & 0xFFFF)
+
+
+def _flow_machine():
+    ds0, _ = S.run_startup()
+    mu = make_machine(ds0)
+    mu.hook_add(UC_HOOK_INTR, _intr)
+    mu.hook_add(UC_HOOK_INSN, _in_hook, None, 1, 0, UC_X86_INS_IN)
+    state = {
+        "draws": [], "sound": [], "display": [], "menu": False,
+        "returned": False, "hold_exits": [], "key": None, "hold_iters": 0,
+    }
+
+    def code(uc, addr, size, user):
+        if addr == RET:
+            state["returned"] = True
+            uc.emu_stop()
+            return
+        if addr == TITLE_MENU:
+            state["menu"] = True
+            uc.emu_stop()
+            return
+        raw = uc.mem_read(addr, 1)[0]
+        if raw == 0x9A:
+            b = uc.mem_read(addr, 5)
+            off = int.from_bytes(b[1:3], "little")
+            seg = int.from_bytes(b[3:5], "little")
+            if seg == 0x1F9A and off == 0x21F:
+                sp = uc.reg_read(UC_X86_REG_SP)
+                state["sound"].append(E.u16(mu, E.STACK_SEG, sp))
+                _skip_far(uc, addr, seg, off)
+                return
+            if seg in (0x28B5, 0x26C5, 0x1D6E):
+                sp = uc.reg_read(UC_X86_REG_SP)
+                args = [E.u16(mu, E.STACK_SEG, (sp + 2 * i) & 0xFFFF)
+                        for i in range(4)]
+                if seg == 0x28B5:
+                    state["display"].append({"off": off, "args": args[:2]})
+                _skip_far(uc, addr, seg, off)
+                return
+        if addr in (TITLE_HOLD, TITLE_FLIP_HOLD):
+            tick = E.u16(mu, E.DATA_SEG, 0x2B60)
+            state["hold_iters"] += 1
+            if state["key"] == ["hold", state["hold_iters"]]:
+                E.w16(mu, E.DATA_SEG, 0x2B5E, TITLE_KEY)
+            E.w16(mu, E.DATA_SEG, 0x2B60, (tick + 1) & 0xFFFF)
+            return
+        if addr == TITLE_DRAW:
+            bp = uc.reg_read(UC_X86_REG_BP)
+            direction = E.u16(mu, E.STACK_SEG, (bp - 2) & 0xFFFF)
+            offset = E.u16(mu, E.STACK_SEG, (bp - 4) & 0xFFFF)
+            tick = E.u16(mu, E.DATA_SEG, 0x2B60)
+            if direction >= 0x8000:
+                direction -= 0x10000
+            row = offset if direction == 1 else (SCROLL_ROWS - offset)
+            if not state["draws"] or state["draws"][-1]["dir"] != direction:
+                state["hold_exits"].append(tick)
+            state["draws"].append({"dir": direction, "offset": offset,
+                                   "row": row, "counter": tick})
+            if state["key"] == ["draw", len(state["draws"]) - 1]:
+                E.w16(mu, E.DATA_SEG, 0x2B5E, TITLE_KEY)
+            # One row per vertical retrace: ~2 PIT ticks at 140.06 Hz.
+            E.w16(mu, E.DATA_SEG, 0x2B60, (tick + 2) & 0xFFFF)
+            if len(state["draws"]) >= state.get("max_draws", 460):
+                uc.emu_stop()
+            return
+
+    mu.hook_add(UC_HOOK_CODE, code)
+    return mu, state
+
+
+def title_flow(key=None, max_draws=460):
+    """Run the real title loop; `key` is ("hold", n) or ("draw", n)."""
+    mu, state = _flow_machine()
+    state["key"] = list(key) if key else None
+    state["max_draws"] = max_draws
+    sp = E.STACK_PTR
+    sp -= 2
+    E.w16(mu, E.STACK_SEG, sp, 0)
+    sp -= 2
+    E.w16(mu, E.STACK_SEG, sp, RET)
+    mu.reg_write(UC_X86_REG_SP, sp)
+    mu.reg_write(UC_X86_REG_CS, CS)
+    mu.reg_write(UC_X86_REG_IP, TITLE_ENTRY)
+    try:
+        mu.emu_start(BASE + TITLE_ENTRY, BASE + TITLE_ENTRY + 0x10000,
+                     count=6_000_000)
+    except Exception as exc:  # pragma: no cover - diagnostics
+        print("  title emulation stopped: %s" % exc)
+    state["draws"] = state["draws"][:max_draws]
+    return state
+
+
+def _screen_rows():
+    """Decode rows of the exported screens.bin for the composite fixture."""
+    import struct
+    src = os.path.join(ROOT, "out", "portable", "screens.bin")
+    data = open(src, "rb").read()
+    size = 320 * 200
+    title = data[1 * size:2 * size]
+    credits = data[2 * size:3 * size]
+    stack = title + credits
+
+    def row_sha(row):
+        return hashlib.sha256(stack[row * 320:(row + 1) * 320]).hexdigest()
+
+    return {
+        "source": "out/portable/screens.bin (CC1.TTL rows 0..199, "
+                  "CC1.CDT rows 200..399)",
+        "title_sha256": hashlib.sha256(title).hexdigest(),
+        "credits_sha256": hashlib.sha256(credits).hexdigest(),
+        "row_sha256": [row_sha(r) for r in range(SCROLL_ROWS + 1)],
+    }
+
+
+def title_flow_fixture():
+    state = title_flow()
+    draws = state["draws"]
+    if not draws:
+        raise RuntimeError("title flow produced no draws")
+    forward = [d for d in draws if d["dir"] == 1]
+    backward = [d for d in draws if d["dir"] == -1]
+    hold = draws[0]["counter"]
+    # Fold the observed draws into one clean cycle: forward 0..200 then
+    # backward 199..0 (the first forward squeeze repeats row 0).
+    fwd_rows = [d["row"] for d in forward[:SCROLL_ROWS + 1]]
+    bwd_rows = [d["row"] for d in backward[:SCROLL_ROWS + 1]]
+
+    def key_case(key):
+        st = title_flow(key=key)
+        return {
+            "key": key,
+            "menu": bool(st["menu"]),
+            "draws": len(st["draws"]),
+            "last_row": st["draws"][-1]["row"] if st["draws"] else None,
+        }
+
+    return {
+        "source": "original title routine 0x0FC5:0x8265 "
+                  "(linear 0x17EB5) with IMG/CRTC helpers stubbed",
+        "timing": {
+            "logo_hold": 0x2D0,
+            "hold_ticks": hold,
+            "hold_limit": HOLD_LIMIT,
+            "scroll_rows": SCROLL_ROWS,
+            "ticks_per_row": 2,
+            "pit_hz": 140.061,
+            "vblank_hz": 70.086,
+            "stride": 0x28,
+        },
+        "forward_rows": fwd_rows,
+        "backward_rows": bwd_rows,
+        "hold_exits": state["hold_exits"][:2],
+        "sound_events": state["sound"],
+        "display_calls": len(state["display"]),
+        "composite": _screen_rows(),
+        "key_cases": [key_case(("hold", 50)), key_case(("draw", 40)),
+                      key_case(("draw", 250))],
+        "notes": [
+            "forward rows repeat row 0 because the loop draws at off=0 "
+            "before incrementing; the original holds the same frame first.",
+            "one scroll row per vertical retrace; ~2 PIT ticks at 140.06 Hz.",
+            "the title routine issues no play_sound calls.",
+        ],
+    }
+
+
 def key_names():
     """Parse the original packed scan-code -> label table at CS:0x3E."""
     table = bytearray(open(
@@ -324,6 +519,21 @@ def key_names():
     return {str(k): names.get(k, "NULL") for k in range(0x80)}
 
 def main():
+    if "--flow" in sys.argv:
+        print("title/credits flow")
+        flow = title_flow_fixture()
+        out = os.path.join(ROOT, "notes", "shell_flow_fixtures.json")
+        with open(out, "w") as f:
+            json.dump(flow, f, indent=1)
+        print("  hold", flow["timing"]["hold_ticks"],
+              "forward", len(flow["forward_rows"]),
+              "backward", len(flow["backward_rows"]),
+              "sound", flow["sound_events"])
+        print("  key cases", flow["key_cases"])
+        print("wrote", out)
+        print("flow digest", hashlib.sha256(
+            json.dumps(flow, sort_keys=True).encode()).hexdigest())
+        return
     print("default high scores")
     defaults = highscore_defaults()
     print("  ", defaults)
@@ -353,8 +563,9 @@ def main():
         "source": "original shell routines (tools/shell_exactness.py)",
         "timing_ticks": {
             "apogee": 720,
-            "credits": 216,
-            "title": 216,
+            "attract_hold": 433,
+            "scroll_rows": 200,
+            "ticks_per_row": 2,
             "tick_hz": 140.06,
         },
         "screens": ["apogee", "credits", "title", "menu"],

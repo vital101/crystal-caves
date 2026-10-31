@@ -15,12 +15,12 @@ OUT    ?= render.wasm
 EXPORTS = cc_alloc cc_set_assets cc_set_palette cc_render_level cc_render_view cc_render_cells cc_render_view_cells cc_set_cells cc_set_level_overlay cc_cell_byte cc_cell_set cc_framebuffer cc_view_framebuffer cc_view_width cc_view_height cc_tex_width cc_tex_height \
 	  cc_set_screens cc_draw_screen cc_view_clear cc_view_fill_rect cc_view_set_pixel cc_view_draw_glyph \
 	  cc_text_set_fonts cc_text_draw_string cc_text_draw_block cc_text_draw_lines cc_text_draw_frame cc_text_block_lines cc_hud_tick cc_hud_render \
-	  cc_shell_init cc_shell_step cc_shell_step_ticks cc_shell_key cc_shell_key_scan cc_shell_render cc_shell_state cc_shell_message_block cc_shell_page_count cc_shell_page_index cc_shell_page_line_count cc_shell_page_line cc_shell_overlay cc_shell_hud_active cc_shell_key_for_action cc_shell_action_for_scan cc_shell_key_name cc_shell_set_key cc_input_scan cc_shell_key_redefine_active cc_shell_key_redefine_step \
+	  cc_shell_init cc_shell_step cc_shell_step_ticks cc_shell_key cc_shell_key_scan cc_shell_scroll_row cc_shell_scroll_dir cc_shell_scroll_phase cc_shell_render cc_shell_state cc_shell_message_block cc_shell_page_count cc_shell_page_index cc_shell_page_line_count cc_shell_page_line cc_shell_overlay cc_shell_hud_active cc_shell_key_for_action cc_shell_action_for_scan cc_shell_key_name cc_shell_set_key cc_input_scan cc_shell_key_redefine_active cc_shell_key_redefine_step \
 	  cc_shell_request_pending cc_shell_request_kind cc_shell_request_slot cc_shell_request_done \
 	  cc_shell_sound_on cc_shell_joystick_on cc_shell_video_alt cc_shell_set_config \
 	  cc_shell_hiscore_count cc_shell_hiscore_name cc_shell_hiscore_score cc_shell_hiscore_set cc_shell_hiscore_add cc_shell_hiscore_qualifies cc_shell_finale_done cc_shell_message cc_shell_warp \
 	  cc_state_size cc_state_save cc_state_load cc_state_load_ex cc_state_last_error \
-	  cc_objects_init cc_level_exit cc_load_arg cc_objects_step cc_objects_step_full cc_objects_step_physics cc_objects_step_objects cc_test_cell_event cc_test_contact cc_test_call_handler cc_test_fill_source cc_unknown_handler_hits cc_test_spawn_2002d cc_test_spawn_47d cc_obj_count cc_obj_get cc_obj_set cc_obj_state cc_obj_x cc_obj_y \
+	  cc_objects_init cc_level_exit cc_load_arg cc_objects_step cc_objects_step_full cc_player_draw_sound cc_objects_step_physics cc_objects_step_objects cc_test_cell_event cc_test_contact cc_test_call_handler cc_test_fill_source cc_unknown_handler_hits cc_test_spawn_2002d cc_test_spawn_47d cc_obj_count cc_obj_get cc_obj_set cc_obj_state cc_obj_x cc_obj_y \
 	  cc_obj_kind cc_obj_shape cc_obj_tile cc_obj_p10 cc_obj_draw_shape cc_obj_p12 cc_obj_p14 cc_obj_p16 cc_obj_p18 cc_obj_p1a cc_obj_ready cc_obj_vx cc_obj_vy cc_obj_speed cc_obj_p24 cc_obj_cursor cc_obj_set_cursor cc_obj_handler cc_cur_level \
 	  cc_input_set cc_set_player cc_player_x cc_player_y cc_cam_x cc_cam_y cc_move_dir cc_collide_player \
 	  cc_draw_object cc_draw_object_view cc_sound_set_callback cc_sound_log_clear cc_sound_log_count cc_sound_log_total cc_sound_log_at \
@@ -133,6 +133,14 @@ test-text: clang
 test-shell: clang
 	node test_shell.js
 
+# R2: exact title/credits scroll (committed oracle flow fixture).
+test-shell-flow: clang
+	node test_shell_flow.js
+
+# R3: animated '^' input cursor (F2 glyphs 45..49, 21-tick cadence).
+test-cursor: clang
+	node test_cursor.js
+
 # Phase 7 persistence: save format/round-trips, high scores, config.
 test-persist: clang
 	node test_persist.js
@@ -167,6 +175,11 @@ test-oracle-shell: clang
 	$(PYTHON) ../tools/oracle_shell.py
 	node test_hud.js
 	node test_text.js
+
+# R1: regenerate the real title-loop flow fixture, then the fast test.
+test-oracle-shell-flow: clang
+	$(PYTHON) ../tools/shell_exactness.py --flow
+	node test_shell_flow.js
 
 # Frame-budget / wasm-size measurement (same work as game.html per frame).
 perf: clang
@@ -243,10 +256,10 @@ test-oracle-objects: clang
 	$(PYTHON) ../tools/emulate_game.py 3 120 --json > oracle_level3.json
 	node test_oracle_objects.js oracle_level3.json
 
-test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-persist test-exactness test-sound
+test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-shell-flow test-cursor test-persist test-exactness test-sound
 # NOTE: test-keymap is already run by test-exactness; keep it as its own target.
 
 clean:
 	rm -f $(OUT) app.js app.wasm out_wasm_level*.png oracle_level*.json
 
-.PHONY: clang emcc assets data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-persist test-exactness test-keymap test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update perf test-all clean
+.PHONY: clang emcc assets data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update perf test-all clean

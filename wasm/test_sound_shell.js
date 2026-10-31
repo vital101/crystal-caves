@@ -31,12 +31,18 @@ async function main() {
   };
   const includes = (arr, v) => arr.indexOf(v) >= 0;
 
-  // ---- main menu -> intro: ID 33 (menu accept), 35 (page render) ------
+  // ---- boot: logo ID 32, silent attract, ID 33 on menu accept ---------
   e.cc_sound_init();
   e.cc_shell_set_config(1, 0, 0);
+  e.cc_sound_log_clear();
   e.cc_shell_init();
-  for (let i = 0; i < 3; i++) e.cc_shell_key(ENTER);
-  eq("menu.state", e.cc_shell_state(), 2);
+  eq("logo.state", e.cc_shell_state(), 0);
+  if (!includes(log(), 32)) fail("logo.sound32", "missing " + log());
+  e.cc_sound_log_clear();
+  for (let i = 0; i < 2000; i++) e.cc_shell_step_ticks(1);
+  eq("attract.silent", e.cc_sound_log_count(), 0);
+  e.cc_shell_key(ENTER);
+  eq("attract.to_menu", e.cc_shell_state(), 2);
   e.cc_sound_log_clear();
   e.cc_shell_key(N);
   const introLog = log();
@@ -54,6 +60,18 @@ async function main() {
   if (!includes(introEndLog, 35)) fail("intro.sound35", "missing " + introEndLog);
   if (!includes(introEndLog, 36)) fail("intro.sound36", "missing " + introEndLog);
   eq("level_start.current", e.cc_sound_current_id(), 36);
+
+  // ---- ID 7: player sprite-draw walk sound ----------------------------
+  e.cc_sound_log_clear();
+  e.cc_input_set(0x338F, 1);          /* right */
+  let walked = 0;
+  for (let i = 0; i < 8 && !walked; i++) {
+    e.cc_objects_step_full();
+    e.cc_player_draw_sound();
+    walked = includes(log(), 7);
+  }
+  e.cc_input_set(0x338F, 0);
+  if (!walked) fail("walk.sound7", "missing " + log());
 
   // ---- all caves -> ID 26 fanfare + wait ------------------------------
   e.cc_global_set(0xA0FB, 1);
@@ -87,7 +105,8 @@ async function main() {
   e.cc_sound_init();
   e.cc_shell_set_config(1, 0, 0);
   e.cc_shell_init();
-  for (let i = 0; i < 3; i++) e.cc_shell_key(ENTER);
+  e.cc_shell_key(ENTER);   /* logo -> attract */
+  e.cc_shell_key(ENTER);   /* attract -> menu */
   e.cc_sound_log_clear();
   e.cc_shell_key(H);
   eq("hiscore.state", e.cc_shell_state(), 11);
@@ -108,6 +127,17 @@ async function main() {
   e.cc_shell_key(ENTER);
   if (e.cc_shell_page_index() === disabledPage)
     fail("disabled.key", "page did not advance with sound off");
+
+  // ---- ID 2 is an unused bank entry ----------------------------------
+  e.cc_sound_init();
+  e.cc_sound_log_clear();
+  e.cc_shell_init();
+  e.cc_shell_key(ENTER);
+  e.cc_shell_key(ENTER);
+  e.cc_shell_key(N);
+  let guard3 = 0;
+  while (e.cc_shell_state() === 3 && guard3++ < 32) e.cc_shell_key(ENTER);
+  if (includes(log(), 2)) fail("id2.unused", "ID 2 was emitted");
 
   if (failures) {
     console.error(`FAIL: ${failures} shell sound checks`);

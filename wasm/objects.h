@@ -54,6 +54,7 @@ void cc_objects_step_physics(void);
 /* Full normal frame (physics, fire/timers, object loop).  Phase 2.2 fills in
  * 0xEBF2/0xEAEA; used by the game shell and combat fixtures. */
 void cc_objects_step_full(void);
+void cc_player_draw_sound(void);
 
 /* Exact physics-state debug/test access (field order mirrors
  * tools/oracle_physics.FIELDS). */

@@ -152,6 +152,7 @@
   });
   document.getElementById('step').addEventListener('click', () => {
     e.cc_objects_step_full();
+    e.cc_player_draw_sound();
     e.cc_hud_tick();
     renderFrame();
   });
@@ -169,6 +170,7 @@
       let steps = 0;
       while (accum >= STEP_MS && steps < 4) {
         e.cc_objects_step_full();
+        e.cc_player_draw_sound();
         e.cc_hud_tick();
         accum -= STEP_MS;
         steps++;

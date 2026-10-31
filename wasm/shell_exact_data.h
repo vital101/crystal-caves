@@ -5,8 +5,9 @@
 typedef struct { const char *const *lines; int count; } ShellPageDef;
 
 #define CC_SHELL_APOGEE_TICKS 720
-#define CC_SHELL_CREDITS_TICKS 216
-#define CC_SHELL_TITLE_TICKS 216
+#define CC_SHELL_ATTRACT_HOLD_TICKS 433
+#define CC_SHELL_SCROLL_ROWS 200
+#define CC_SHELL_SCROLL_TICKS_PER_ROW 2
 #define CC_SHELL_TICK_HZ 140.06
 
 static const char *const g_intro_0[] = {

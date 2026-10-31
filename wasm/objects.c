@@ -472,6 +472,12 @@ static int cell_special_px(int16_t x, int16_t y) {
     return 0;
 }
 
+/* Draw-time walk sound flag.  0x0F74C plays ID 7 from the player sprite
+ * draw when its animation counter is non-zero; the host renderer calls
+ * cc_player_draw_sound() once per game frame so the oracle step fixtures
+ * (which exclude the draw routine) stay exact. */
+static int g_player_moved;
+
 /* 0x1F9A:0x310 anim_next(1): advance the player object animation frame. */
 static void player_anim_next(void) {
     S->anim_timer = (uint16_t)(S->anim_timer + 1u);
@@ -738,6 +744,7 @@ static void cc_horizontal(void) {
                 }
                 S->player_x = wadd(S->player_x, S->walk_speed);
                 player_anim_next();
+                g_player_moved = 1;
             }
         }
     }
@@ -756,6 +763,7 @@ static void cc_horizontal(void) {
                 }
                 S->player_x = wsub(S->player_x, S->walk_speed);
                 player_anim_next();
+                g_player_moved = 1;
             }
         }
     }
@@ -4003,6 +4011,7 @@ static void death_state3(void) {
 
 /* Exact 0xF4E6 frame dispatch. */
 void cc_objects_step_full(void) {
+    g_player_moved = 0;
     if (S->g_a0f6) {
         exit_to_hub_frame();
     } else if (S->g_a0f7) {
@@ -4027,6 +4036,13 @@ void cc_objects_step_full(void) {
     sync_player_object();
     step_objects();
     sync_player_object();
+}
+
+/* 0x0F74C player sprite-draw sound.  In one-player mode [0x2C0] is 0, so
+ * the original plays ID 7 whenever the animated (counter != 0) sprite is
+ * drawn; the C draw is host-side, so the page calls this after each step. */
+void cc_player_draw_sound(void) {
+    if (g_player_moved) play_sound(7);
 }
 
 /* ---------------------------------------------------------------- collision

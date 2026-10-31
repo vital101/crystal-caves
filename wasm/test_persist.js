@@ -643,9 +643,9 @@ function applyConfig(e, cfg) {
     inst.e.cc_shell_key(27);       // help
     inst.e.cc_shell_key(key('q')); // quit
     inst.e.cc_shell_key(key('t')); // title
-    assert(inst.e.cc_shell_state() === 1, 'quit to title');
-    inst.e.cc_shell_key(13);       // title -> menu
-    assert(inst.e.cc_shell_state() === 2, 'title to menu');
+    assert(inst.e.cc_shell_state() === 15, 'quit restarts the title attract');
+    inst.e.cc_shell_key(13);       // attract -> menu
+    assert(inst.e.cc_shell_state() === 2, 'attract to menu');
     inst.e.cc_shell_key(key('r'));
     assert(inst.e.cc_shell_state() === 9, 'main-menu restore prompt');
     inst.e.cc_shell_key(key('5'));

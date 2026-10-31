@@ -27,6 +27,8 @@ are separate and need `tools/requirements.txt`.
 | In-game messages | `test-messages` | `notes/text_fixtures.json` + triggers | `test_messages.js` | yes |
 | Text windows | `test-text` | `notes/text_fixtures.json` | `test_text.js` | yes |
 | Shell flow / save / finale | `test-shell` | `notes/shell_exactness_fixtures.json` | `test_shell.js` | yes |
+| Title/credits scroll | `test-shell-flow` | `notes/shell_flow_fixtures.json` | `test_shell_flow.js` | yes |
+| Input cursor animation | `test-cursor` | F2 glyph bank + `notes/shell_flow_fixtures.json` | `test_cursor.js` | yes |
 | Save format / high scores / config | `test-persist` | `notes/persist_v1_fixture.json`, `notes/hiscore_fixtures.json` | `test_persist.js` | yes |
 | Shell timing / story / high scores | `test-exactness` | `notes/shell_exactness_fixtures.json`, `notes/hiscore_fixtures.json` | `test_exactness.js` | yes |
 | DOS scan-code key map | `test-exactness` → `test-keymap` | `notes/keymap_fixtures.json` | `test_keymap.js` | yes (via exactness) |
@@ -38,7 +40,7 @@ Oracle regeneration (not part of `test-all`; requires `tools/requirements.txt`):
 `test-oracle-objects`, `test-oracle-physics`, `test-oracle-combat`,
 `test-oracle-handlers`, `test-oracle-loader`, `test-oracle-caves`,
 `test-oracle-cells`, `test-oracle-shell`, `test-oracle-exactness`,
-`test-oracle-sound`, plus `startup` and `data`.
+`test-oracle-sound`, `test-oracle-shell-flow`, plus `startup` and `data`.
 
 ## Unknown-handler guard
 

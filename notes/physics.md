@@ -160,8 +160,11 @@ preserved.
 - `make startup` — regenerate `notes/startup.json` + `wasm/startup_data.h`.
 - `make test-all` includes `test-physics`.
 
-## Out of scope (left for later phases)
+## Related coverage
 
-`0xE5D3` hazard/contact, `0xEBF2` items/fire/exit, `0xEAEA` timers, cell
-collection, exits and hub door transitions.  Fixtures deliberately avoid
-those interactions; level completion remains unimplemented.
+The old "out of scope" list is implemented and covered elsewhere:
+`0xE5D3` hazard/contact and cell events (`notes/cell_fixtures.json`,
+`make test-cells`), `0xEBF2` items/fire/exit and `0xEAEA` timers
+(`notes/combat_fixtures.json`, `make test-combat`), exits and hub door
+transitions (`notes/loader_fixtures.json`, `make test-loader`).  Physics
+fixtures intentionally isolate movement from those interactions.

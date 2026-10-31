@@ -264,6 +264,7 @@
         let steps = 0;
         while (accum >= STEP_MS && steps < 4) {
           e.cc_objects_step_full();
+          e.cc_player_draw_sound();
           e.cc_hud_tick();
           e.cc_shell_step();
           accum -= STEP_MS;
@@ -323,6 +324,7 @@
       const step = (n) => {
         for (let i = 0; i < n; i++) {
           e.cc_objects_step_full();
+          e.cc_player_draw_sound();
           e.cc_hud_tick();
           e.cc_shell_step();
         }

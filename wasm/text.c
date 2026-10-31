@@ -56,11 +56,10 @@ static const unsigned char *font_for_char(unsigned char ch) {
     return glyph_for_code(code);
 }
 
-/* '^' is a cursor marker, not a printable glyph.  Custom shell prompts still
- * use cc_text_draw_string() and expect to see the original caret shape, so
- * the pixel-oriented helper maps it to the F2 caret glyph.  Window text uses
- * the real renderer rule and skips it. */
-static const unsigned char *caret_glyph(void) { return glyph(g_f2, 22); }
+/* '^' is the input cursor marker, not a printable glyph.  The original
+ * printer has no table entry for 0x5E, so it draws nothing; the renderer
+ * locates the marker and the animation loop paints F2 glyphs 45..49 at
+ * that cell every 21 PIT ticks.  See cc_text_cursor_draw(). */
 
 static int g_scroll(void) {
     return (int)(int16_t)(cc_global_get(0x2b5c) & 0xFFFF);
@@ -116,7 +115,7 @@ void cc_text_draw_string(int x, int y, const char *s) {
     if (!s) return;
     while (*s) {
         unsigned char ch = (unsigned char)*s++;
-        const unsigned char *g = (ch == '^') ? caret_glyph() : font_for_char(ch);
+        const unsigned char *g = font_for_char(ch);
         if (g) cc_view_draw_glyph(g, x, y);
         x += 8;
     }
@@ -136,9 +135,8 @@ static int text_len(const char *s) {
 /* Exact window layout from the original renderer.  `count` text lines are
  * followed by the implicit "END OF WINDOW" sentinel; the sentinel and its
  * one-row gap make the window height H = count + 2. */
-static void draw_window_lines(const char *const *lines, int count,
-                              int cam_x, int cam_y, int scroll) {
-    if (count <= 0) return;
+static void window_layout(const char *const *lines, int count,
+                          int cam_x, int cam_y, int *wx, int *wy) {
     int maxlen = 0;
     for (int i = 0; i < count; i++) {
         int n = text_len(lines[i]);
@@ -146,39 +144,96 @@ static void draw_window_lines(const char *const *lines, int count,
         if (n - 1 > maxlen) maxlen = n - 1;
     }
     int h = count + 2;  /* text lines + one-slot gap before the sentinel */
-    int wx = ((320 - maxlen * 8) / 2 + cam_x) / 8 - 3;
-    int wy = ((200 - h * 8) / 2 + cam_y) / 8 - 2;
+    *wx = ((320 - maxlen * 8) / 2 + cam_x) / 8 - 3;
+    *wy = ((200 - h * 8) / 2 + cam_y) / 8 - 2;
+}
 
+static void draw_window_lines(const char *const *lines, int count,
+                              int cam_x, int cam_y, int scroll) {
+    if (count <= 0) return;
+    int wx, wy;
+    window_layout(lines, count, cam_x, cam_y, &wx, &wy);
+    int maxlen = 0;
+    for (int i = 0; i < count; i++) {
+        int n = text_len(lines[i]);
+        if (i == 0) maxlen = n - 1;
+        if (n - 1 > maxlen) maxlen = n - 1;
+    }
+    int h = count + 2;
     draw_frame_cells(wx, wy, maxlen, h, scroll);
     for (int i = 0; i < count; i++)
         draw_window_string(wx + 2, wy + i + 2, lines[i], scroll);
 }
 
-/* Draw a text block using the original centered window layout.  Long blocks
- * are paged by the caller; each page is laid out with the same renderer. */
-void cc_text_draw_block(int block_id, int start_line, int max_lines) {
-    if (block_id < 0 || block_id >= SHELL_TEXT_COUNT) return;
+/* Locate the '^' marker in the page and return its screen cell. */
+static int window_cursor_cell(const char *const *lines, int count,
+                              int cam_x, int cam_y, int *xcell, int *ycell) {
+    int line = -1, col = -1;
+    for (int i = 0; i < count && line < 0; i++) {
+        for (int j = 0; lines[i] && lines[i][j]; j++) {
+            if (lines[i][j] == '^') { line = i; col = j; break; }
+        }
+    }
+    if (line < 0) return 0;
+    int wx, wy;
+    window_layout(lines, count, cam_x, cam_y, &wx, &wy);
+    *xcell = wx + 2 + col;
+    *ycell = wy + 2 + line;
+    return 1;
+}
+
+/* Original 0x0FC5:0x0A18/0x0A37 cursor animation: repaint the cell with the
+ * window interior (F1 glyph 8) and then draw F2 glyph 45..49. */
+void cc_text_cursor_draw(int xcell, int ycell, int frame) {
+    if (frame < 1) frame = 1;
+    if (frame > 5) frame = 5;
+    int scroll = g_scroll();
+    cc_view_draw_glyph(glyph(g_f1, 8), xcell * 8, ycell * 8 + scroll);
+    cc_view_draw_glyph(glyph(g_f2, 44 + frame), xcell * 8, ycell * 8 + scroll);
+}
+
+int cc_text_draw_block_cursor(int block_id, int start_line, int max_lines,
+                              int frame) {
+    if (block_id < 0 || block_id >= SHELL_TEXT_COUNT) return 0;
     const ShellTextBlock *b = &g_shell_text_blocks[block_id];
     if (start_line < 0) start_line = 0;
-    if (start_line >= b->count) return;
+    if (start_line >= b->count) return 0;
     int end = b->count;
     if (max_lines > 0 && start_line + max_lines < end)
         end = start_line + max_lines;
     int count = end - start_line;
-    if (count <= 0) return;
-
+    if (count <= 0) return 0;
     int cam_x = (int)(int16_t)(cc_global_get(0x512e) & 0xFFFF);
     int cam_y = (int)(int16_t)(cc_global_get(0x5130) & 0xFFFF);
-    draw_window_lines(b->lines + start_line, count, cam_x, cam_y, g_scroll());
+    const char *const *lines = b->lines + start_line;
+    draw_window_lines(lines, count, cam_x, cam_y, g_scroll());
+    int x, y;
+    if (frame > 0 && window_cursor_cell(lines, count, cam_x, cam_y, &x, &y))
+        cc_text_cursor_draw(x, y, frame);
+    return 1;
+}
+
+int cc_text_draw_lines_cursor(const char *const *lines, int count, int frame) {
+    if (!lines || count <= 0) return 0;
+    int cam_x = (int)(int16_t)(cc_global_get(0x512e) & 0xFFFF);
+    int cam_y = (int)(int16_t)(cc_global_get(0x5130) & 0xFFFF);
+    draw_window_lines(lines, count, cam_x, cam_y, g_scroll());
+    int x, y;
+    if (frame > 0 && window_cursor_cell(lines, count, cam_x, cam_y, &x, &y))
+        cc_text_cursor_draw(x, y, frame);
+    return 1;
+}
+
+/* Draw a text block using the original centered window layout.  Long blocks
+ * are paged by the caller; each page is laid out with the same renderer. */
+void cc_text_draw_block(int block_id, int start_line, int max_lines) {
+    cc_text_draw_block_cursor(block_id, start_line, max_lines, 0);
 }
 
 /* Draw an arbitrary, generated line array with the same exact window
  * renderer.  Used by the high-score screen and the captured story pages. */
 void cc_text_draw_lines(const char *const *lines, int count) {
-    if (!lines || count <= 0) return;
-    int cam_x = (int)(int16_t)(cc_global_get(0x512e) & 0xFFFF);
-    int cam_y = (int)(int16_t)(cc_global_get(0x5130) & 0xFFFF);
-    draw_window_lines(lines, count, cam_x, cam_y, g_scroll());
+    cc_text_draw_lines_cursor(lines, count, 0);
 }
 
 /* ---- HUD ---------------------------------------------------------------- */

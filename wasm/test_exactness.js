@@ -49,8 +49,8 @@ function key(ch) { return typeof ch === 'number' ? ch : ch.charCodeAt(0); }
   const toMenu = () => {
     for (let i = 0; i < 3; i++) e.cc_shell_step_ticks(1000);
     if (e.cc_shell_state() !== 2) {
-      // A key on the title/credits states also advances one stage.
-      while (e.cc_shell_state() !== 2) e.cc_shell_key(13);
+      // Any key during the attract loop (title or credits) opens the menu.
+      e.cc_shell_key(13);
     }
   };
   const toGame = () => {
@@ -77,14 +77,23 @@ function key(ch) { return typeof ch === 'number' ? ch : ch.charCodeAt(0); }
   assert(e.cc_shell_state() === 0, 'APG lasts exactly its tick count');
   e.cc_shell_step_ticks(1);
   assert(e.cc_shell_state() === 15, 'APG -> credits');
-  e.cc_shell_step_ticks(fixture.flow.timing_ticks.credits);
-  assert(e.cc_shell_state() === 15, 'credits lasts exactly its tick count');
+  const hold = fixture.flow.timing_ticks.attract_hold;
+  const rows = fixture.flow.timing_ticks.scroll_rows;
+  const per = fixture.flow.timing_ticks.ticks_per_row;
+  e.cc_shell_step_ticks(hold);
+  assert(e.cc_shell_state() === 15, 'title hold lasts its tick count');
   e.cc_shell_step_ticks(1);
-  assert(e.cc_shell_state() === 1, 'credits -> title');
-  e.cc_shell_step_ticks(fixture.flow.timing_ticks.title);
-  assert(e.cc_shell_state() === 1, 'title lasts exactly its tick count');
-  e.cc_shell_step_ticks(1);
-  assert(e.cc_shell_state() === 2, 'title -> main menu');
+  assert(e.cc_shell_state() === 15, 'forward scroll keeps the credits state');
+  e.cc_shell_step_ticks(rows * per);
+  assert(e.cc_shell_state() === 15, 'forward scroll reaches row 200');
+  e.cc_shell_step_ticks(per);
+  assert(e.cc_shell_state() === 1, 'credits hold switches to the title state');
+  e.cc_shell_step_ticks(hold);
+  assert(e.cc_shell_state() === 1, 'credits hold lasts its tick count');
+  e.cc_shell_step_ticks(rows * per + per);
+  assert(e.cc_shell_state() === 15, 'backward scroll returns to the title hold');
+  e.cc_shell_key(13);
+  assert(e.cc_shell_state() === 2, 'key in the attract opens the menu');
 
   // ---- high-score screen pixel oracle --------------------------------------
   e.cc_shell_init();

@@ -168,7 +168,7 @@ future version under the same key is ignored.
 - Quit-to-DOS returns to the title screen.
 - Joystick uses the Gamepad API and is gated by the persisted joystick toggle.
 - Video is stored but is a no-op.
-- The blinking text cursor is not drawn; `^` marks the input position.
+- The `^` marker is the input position; the original 5-frame cursor animation (F2 glyphs 45..49, one frame every 21 ticks) is drawn there by the shell renderer.
 - Title/credits scroll remains approximated by the original 432-tick duration.
 
 ## Tests

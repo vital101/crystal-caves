@@ -9,16 +9,15 @@ windows, the in-game HUD, help/pause/quit/warp/key-redefine screens,
 story/finale transitions, save/restore, high scores, and browser config
 persistence.  Gameplay remains deterministic and pixel-exact.
 
+The input cursor is the original 5-frame F2 animation (glyphs 45..49) at the
+`^` marker cell, one frame every 21 PIT ticks.  (The F2 bank repeats glyph 46
+at index 49, so four of the five frames are visually distinct.)
+
 Known limitations / deliberate browser substitutions:
 
 - Keyboard bindings use IBM PC set-1 scan codes, matching the original port
   `0x60` input routine.  `wasm/keymap.js` maps browser `KeyboardEvent.code`
   values to those scan codes; E0-extended keys are normalized.
-- The original blinking input cursor is not drawn in shell text windows; the
-  `^` marker is treated as the input position and skipped by the printer.
-- The title/credits scroll animation is approximated by the original
-  432-tick combined duration; the exact per-frame scroll position is not
-  reproduced.
 - Joystick uses the Gamepad API when present; the original calibration screen
   is informational.
 - BBS/foreign/ordering/video options show the original text screens with
@@ -59,7 +58,8 @@ entries, ASCII `0x20..0x5a`, then ASCII `0x61..0x7a`.  Characters `0x5b..0x60`
 are absent and draw nothing.  The 1-based table position is the glyph code:
 codes `<= 0x48` select F1 glyph `code-0x17`; codes `>= 0x49` select F2 glyph
 `code-0x49`.  This reproduces the apparent six-code lowercase shift.  `^` is
-the input cursor marker and is not printed by the window renderer.
+the input cursor marker and is not printed by the window renderer; the
+animation loop paints F2 glyphs 45..49 at that cell instead.
 
 ## HUD (oracle-exact)
 
@@ -154,13 +154,19 @@ v2 config.  See `notes/persist.md` for the original CC1.HS/CC1.CFG layouts.
 ## Exactness verification (P5.R5)
 
 `tools/shell_exactness.py` runs the original shell routines with a minimal
-INT 21h file shim and scripted keyboard input.  It does not run the complete
-menu flow; it captures the observable data needed by P5.R5.
+INT 21h file shim and scripted keyboard input.  `--flow` additionally runs
+the real title loop (`0x0FC5:0x8265`) with the image/CRTC helpers stubbed,
+injecting the 140.06 Hz tick counter into the hold spins; it records the hold
+length, the row order, direction flips, key-to-menu paths and the (empty)
+title sound log.
 
 Committed fixtures:
 
-- `notes/shell_exactness_fixtures.json` — screen tick counts, intro/finale
-  page line buffers, high-score screen lines and framebuffer hash.
+- `notes/shell_exactness_fixtures.json` — attract/logo tick constants,
+  intro/finale page line buffers, high-score screen lines and framebuffer
+  hash.
+- `notes/shell_flow_fixtures.json` — real title-loop hold/row sequence,
+  title-over-credits composite hashes, key cases and the title sound log.
 - `notes/hiscore_fixtures.json` — default ten-row table, qualification cases,
   tie rule, name-entry limit.
 - `notes/keymap_fixtures.json` — default scan codes and the original
@@ -177,14 +183,21 @@ original constants are:
 
 | Stage | Timer | Approx. duration |
 |---|---|---|
-| Apogee logo | `[0x2B60] > 0x2D0` (720 ticks) | 5.14 s |
-| Credits | 216 ticks | 1.54 s |
-| Title | 216 ticks | 1.54 s |
+| Apogee logo | `[0x2B60] > 0x2D0` (721 ticks) | 5.15 s |
+| Title hold | `[0x2B60] > 0x1B0` (433 ticks) | 3.09 s |
+| Forward traverse | 201 rows, one per vertical retrace (2 ticks) | 2.87 s |
+| Credits hold | 433 ticks | 3.09 s |
+| Backward traverse | 201 rows, one per retrace | 2.87 s |
 
-The original title routine loads `cc1.cdt` and `cc1.ttl` and runs one
-432-tick (3.08 s) scroll sequence.  The two 216-tick shell stages represent
-the two captured screens; the scroll itself is approximated by the tick
-cadence.
+The original title routine loads `cc1.cdt` into rows 0..199 of a 320x400
+VRAM buffer, copies it to rows 200..399 and then loads `cc1.ttl` over rows
+0..199.  The CRTC start row bounces 0..200..0, so the visible image is a
+vertical crop of the stacked pair.  `cc_draw_screen_rows()` reproduces that
+crop and `cc_shell_step_ticks()` drives it; a full cycle is 1670 ticks
+(~11.9 s) and repeats until a key opens the menu.
+
+The cursor animation adds F2 glyphs 45..49 at the marker cell every 21
+ticks while a text window waits for input.
 
 `cc_shell_step_ticks()` is the deterministic entry point; `game.html`
 converts elapsed time to ticks at the same rate.  `cc_shell_step()` remains a
