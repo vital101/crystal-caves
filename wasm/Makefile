@@ -36,7 +36,7 @@ clang: assets $(OUT)
 $(OUT): render.c render.h objects.c objects.h objects_data.h cells_data.h startup_data.h text.c text.h shell.c shell.h shell_text_data.h shell_exact_data.h sound.c sound.h sound_data.h
 	@test -x "$(LLVM)/clang" || { echo "clang not found at $(LLVM)/clang"; \
 	  echo "Install Homebrew LLVM (brew install llvm) or pass LLVM=/path/to/bin"; exit 1; }
-	$(LLVM)/clang --target=wasm32 -O2 -nostdlib -ffreestanding -fno-builtin \
+	$(LLVM)/clang --target=wasm32 -Oz -nostdlib -ffreestanding -fno-builtin \
 	  -Wl,--no-entry -Wl,--no-gc-sections -Wl,--stack-first -Wl,-z,stack-size=65536 \
 	  -Wl,--export-memory -Wl,--initial-memory=16777216 -Wl,-z,stack-size=65536 \
 	  $(foreach s,$(EXPORTS),-Wl,--export=$(s)) -o $(OUT) render.c objects.c text.c shell.c sound.c
@@ -168,6 +168,10 @@ test-oracle-shell: clang
 	node test_hud.js
 	node test_text.js
 
+# Frame-budget / wasm-size measurement (same work as game.html per frame).
+perf: clang
+	node measure_perf.js
+
 # Headless browser smoke test (Playwright; test-only npm dependency).
 # test_browser.js prints SKIP with exit 0 when playwright is not installed.
 test-browser: clang
@@ -245,4 +249,4 @@ test-all: test-data test-render-all test-view test-objects test-gameplay test-in
 clean:
 	rm -f $(OUT) app.js app.wasm out_wasm_level*.png oracle_level*.json
 
-.PHONY: clang emcc assets data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-persist test-exactness test-keymap test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update test-all clean
+.PHONY: clang emcc assets data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-shell test-persist test-exactness test-keymap test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update perf test-all clean

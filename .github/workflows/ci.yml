@@ -40,10 +40,11 @@ jobs:
       - name: Regression suite (committed fixtures)
         run: make -C wasm test-all LLVM="$LLVM"
 
-      - name: wasm size
+      - name: wasm size and frame budget
         run: |
           size=$(stat -c%s wasm/render.wasm)
           echo "render.wasm: $size bytes" | tee -a "$GITHUB_STEP_SUMMARY"
+          make -C wasm perf LLVM="$LLVM" | tee -a "$GITHUB_STEP_SUMMARY"
 
   browser:
     name: headless browser smoke

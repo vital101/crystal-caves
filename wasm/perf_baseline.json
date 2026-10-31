@@ -1,0 +1,6 @@
+{
+  "game_step_budget_ms": 57.1,
+  "max_avg_step_ms": 10.0,
+  "max_worst_step_ms": 50.0,
+  "max_wasm_bytes": 524288
+}

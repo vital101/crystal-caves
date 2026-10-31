@@ -33,7 +33,6 @@ are separate and need `tools/requirements.txt`.
 | Sound driver / synth / shell | `test-sound` | `notes/sound_fixtures.json`, `notes/sound_synth_fixtures.json`, `notes/sound_shell_fixtures.json` | `test_sound.js`, `test_sound_shell.js` | yes |
 | Browser smoke | `test-browser` | `wasm/browser_expectations.json` | `test_browser.js` (Playwright) | no (separate CI job) |
 | Frame budget / wasm size | `perf` | `wasm/perf_baseline.json` | `measure_perf.js` | no (CI summary) |
-
 Oracle regeneration (not part of `test-all`; requires `tools/requirements.txt`):
 
 `test-oracle-objects`, `test-oracle-physics`, `test-oracle-combat`,
@@ -54,3 +53,27 @@ running the inert fallback.
 per-run dumps produced by `tools/emulate_game.py`; they are gitignored and
 not used by any test.  `out/oracle_L*.png` are the committed static
 references.
+
+## Build size and frame budget
+
+The shipped `make clang` build uses `-Oz`: about 152 KB versus 180 KB at
+`-O2`, with no fixture divergence.  `--gc-sections` saves only 2 bytes, so
+`-Wl,--no-gc-sections` is kept (it avoids relying on linker reachability for
+the exported surface).  `wasm-opt`/binaryen is not a build dependency.
+
+`make perf` runs the same per-frame work as `game.html` (view cells, object
+blits, HUD) for levels 2 and 3 on this machine:
+
+```text
+render.wasm: ~152000 bytes
+memory: 256 pages (16 MiB initial, unchanged)
+level 2 frame      avg ~1.2 ms  worst ~1.6 ms
+level 3 frame      avg ~1.2 ms  worst ~1.6 ms
+shell render       avg ~0.08 ms
+```
+
+The game frame budget is 57.1 ms (`8 * 0x2147 / 1193182` Hz ≈ 17.51 Hz), so
+the wasm port has roughly 45x headroom.  `perf_baseline.json` holds loose
+ceilings (10 ms average, 50 ms worst, 512 KiB) to catch pathological
+regressions without making CI machine-dependent; exact timings are reported
+in the CI job summary.
