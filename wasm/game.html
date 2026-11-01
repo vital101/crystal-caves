@@ -70,17 +70,19 @@
   .touch-pad { display:flex; gap:8px; pointer-events:auto; }
   .touch-btn {
     width:56px; height:56px; border-radius:50%;
-    background:rgba(255,255,255,0.12);
-    border:2px solid rgba(255,255,255,0.25);
-    color:rgba(255,255,255,0.7); font-size:20px;
+    background:rgba(0,0,0,0.55);
+    border:2px solid rgba(255,255,255,0.55);
+    color:rgba(255,255,255,0.92); font-size:20px;
     display:flex; align-items:center; justify-content:center;
     touch-action:none; user-select:none; -webkit-user-select:none;
     -webkit-tap-highlight-color:transparent; cursor:pointer;
+    box-shadow:0 1px 4px rgba(0,0,0,0.5);
   }
   .touch-btn.active {
-    background:rgba(255,255,255,0.3);
-    border-color:rgba(255,255,255,0.5);
+    background:rgba(70,70,70,0.9);
+    border-color:rgba(255,255,255,0.95);
   }
+  #touch-controls[hidden], #touch-keys[hidden] { display:none; }
   #touch-keys {
     position:absolute; top:0; left:0; right:0;
     display:flex; justify-content:center; gap:4px; pointer-events:none;
@@ -88,12 +90,13 @@
   }
   #touch-keys .touch-key {
     pointer-events:auto; min-width:40px; height:28px; border-radius:4px;
-    background:rgba(255,255,255,0.12);
-    border:1px solid rgba(255,255,255,0.25);
-    color:rgba(255,255,255,0.7); font-size:12px;
+    background:rgba(0,0,0,0.55);
+    border:1px solid rgba(255,255,255,0.55);
+    color:rgba(255,255,255,0.92); font-size:12px;
     touch-action:manipulation;
+    box-shadow:0 1px 4px rgba(0,0,0,0.5);
   }
-  #touch-keys .touch-key.active { background:rgba(255,255,255,0.3); }
+  #touch-keys .touch-key.active { background:rgba(70,70,70,0.9); }
   #touch-keyboard {
     position:fixed; bottom:0; left:0; right:0;
     background:rgba(20,20,20,0.95); border-top:1px solid #444;

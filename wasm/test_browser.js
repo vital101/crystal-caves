@@ -476,6 +476,12 @@ function startServer() {
     for (let i = 0; i < 8 && (await mState()) === 3; i++) await tapCanvas();
     check((await mState()) === 4, 'intro story reaches the game on touch');
 
+    const padShown = await mobilePage.evaluate(() => {
+      const c = document.getElementById('touch-controls');
+      return c && getComputedStyle(c).display !== 'none';
+    });
+    check(padShown, 'touch pad is visible in the game');
+
     const rightBtn = await mobilePage.evaluate(() => {
       const b = document.querySelector(
         '#touch-controls .touch-btn[data-action="right"]');
@@ -509,7 +515,7 @@ function startServer() {
     });
     const hiddenAfterToggle = await mobilePage.evaluate(() => {
       const c = document.getElementById('touch-controls');
-      return c && c.hidden;
+      return c && getComputedStyle(c).display === 'none';
     });
     check(hiddenAfterToggle, 'touch toggle hides the controls');
 
@@ -518,7 +524,7 @@ function startServer() {
     });
     const visibleAgain = await mobilePage.evaluate(() => {
       const c = document.getElementById('touch-controls');
-      return c && !c.hidden;
+      return c && getComputedStyle(c).display !== 'none';
     });
     check(visibleAgain, 'touch toggle shows the controls again');
 

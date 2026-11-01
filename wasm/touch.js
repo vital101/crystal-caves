@@ -182,8 +182,16 @@
     function setEnabled(v) {
       enabled = v;
       saveEnabled(v);
+      lastState = -1;              /* force update() to re-read the state */
       updateVisibility();
-      if (!enabled) releaseAll();
+      if (!enabled) {
+        /* The hidden attribute alone is not enough: the author display rule
+         * (#touch-controls { display:flex }) beats the UA [hidden] rule, so
+         * clear the inline display as well. */
+        if (controls) controls.style.display = 'none';
+        if (keys) keys.style.display = 'none';
+        releaseAll();
+      }
       update();
     }
 
@@ -194,7 +202,10 @@
       lastState = st;
       if (st !== 4) releaseAll();
       if (controls) controls.style.display = st === 4 ? '' : 'none';
-      if (keys) keys.style.display = st === 4 || KEYBOARD.indexOf(st) >= 0 ? '' : 'none';
+      /* The soft-key strip is the always-visible part of the touch UI: it
+       * gives immediate feedback when the controls are switched on and keeps
+       * Esc/Enter available on every screen. */
+      if (keys) keys.style.display = '';
       if (keyboard) {
         if (KEYBOARD.indexOf(st) >= 0) keyboard.classList.add('open');
         else keyboard.classList.remove('open');
