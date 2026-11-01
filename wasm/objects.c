@@ -2062,6 +2062,14 @@ static void helper_toggle_gravity(void) {
     S->airborne = 1;
     S->obj[1].tile = S->player_block;
 }
+/* 0x0FC5:0xB607: a switch cell toggles the objects of kind `kind` in slots
+ * 4..obj_cursor.  For the moving kinds (0x27/0x3B/0x26) the original flips
+ * *speed* (+0x22) between 0 and 2 -- the loader parks switchable elevators at
+ * speed 0, so they stand still until the switch starts them.  `state` is never
+ * touched there (toggling it would hide the platform: state 2 is the free-slot
+ * marker both draw loops skip).  Kind 0x28 is the other switch type: it flips
+ * state 0 <-> 3 and queues two cell redraws, which the port's full redraw
+ * makes unnecessary. */
 static void helper_toggle_kind(uint16_t kind) {
     int i, end = S->obj_cursor;
     if (end >= OBJ_MAX) end = OBJ_MAX - 1;
@@ -2069,7 +2077,7 @@ static void helper_toggle_kind(uint16_t kind) {
         for (i = 4; i <= end; i++) {
             ObjectEntry *o = &S->obj[i];
             if (o->kind != kind) continue;
-            o->state = (o->state == 0) ? 2 : 0;
+            o->speed = (o->speed == 0) ? 2 : 0;
         }
     } else if (kind == 0x28) {
         for (i = 4; i <= end; i++) {

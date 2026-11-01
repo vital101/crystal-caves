@@ -135,7 +135,8 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   `0x0FC5:0xBB26` cell events, crystal/ammo/health counters, exit unlock,
   hub-door and cave-exit state machines, and dynamic cell rendering.
   `notes/cell_fixtures.json` covers direct cell branches plus full-frame
-  contact/exit runs (17 scenarios).
+  contact/exit runs (23 scenarios), including the ON/OFF switch cells that
+  start the kind-`0x27` elevators (speed `+0x22` 0 <-> 2, not `state`).
 - Transitions replay the exact loader occupancy overlay
   (`out/portable/level_overlay.bin`) generated from the real loader, including
   preserved source bytes, `[0x2d6]`-dependent shapes and RNG-selected spawn

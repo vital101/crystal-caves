@@ -56,9 +56,12 @@ frame state can be compared directly with the oracle.
   `p18 == 3`.
 - `0x3D23` (kind 34): two-record door animation.
 - `0x6AFA` (kind 19): horizontal moving platform; carries the player when
-  attached (`[0x513D]`, `[0x511A]`, `[0x5118]`).
+  attached (`[0x513D]`, `[0x511A]`, `[0x5118]`).  Travels at `p22` px/frame.
 - `0x6D31` (kind 20/0x27): vertical moving platform; carries the player when
-  attached (`[0x5142]`, `[0x511C]`, `[0x5128]`).
+  attached (`[0x5142]`, `[0x511C]`, `[0x5128]`).  Travels at `p22` px/frame;
+  the switchable elevators (kind `0x27`) load with `p22 = 0` (parked) and are
+  started by an ON/OFF switch cell, see below.  Kinds `0x26`/`0x3B` share the
+  same switchable family.
 - `0x6681`, `0x672B`, `0x69D3`: death/crystal pickup effects.
 - `0x1FC2` (kind 8): proximity-triggered companion spawner/mover.
 - `0x323C` (kind 24), `0x3BE8` (kind 21), `0x5BBE` (kind 29/49/50/54/58),
@@ -93,6 +96,17 @@ frame state can be compared directly with the oracle.
   cells, score pickups, switches/levers, hazard cells, hub doors and cave
   exits.  Crystal collection decrements `[0xA0CC]`, increments `[0x50A2]`,
   adds score and plays sound 8/0x20.
+- ON/OFF switches are cell `w3 = 0x1F` (ON) / `0x20` (OFF) with `w5 = 0x0C`
+  and the controlled object kind in `w0`.  Pressing one plays sound `0x14`,
+  flips `w3` between the two values and calls `0x0FC5:0xB607`, which walks
+  slots 4..`[0x5120]` and, for kinds `0x27`/`0x3B`/`0x26`, flips **`p22`
+  (+0x22, speed) between 0 and 2** -- `state` is not touched.  Loader-parked
+  elevators sit at `p22 = 0` (visible but still) until switched on.  Kind
+  `0x28` is the other switch family: it flips `state` 0 <-> 3 and queues two
+  cell redraws.  Switchable cells exist on levels 3, 4, 6, 7, 10, 12, 13, 14,
+  16 and 17; `test-cells` covers both families plus a full-frame contact press
+  (`switch_on_l6`, `switch_off_l6`, `switch_multi_l3`, `switch28_l4`,
+  `switch_contact_l6`).
 - Counter semantics: `[0x509E]` is health (starts 3, damage decrements),
   `[0x509C]` is ammo, `[0x50A2]` is crystals collected, `[0xA0CC]` is
   crystals remaining.  `cc_lives()` is retained as a compatibility alias for

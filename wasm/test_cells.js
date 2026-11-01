@@ -53,6 +53,10 @@ function applySeed(want, seed) {
     }[name];
     if (alias) want.objects[alias[0]][alias[1]] = value;
   }
+  for (const [slot, fields] of Object.entries(seed.objects || {})) {
+    for (const [name, value] of Object.entries(fields))
+      want.objects[Number(slot)][name] = value;
+  }
   for (const [col, row, off, value] of seed.cell_bytes || []) {
     const bytes = hexToBytes(want.cells[row][col]);
     bytes[off] = value & 0xff;

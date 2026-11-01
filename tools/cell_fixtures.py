@@ -183,7 +183,36 @@ def main():
     scenarios.append(direct("switch11", 3, {**base, "globals": {"a0d4": 12, "a0d6": 12}, "inputs": {"fire": True}, "cells": [[c, r, cell_hex({0x06: 0x11, 0x0A: 9})]]}, c*16+8, r*16+8))
     scenarios.append(direct("lever0f", 3, {**base, "inputs": {"fire": True}, "cells": [[c, r, cell_hex({0x06: 0x0F, 0x0A: 9})]]}, c*16+8, r*16+8))
 
+    # ON/OFF switch cells (w3 0x1F/0x20, w5 0x0C).  0x0FC5:0xB607 flips the
+    # *speed* field (+0x22) of every object of kind w0 between 0 and 2, so a
+    # loader-parked elevator (speed 0) starts moving when switched on.  These
+    # use the real level cells; the off->on case seeds the post-press w3 0x20.
+    l6_off_cell = {0x00: 0x27, 0x02: 2, 0x04: 0x27, 0x06: 0x20, 0x08: 0x13, 0x0A: 0x0C}
+    scenarios.append(direct("switch_on_l6", 6, {"inputs": {"fire": True}},
+                            24 * 16 + 8, 13 * 16 + 8))
+    scenarios.append(direct("switch_off_l6", 6, {
+        "objects": {"19": {"p22": 2}},
+        "inputs": {"fire": True},
+        "cells": [[24, 13, cell_hex(l6_off_cell)]],
+    }, 24 * 16 + 8, 13 * 16 + 8))
+    # Level 3's switch drives two elevators (slots 27 and 28) at once.
+    scenarios.append(direct("switch_multi_l3", 3, {"inputs": {"fire": True}},
+                            1 * 16 + 8, 23 * 16 + 8))
+    # Kind 0x28 is the other switch type: state 0 <-> 3, speed untouched.
+    scenarios.append(direct("switch28_l4", 4, {"inputs": {"fire": True}},
+                            13 * 16 + 8, 7 * 16 + 8))
+
     # Full-frame contact and transition scenarios.
+    # A switched-on elevator must actually travel: speed 2 -> 2 px/frame.
+    scenarios.append(frames("elevator_run_l6", 6, {
+        "objects": {"19": {"p22": 2}},
+    }, [opts() for _ in range(8)]))
+    # Standing on the switch and holding fire toggles it once per contact frame
+    # (on/off/on), then the elevator runs down; this is the reported bug path.
+    scenarios.append(frames("switch_contact_l6", 6, {
+        "player": {"x": 392, "y": 208},
+        "globals": {"a0fd": 1},
+    }, [opts(fire=True), opts(fire=True), opts(fire=True)] + [opts() for _ in range(6)]))
     scenarios.append(frames("unlock_exit_l3", 3, {
         "globals": {"a0cc": 0, "a0be": 1, "a0f5": 0},
     }, [opts()]))
