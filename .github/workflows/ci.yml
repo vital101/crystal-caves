@@ -9,10 +9,11 @@ on:
       oracle_targets:
         description: 'Space-separated oracle make targets to regenerate'
         required: false
+        type: string
         default: 'test-oracle-physics test-oracle-combat test-oracle-cells test-oracle-handlers test-oracle-loader test-oracle-caves'
 
-permissions:
-  contents: read
+# No `permissions:` block: Forgejo ignores it (capabilities are granted through
+# Authorized Integrations) and these jobs only need the default read token.
 
 jobs:
   deterministic:
@@ -42,9 +43,10 @@ jobs:
 
       - name: wasm size and frame budget
         run: |
+          summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
           size=$(stat -c%s wasm/render.wasm)
-          echo "render.wasm: $size bytes" | tee -a "$GITHUB_STEP_SUMMARY"
-          make -C wasm perf LLVM="$LLVM" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "render.wasm: $size bytes" | tee -a "$summary"
+          make -C wasm perf LLVM="$LLVM" | tee -a "$summary"
 
   browser:
     name: headless browser smoke
@@ -100,4 +102,4 @@ jobs:
         run: pip install -r tools/requirements.txt
 
       - name: Regenerate and compare oracle fixtures
-        run: make -C wasm ${{ github.event.inputs.oracle_targets }} LLVM="$LLVM"
+        run: make -C wasm ${{ inputs.oracle_targets }} LLVM="$LLVM"

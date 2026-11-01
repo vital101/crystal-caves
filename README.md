@@ -177,7 +177,10 @@ Regenerating raw extraction from the original archive additionally requires
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on Ubuntu:
+`.github/workflows/ci.yml` runs on Ubuntu under GitHub Actions or Forgejo
+Actions (Forgejo reads `.github/workflows` directly). The workflow has no
+`permissions:` block — Forgejo ignores it and grants capabilities through
+Authorized Integrations, while the jobs only need the default read token:
 
 - **build + deterministic suite** — apt `clang`/`lld`, `make clang`,
   `make test-all`, then wasm size and frame budget in the job summary;

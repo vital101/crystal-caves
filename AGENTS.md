@@ -59,8 +59,9 @@ uses `brew --prefix llvm` or pass `LLVM=/path/to/bin`. The clang build uses
 `tools/requirements.txt` (`capstone`, `unicorn`); use `../.venv/bin/python` (the
 Makefile auto-detects it) or install system-wide. npm is **test-only**
 (`wasm/package.json` + Playwright for `test-browser`); the game build never
-needs it. CI is `.github/workflows/ci.yml` (Ubuntu: build + `test-all` +
-size/perf summary, browser smoke, manual oracle regeneration).
+needs it. CI is `.github/workflows/ci.yml` (GitHub Actions or Forgejo Actions on Ubuntu:
+build + `test-all` + size/perf summary, browser smoke, manual oracle
+regeneration).
 
 ## Data Pipeline
 
