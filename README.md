@@ -94,9 +94,10 @@ therefore completely stateless — all player progress stays in the browser.
 
 The repo ships a `Dockerfile` that builds the wasm module with Debian
 `clang`/`lld` and serves it from `nginx:alpine`.  Only `game.html`, its four
-JS adapters, `render.wasm` and `assets/` are copied into the runtime image;
-no toolchain, test data or original EXE is present in the result.  That is
-about 1.6 MB of game files on top of `nginx:alpine` (≈65 MB total).
+JS adapters, the favicon set, `render.wasm` and `assets/` are copied into the
+runtime image; no toolchain, test data or original EXE is present in the
+result.  That is about 1.6 MB of game files on top of `nginx:alpine`
+(≈65 MB total).
 
 Dokku auto-detects the root `Dockerfile` and needs no ports configured: the
 image exposes `80`, so the host's nginx proxies straight to it.

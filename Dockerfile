@@ -33,6 +33,11 @@ COPY wasm/game.html \
      wasm/persist.js \
      wasm/sound_synth.js \
      wasm/audio.js \
+     wasm/favicon.ico \
+     wasm/favicon.svg \
+     wasm/favicon-16.png \
+     wasm/favicon-32.png \
+     wasm/apple-touch-icon.png \
      /srv/
 COPY --from=build /src/wasm/render.wasm /srv/render.wasm
 COPY --from=build /src/wasm/assets/ /srv/assets/
