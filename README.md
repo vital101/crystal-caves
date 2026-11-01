@@ -74,6 +74,7 @@ browser jump aliases:
 | Fire / action | Alt |
 | Help | Esc or F1 |
 | Pause | P |
+| Fullscreen | Fullscreen button (Esc exits) |
 
 Bindings can be redefined from the in-game help screen and are persisted.
 Joystick support uses the Gamepad API and is off by default.

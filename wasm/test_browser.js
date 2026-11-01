@@ -164,6 +164,9 @@ function startServer() {
         title: legend.querySelector('.cc-note')?.textContent || '',
         overflow: legend.scrollWidth > legend.clientWidth + 1,
         hasPng: !!document.getElementById('png'),
+        stageWrapsCanvas: !!document.getElementById('stage')?.contains(
+          document.getElementById('cv')),
+        hasFullscreenButton: !!document.getElementById('fsBtn'),
       };
     });
     check(chrome.caps.join(' ') === '← → Ctrl Space ↑ Alt F1 Esc P',
@@ -173,6 +176,8 @@ function startServer() {
     check(/Click the game once/.test(chrome.title), 'key legend keeps the sound note');
     check(!chrome.overflow, 'key legend fits the page');
     check(!chrome.hasPng, 'Save PNG button is gone');
+    check(chrome.stageWrapsCanvas, 'fullscreen stage wraps the canvas');
+    check(chrome.hasFullscreenButton, 'fullscreen button is present');
     const fireKeys = () => page.evaluate(() => {
       const group = [...document.querySelectorAll('#legend .cc-grp')]
         .find((g) => g.querySelector('.cc-act').textContent === 'Fire');

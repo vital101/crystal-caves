@@ -10,16 +10,34 @@
 <style>
   html,body { margin:0; background:#111; color:#ddd; font-family:monospace; }
   #wrap { display:flex; flex-direction:column; align-items:center; padding:12px; }
-  canvas { image-rendering:pixelated; width:960px; height:600px; background:#000;
-           border:1px solid #444; }
+  #stage { display:flex; align-items:center; justify-content:center; line-height:0; }
+  #stage canvas { image-rendering:pixelated; width:960px; height:600px;
+                  background:#000; border:1px solid #444; }
+  #stage:fullscreen, #stage:-webkit-full-screen {
+    width:100vw; height:100vh; background:#000;
+  }
+  #stage:fullscreen canvas, #stage:-webkit-full-screen canvas {
+    width:min(100vw, 160vh); height:min(100vh, 62.5vw); border:0;
+  }
   #bar { margin-top:10px; width:100%; max-width:960px; }
+  #tools { display:flex; justify-content:center; margin-bottom:8px; }
+  #fsBtn { font:inherit; font-size:13px; color:#ddd; background:#262626;
+           border:1px solid #5a5a5a; border-bottom-width:3px; border-radius:4px;
+           padding:2px 12px 3px; cursor:pointer; }
+  #fsBtn:hover { background:#333; }
+  #fsBtn:disabled { opacity:.5; cursor:default; }
   #diag { margin-top:6px; font-size:11px; color:#777; }
 </style>
 </head>
 <body>
 <div id="wrap">
-  <canvas id="cv" width="320" height="200"></canvas>
+  <div id="stage">
+    <canvas id="cv" width="320" height="200"></canvas>
+  </div>
   <div id="bar">
+    <div id="tools">
+      <button id="fsBtn" type="button" aria-label="Toggle fullscreen">Fullscreen</button>
+    </div>
     <div id="legend"></div>
   </div>
   <div id="diag">loading...</div>
@@ -37,6 +55,20 @@
   const ctx = cv.getContext('2d');
   const diag = document.getElementById('diag');
   const legend = document.getElementById('legend');
+  const stage = document.getElementById('stage');
+  const fsBtn = document.getElementById('fsBtn');
+
+  function fullscreenElement() {
+    return document.fullscreenElement || document.webkitFullscreenElement || null;
+  }
+  function syncFullscreenButton() {
+    const active = !!fullscreenElement();
+    fsBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    fsBtn.title = active ? 'Exit fullscreen (Esc)' : 'Enter fullscreen';
+  }
+  document.addEventListener('fullscreenchange', syncFullscreenButton);
+  document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
+  syncFullscreenButton();
 
   const KEY = {
     BACKSPACE: 8, ENTER: 13, ESC: 27, SPACE: 32, F1: 0x13B,
@@ -68,6 +100,44 @@
     const audio = new CCAudio();
     audio.load(snd);
     audio.onended = (id) => e.cc_sound_end(id);
+
+    /* Modern host convenience: fullscreen only the game stage, leaving the
+     * page chrome and legend outside the element.  The request stays in the
+     * click's user gesture, so the audio unlock happens afterwards. */
+    const fsRequest = stage.requestFullscreen || stage.webkitRequestFullscreen;
+    const fsEnabled = document.fullscreenEnabled !== false &&
+                      document.webkitFullscreenEnabled !== false;
+    if (!fsRequest || !fsEnabled) {
+      fsBtn.disabled = true;
+      fsBtn.title = 'Fullscreen is not supported by this browser';
+    } else {
+      fsBtn.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') ev.stopPropagation();
+      });
+      fsBtn.addEventListener('keyup', (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') ev.stopPropagation();
+      });
+      fsBtn.addEventListener('click', () => {
+        try {
+          if (fullscreenElement()) {
+            const exit = document.exitFullscreen || document.webkitExitFullscreen;
+            if (exit) {
+              const p = exit.call(document);
+              if (p && typeof p.catch === 'function')
+                p.catch((err) => console.warn('fullscreen:', err));
+            }
+          } else {
+            const p = fsRequest.call(stage);
+            if (p && typeof p.catch === 'function')
+              p.catch((err) => console.warn('fullscreen:', err));
+          }
+        } catch (err) {
+          console.warn('fullscreen:', err);
+        }
+        audio.unlock();
+        fsBtn.blur();
+      });
+    }
     const copyIn = (buf) => {
       const p = e.cc_alloc(buf.byteLength);
       mem().set(new Uint8Array(buf), p);
@@ -213,7 +283,13 @@
       const st = e.cc_shell_state();
       const scan = CCKeymap.scanFromEvent(ev);
       if (ev.key === 'F1') { ev.preventDefault(); sendShellKey(KEY.F1); return; }
-      if (ev.key === 'Escape') { ev.preventDefault(); sendShellKey(KEY.ESC); return; }
+      if (ev.key === 'Escape') {
+        /* Let the browser exit fullscreen first; the next Esc opens help. */
+        if (fullscreenElement()) return;
+        ev.preventDefault();
+        sendShellKey(KEY.ESC);
+        return;
+      }
       if (st === 16 || st === 17) { /* keyboard redefine / confirm */
         ev.preventDefault();
         e.cc_shell_key_scan(scan || (ev.key === ' ' ? 0x39 : 0));
@@ -261,6 +337,8 @@
     window.addEventListener('keyup', (ev) => {
       const scan = CCKeymap.scanFromEvent(ev);
       if (!scan) return;
+      /* Do not swallow the browser's fullscreen-exit sequence. */
+      if (ev.key === 'Escape' && fullscreenElement()) return;
       /* Always pass the release through, whatever the shell state: the
        * original polls the live keyboard, so a key released while a modal
        * is up is simply not held afterwards.  Dropping that release left
