@@ -6,6 +6,9 @@ DOSBox and no emulator in the loop: the original EXE was disassembled, the game
 logic was re-implemented in C, and every subsystem is verified **frame-for-frame**
 against the real binary running under a Unicorn-based oracle.
 
+> [!TIP]
+> **Play it now in your browser:** <https://crystal-caves.re-cycledair.com>
+
 ![The mineshaft hub](out/oracle_L02.png)
 ![A crystal cave](out/oracle_L06.png)
 
