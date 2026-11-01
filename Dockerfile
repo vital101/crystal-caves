@@ -29,6 +29,7 @@ COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
 
 COPY wasm/game.html \
      wasm/keymap.js \
+     wasm/legend.js \
      wasm/persist.js \
      wasm/sound_synth.js \
      wasm/audio.js \

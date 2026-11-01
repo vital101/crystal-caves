@@ -66,11 +66,12 @@
 
   e.cc_shell_init();
   /* Dev page: the shell's fixed keys (help/pause) do not apply here. */
-  CCLegend.render(document.getElementById('legend'), {
-    keyForAction: (action) => e.cc_shell_key_for_action(action),
-    actionForScan: (scan) => e.cc_shell_action_for_scan(scan),
-    fixed: []
-  });
+  if (typeof CCLegend !== 'undefined')
+    CCLegend.render(document.getElementById('legend'), {
+      keyForAction: (action) => e.cc_shell_key_for_action(action),
+      actionForScan: (scan) => e.cc_shell_action_for_scan(scan),
+      fixed: []
+    });
   window.addEventListener('keydown', (ev) => {
     const scan = CCKeymap.scanFromEvent(ev);
     if (scan) { ev.preventDefault(); e.cc_input_scan(scan, 1); }

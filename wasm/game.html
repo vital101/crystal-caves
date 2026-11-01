@@ -107,6 +107,9 @@
     /* The four action keys are redefinable from the help screen, so the
      * legend is rebuilt from the live bindings instead of listing them. */
     function renderLegend() {
+      /* The legend is cosmetic: never let a missing/stale legend.js stop the
+       * game from booting (the production image enumerates its static files). */
+      if (typeof CCLegend === 'undefined') return;
       CCLegend.render(legend, {
         keyForAction: (action) => e.cc_shell_key_for_action(action),
         actionForScan: (scan) => e.cc_shell_action_for_scan(scan),
