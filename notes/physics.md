@@ -151,9 +151,9 @@ preserved.
 ## Fixtures / commands
 
 - `tools/oracle_physics.py` runs the real routines from the exact DS image.
-- `tools/physics_fixtures.py` writes `notes/physics_fixtures.json` (16
-  scenarios, 670 frames): walking/turning/walls/camera/jump/head-bump/fall/
-  reversed gravity, plus level-2/3 platform carry.
+- `tools/physics_fixtures.py` writes `notes/physics_fixtures.json` (17
+  scenarios, 693 frames): walking/turning/walls/camera/jump/head-bump/fall/
+  jump-then-move/reversed gravity, plus level-2/3 platform carry.
 - `wasm/test_physics.js` compares every frame and platform object state.
 - `make test-physics` — fast regression using the committed fixture.
 - `make test-oracle-physics` — regenerate fixtures with Unicorn, then test.

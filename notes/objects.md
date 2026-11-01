@@ -106,7 +106,7 @@ Frequency hints: `0x1FB9` (17 sites) = generic collectible/bg sprite,
   captured by `tools/emulate_startup.py`; the vertical table is `DS:0xA111`
   indexed by `[0x5134]`. Exact physics/camera/platform carry is validated by
   `tools/oracle_physics.py` + `tools/physics_fixtures.py` and
-  `wasm/test_physics.js` (16 scenarios / 670 frames).
+  `wasm/test_physics.js` (17 scenarios / 693 frames).
 
 ## Object update loop (discovery)
 

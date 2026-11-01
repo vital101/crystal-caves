@@ -85,6 +85,10 @@ SCENARIOS = [
         "frames": seq([(2, {}), (18, {"jump": True}), (20, {})]),
     },
     {
+        "name": "jump_then_move_l2", "level": 2, "mode": "physics",
+        "frames": seq([(2, {}), (1, {"jump": True}), (20, {"right": True})]),
+    },
+    {
         "name": "headbump_l2", "level": 2, "mode": "physics",
         "seed": base_seed(192, 128),
         "frames": seq([(1, {"jump": True}), (29, {})]),

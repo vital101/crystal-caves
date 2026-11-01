@@ -126,8 +126,8 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   verified byte-for-byte by `test_oracle_objects.js`.
 - All 16 caves pass committed full-frame integration fixtures
   (`notes/cave_fixtures.json`, 370 frames; `make test-caves`).
-- Exact player/camera physics is validated frame-for-frame: 16 scenarios /
-  670 frames. The vertical table is `DS:0xA111` indexed by `[0x5134]`; one
+- Exact player/camera physics is validated frame-for-frame: 17 scenarios /
+  693 frames. The vertical table is `DS:0xA111` indexed by `[0x5134]`; one
   game frame is 8 PIT ticks at divisor `0x2147` ≈ 17.51 Hz.
 - Phase 2 combat/fire/slash/death state is oracle-exact (74 scenarios / 624
   frames in `notes/combat_fixtures.json`).

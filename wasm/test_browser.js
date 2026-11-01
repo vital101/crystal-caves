@@ -187,6 +187,26 @@ function startServer() {
     check(afterWalk[0] > start[0],
       `right arrow moves player (${start[0]} -> ${afterWalk[0]})`);
 
+    // Jump first with Space (the macOS-safe alias), then steer in the air.
+    const ground = await player();
+    await page.keyboard.down('Space');
+    await step(3);
+    const rising = await player();
+    await page.keyboard.down('ArrowRight');
+    await step(6);
+    const airborne = await player();
+    check(rising[1] < ground[1],
+      `Space jumps (${ground[1]} -> ${rising[1]})`);
+    check(airborne[0] > rising[0] && airborne[1] < ground[1],
+      `right steers in the air after jumping first (${rising[0]} -> ${airborne[0]})`);
+    await page.keyboard.up('ArrowRight');
+    await page.keyboard.up('Space');
+    await step(30);
+    const landed = await player();
+    await step(10);
+    check((await player())[1] === landed[1],
+      'jump keys release cleanly after landing');
+
     const ammo0 = await page.evaluate(() => window.__cc.ammo());
     await page.keyboard.down('AltLeft');
     await step(2);

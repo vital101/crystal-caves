@@ -64,18 +64,23 @@ minimal renderer smoke page.
 
 ## Controls
 
-Defaults follow the original DOS bindings:
+Defaults follow the original DOS bindings, with Space and Up Arrow added as
+browser jump aliases:
 
 | Action | Key |
 |---|---|
-| Move | Arrow keys |
-| Jump | Ctrl |
+| Move | Left/Right arrows |
+| Jump | Ctrl (DOS default), Space or Up Arrow |
 | Fire / action | Alt |
 | Help | Esc or F1 |
 | Pause | P |
 
 Bindings can be redefined from the in-game help screen and are persisted.
 Joystick support uses the Gamepad API and is off by default.
+
+On macOS, holding Ctrl and pressing Left/Right triggers the system Spaces
+shortcut. Use Space or Up Arrow to jump when steering through the air with
+arrow keys.
 
 ### Browser substitutions
 

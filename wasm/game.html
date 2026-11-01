@@ -18,7 +18,7 @@
   <canvas id="cv" width="320" height="200"></canvas>
   <div id="bar">
     <button id="png">Save PNG</button>
-    <span id="hint">Click the game, then use the keyboard. Arrows move; Ctrl jump; Alt fire; Esc/F1 help; P pause. Keys can be redefined from help.</span>
+    <span id="hint">Click the game, then use the keyboard. Arrows move; Ctrl, Space or Up jump; Alt fire; Esc/F1 help; P pause. Keys can be redefined from help.</span>
   </div>
   <div id="diag">loading...</div>
 </div>
@@ -161,6 +161,31 @@
     // ---- input ----------------------------------------------------------
     let running = true;
     function sendShellKey(ch) { e.cc_shell_key(ch); }
+
+    /* DOS binds jump to Ctrl, but on macOS Ctrl+Arrow is the Spaces shortcut,
+     * so an arrow pressed while jump is held never reaches the page.  Space
+     * and Up also jump unless the player bound them to another action. */
+    const JUMP_FLAG = 0x338B;
+    const JUMP_ACTION = 2;
+    const JUMP_ALIAS_SCANS = [0x39, 0x48];   /* Space, Up arrow */
+    const jumpHeld = new Set();
+
+    function isJumpScan(scan) {
+      if (!scan) return false;
+      if (scan === e.cc_shell_key_for_action(JUMP_ACTION)) return true;
+      return JUMP_ALIAS_SCANS.includes(scan) &&
+             e.cc_shell_action_for_scan(scan) < 0;
+    }
+    function setJumpSource(scan, down) {
+      if (down) jumpHeld.add(scan);
+      else jumpHeld.delete(scan);
+      e.cc_input_set(JUMP_FLAG, jumpHeld.size ? 1 : 0);
+    }
+    function releaseJump() {
+      jumpHeld.clear();
+      e.cc_input_set(JUMP_FLAG, 0);
+    }
+
     window.addEventListener('keydown', (ev) => {
       audio.unlock();
       const st = e.cc_shell_state();
@@ -177,7 +202,8 @@
         if (ev.key === 'p' || ev.key === 'P') { e.cc_shell_key(112); return; }
         if (scan) {
           ev.preventDefault();
-          e.cc_input_scan(scan, 1);
+          if (isJumpScan(scan)) setJumpSource(scan, true);
+          else e.cc_input_scan(scan, 1);
         }
         return;
       }
@@ -203,11 +229,18 @@
     });
     window.addEventListener('pointerdown', () => { audio.unlock(); });
     window.addEventListener('keyup', (ev) => {
-      if (e.cc_shell_state() !== 4) return;
       const scan = CCKeymap.scanFromEvent(ev);
+      /* Release jump even outside the game state so pause/help cannot leave
+       * a held alias stuck on when play resumes. */
+      if (isJumpScan(scan) || jumpHeld.has(scan)) {
+        if (scan) { ev.preventDefault(); setJumpSource(scan, false); }
+        return;
+      }
+      if (e.cc_shell_state() !== 4) return;
       if (scan) { ev.preventDefault(); e.cc_input_scan(scan, 0); }
     });
     window.addEventListener('blur', () => {
+      releaseJump();
       for (let i = 0; i < 4; i++)
         e.cc_input_scan(e.cc_shell_key_for_action(i), 0);
     });
@@ -241,6 +274,7 @@
       if (soundTicks > 32) soundTicks = 32;
       soundAccum -= soundTicks * TICK_MS;
       handleRequest();
+      if (e.cc_shell_state() !== 4 && jumpHeld.size) releaseJump();
       if (e.cc_shell_state() === 4 && e.cc_shell_joystick_on() && navigator.getGamepads) {
         const pads = navigator.getGamepads();
         let gp = null;

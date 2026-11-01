@@ -284,6 +284,10 @@ duplicates with the original “Sorry, that key is unavailable.” window,
 shows the summary, and restarts on `N`; any other key accepts.  `Esc`
 cancels.  `wasm/keymap.js` is the browser → set-1 scan-code adapter.
 
+`wasm/game.html` additionally treats Space (`0x39`) and Up Arrow (`0x48`) as
+jump when they are not bound to another action.  This is a browser-only
+workaround for macOS, where Ctrl+Arrow is reserved for Spaces.
+
 ## Tests
 
 ```sh
