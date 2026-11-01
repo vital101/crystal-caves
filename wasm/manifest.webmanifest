@@ -1,0 +1,30 @@
+{
+  "name": "Crystal Caves Ep.1",
+  "short_name": "Crystal Caves",
+  "description": "The 1993 Apogee shareware classic, decompiled and running in WebAssembly. All 16 caves, original graphics and sound, saves and high scores.",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "favicon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "favicon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

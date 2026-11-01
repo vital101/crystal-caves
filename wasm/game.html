@@ -2,13 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Crystal Caves Ep.1 — play in your browser</title>
-<meta name="description" content="The 1993 Apogee shareware classic, decompiled and running in WebAssembly. All 16 caves, original graphics and sound, saves and high scores. Desktop browser required.">
+<meta name="description" content="The 1993 Apogee shareware classic, decompiled and running in WebAssembly. All 16 caves, original graphics and sound, saves and high scores. Plays on desktop and touch devices.">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="canonical" href="https://crystal-caves.re-cycledair.com/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="re-cycledair">
 <meta property="og:title" content="Crystal Caves Ep.1 — play in your browser">
-<meta property="og:description" content="The 1993 Apogee shareware classic, decompiled and running in WebAssembly. All 16 caves, original graphics and sound, saves and high scores. Desktop browser required.">
+<meta property="og:description" content="The 1993 Apogee shareware classic, decompiled and running in WebAssembly. All 16 caves, original graphics and sound, saves and high scores. Plays on desktop and touch devices.">
 <meta property="og:url" content="https://crystal-caves.re-cycledair.com/">
 <meta property="og:image" content="https://crystal-caves.re-cycledair.com/social-card.png">
 <meta property="og:image:type" content="image/png">
@@ -17,53 +22,140 @@
 <meta property="og:image:alt" content="Crystal Caves title screen with Milo the miner and a purple dragon">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Crystal Caves Ep.1 — play in your browser">
-<meta name="twitter:description" content="The 1993 Apogee shareware classic, decompiled and running in WebAssembly. All 16 caves, original graphics and sound, saves and high scores. Desktop browser required.">
+<meta name="twitter:description" content="The 1993 Apogee shareware classic, decompiled and running in WebAssembly. All 16 caves, original graphics and sound, saves and high scores. Plays on desktop and touch devices.">
 <meta name="twitter:image" content="https://crystal-caves.re-cycledair.com/social-card.png">
 <meta name="theme-color" content="#111111">
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="favicon-192.png" type="image/png" sizes="192x192">
+<link rel="icon" href="favicon-512.png" type="image/png" sizes="512x512">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
   html,body { margin:0; background:#111; color:#ddd; font-family:monospace; }
-  #wrap { display:flex; flex-direction:column; align-items:center; padding:12px; }
-  #stage { display:flex; align-items:center; justify-content:center; line-height:0; }
-  #stage canvas { image-rendering:pixelated; width:960px; height:600px;
+  body { overscroll-behavior:none; touch-action:manipulation; }
+  #wrap { display:flex; flex-direction:column; align-items:center;
+          padding:12px; min-height:100vh; min-height:100dvh;
+          box-sizing:border-box; }
+  #stage { position:relative; display:flex; align-items:center;
+           justify-content:center; line-height:0; width:100%;
+           max-width:min(960px, calc((100vh - 120px) * 1.6));
+           aspect-ratio:16/10; }
+  #stage canvas { image-rendering:pixelated; width:100%; height:100%;
                   background:#000; border:1px solid #444; }
   #stage:fullscreen, #stage:-webkit-full-screen {
-    width:100vw; height:100vh; background:#000;
+    width:100vw; height:100vh; background:#000; max-width:none;
   }
   #stage:fullscreen canvas, #stage:-webkit-full-screen canvas {
     width:min(100vw, 160vh); height:min(100vh, 62.5vw); border:0;
   }
   #bar { margin-top:10px; width:100%; max-width:960px; }
-  #tools { display:flex; justify-content:center; margin-bottom:8px; }
-  #fsBtn { font:inherit; font-size:13px; color:#ddd; background:#262626;
-           border:1px solid #5a5a5a; border-bottom-width:3px; border-radius:4px;
-           padding:2px 12px 3px; cursor:pointer; }
-  #fsBtn:hover { background:#333; }
+  #tools { display:flex; justify-content:center; gap:8px; margin-bottom:8px;
+           flex-wrap:wrap; }
+  #fsBtn, #touchToggle { font:inherit; font-size:13px; color:#ddd;
+           background:#262626; border:1px solid #5a5a5a;
+           border-bottom-width:3px; border-radius:4px; padding:2px 12px 3px;
+           cursor:pointer; }
+  #fsBtn:hover, #touchToggle:hover { background:#333; }
   #fsBtn:disabled { opacity:.5; cursor:default; }
   #diag { margin-top:6px; font-size:11px; color:#777; }
+
+  /* ---- touch controls -------------------------------------------------- */
+  #touch-controls {
+    position:absolute; bottom:0; left:0; right:0;
+    display:flex; justify-content:space-between; pointer-events:none;
+    padding:8px; padding-bottom:calc(8px + env(safe-area-inset-bottom));
+    box-sizing:border-box;
+  }
+  .touch-pad { display:flex; gap:8px; pointer-events:auto; }
+  .touch-btn {
+    width:56px; height:56px; border-radius:50%;
+    background:rgba(255,255,255,0.12);
+    border:2px solid rgba(255,255,255,0.25);
+    color:rgba(255,255,255,0.7); font-size:20px;
+    display:flex; align-items:center; justify-content:center;
+    touch-action:none; user-select:none; -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent; cursor:pointer;
+  }
+  .touch-btn.active {
+    background:rgba(255,255,255,0.3);
+    border-color:rgba(255,255,255,0.5);
+  }
+  #touch-keys {
+    position:absolute; top:0; left:0; right:0;
+    display:flex; justify-content:center; gap:4px; pointer-events:none;
+    padding:4px; padding-top:calc(4px + env(safe-area-inset-top));
+  }
+  #touch-keys .touch-key {
+    pointer-events:auto; min-width:40px; height:28px; border-radius:4px;
+    background:rgba(255,255,255,0.12);
+    border:1px solid rgba(255,255,255,0.25);
+    color:rgba(255,255,255,0.7); font-size:12px;
+    touch-action:manipulation;
+  }
+  #touch-keys .touch-key.active { background:rgba(255,255,255,0.3); }
+  #touch-keyboard {
+    position:fixed; bottom:0; left:0; right:0;
+    background:rgba(20,20,20,0.95); border-top:1px solid #444;
+    padding:4px; padding-bottom:calc(4px + env(safe-area-inset-bottom));
+    display:grid; grid-template-columns:repeat(10, 1fr); gap:2px;
+    z-index:20; transform:translateY(100%); pointer-events:none;
+    transition:transform 0.2s ease;
+  }
+  #touch-keyboard.open { transform:translateY(0); pointer-events:auto; }
+  #touch-keyboard button {
+    height:36px; font:inherit; font-size:14px; background:#333; color:#ddd;
+    border:1px solid #555; border-radius:4px; touch-action:manipulation;
+  }
+
+  /* ---- immersive (iOS fallback when the Fullscreen API is absent) ----- */
+  body.immersive #bar, body.immersive #diag { display:none; }
+  body.immersive #wrap { padding:0; }
+  body.immersive #stage {
+    max-width:none; width:100vw; height:100vh; height:100dvh;
+  }
+  body.immersive #stage canvas {
+    width:min(100vw, 160vh); height:min(100vh, 62.5vw); border:0;
+  }
 </style>
 </head>
 <body>
 <div id="wrap">
   <div id="stage">
     <canvas id="cv" width="320" height="200"></canvas>
+    <div id="touch-controls" hidden>
+      <div id="touch-pad-left" class="touch-pad">
+        <button class="touch-btn" data-action="left" aria-label="Move left">◀</button>
+        <button class="touch-btn" data-action="right" aria-label="Move right">▶</button>
+      </div>
+      <div id="touch-pad-right" class="touch-pad">
+        <button class="touch-btn" data-action="jump" aria-label="Jump">▲</button>
+        <button class="touch-btn" data-action="fire" aria-label="Fire">●</button>
+      </div>
+    </div>
+    <div id="touch-keys" hidden>
+      <button class="touch-key" data-key="27">Esc</button>
+      <button class="touch-key" data-key="13">Enter</button>
+      <button class="touch-key" data-key="315">Help</button>
+      <button class="touch-key" data-key="112">Pause</button>
+    </div>
   </div>
   <div id="bar">
     <div id="tools">
       <button id="fsBtn" type="button" aria-label="Toggle fullscreen">Fullscreen</button>
+      <button id="touchToggle" type="button" aria-label="Toggle touch controls">Touch controls</button>
     </div>
     <div id="legend"></div>
   </div>
   <div id="diag">loading...</div>
 </div>
+<div id="touch-keyboard"></div>
 <script src="keymap.js"></script>
 <script src="legend.js"></script>
 <script src="persist.js"></script>
 <script src="sound_synth.js"></script>
 <script src="audio.js"></script>
+<script src="touch.js"></script>
 <script>
 (() => {
   const W = 320, H = 200;
@@ -120,20 +212,27 @@
 
     /* Modern host convenience: fullscreen only the game stage, leaving the
      * page chrome and legend outside the element.  The request stays in the
-     * click's user gesture, so the audio unlock happens afterwards. */
+     * click's user gesture, so the audio unlock happens afterwards.
+     * iOS Safari has no element Fullscreen API, so the button falls back to a
+     * CSS-only immersive mode there. */
     const fsRequest = stage.requestFullscreen || stage.webkitRequestFullscreen;
     const fsEnabled = document.fullscreenEnabled !== false &&
                       document.webkitFullscreenEnabled !== false;
+    fsBtn.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') ev.stopPropagation();
+    });
+    fsBtn.addEventListener('keyup', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') ev.stopPropagation();
+    });
     if (!fsRequest || !fsEnabled) {
-      fsBtn.disabled = true;
-      fsBtn.title = 'Fullscreen is not supported by this browser';
+      fsBtn.textContent = 'Immersive';
+      fsBtn.title = 'Toggle immersive mode';
+      fsBtn.addEventListener('click', () => {
+        document.body.classList.toggle('immersive');
+        audio.unlock();
+        fsBtn.blur();
+      });
     } else {
-      fsBtn.addEventListener('keydown', (ev) => {
-        if (ev.key === 'Enter' || ev.key === ' ') ev.stopPropagation();
-      });
-      fsBtn.addEventListener('keyup', (ev) => {
-        if (ev.key === 'Enter' || ev.key === ' ') ev.stopPropagation();
-      });
       fsBtn.addEventListener('click', () => {
         try {
           if (fullscreenElement()) {
@@ -373,6 +472,25 @@
         e.cc_input_scan(e.cc_shell_key_for_action(i), 0);
     });
 
+    // ---- touch layer ----------------------------------------------------
+    const touch = CCTouch.attach({
+      stage, canvas: cv,
+      controls: document.getElementById('touch-controls'),
+      keys: document.getElementById('touch-keys'),
+      keyboard: document.getElementById('touch-keyboard'),
+      toggle: document.getElementById('touchToggle'),
+      keymap: KEY,
+      onInputSet: (flag, pressed) => e.cc_input_set(flag, pressed),
+      onShellKey: (key) => e.cc_shell_key(key),
+      getShellState: () => e.cc_shell_state(),
+      releaseAll: () => {
+        e.cc_input_set(0x338E, 0);
+        e.cc_input_set(0x338F, 0);
+        e.cc_input_set(0x338B, 0);
+        e.cc_input_set(0x3390, 0);
+      }
+    });
+
     // ---- sound event pump ----------------------------------------------
     function pumpSound() {
       const n = e.cc_sound_event_count();
@@ -502,6 +620,7 @@
         stepTicks: (n) => e.cc_shell_step_ticks(n),
         step,
         render,
+        touch,
         handleRequest,
         fbHash,
         nonBlack,

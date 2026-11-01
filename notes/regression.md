@@ -76,6 +76,21 @@ the message window and asserts the resulting player movement; it fails on
 0 px of movement (keydown dropped) or ~44 px of phantom drift (keyup
 dropped).
 
+## Touch controls
+
+`wasm/touch.js` translates pointer events into the same `cc_input_set()` and
+`cc_shell_key()` calls the keyboard and gamepad paths use.  The virtual pad
+drives the four action flags; the soft-keyboard strip and slide-up keyboard
+send shell keys; a tap on the canvas sends Enter on the read-only "any key"
+states.  Visibility is auto-detected from the pointer type and can be toggled,
+with the choice persisted under `cc1.touch.v1`.
+
+`make test-browser` runs a second Playwright context with `hasTouch: true` and
+an emulated phone viewport.  It drives real pointer events on the pad buttons
+and soft keyboard, checks that the player moves and fires, starts a new game
+from the menu, advances the logo screen with a canvas tap, and toggles the pad
+off and on.  Desktop checks are unchanged.
+
 ## Build size and frame budget
 
 The shipped `make clang` build uses `-Oz`: about 152 KB versus 180 KB at

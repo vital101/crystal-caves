@@ -411,6 +411,120 @@ function startServer() {
 
     check(pageErrors.length === 0,
       `no page errors${pageErrors.length ? ': ' + pageErrors.join('; ') : ''}`);
+
+    // ---- mobile / touch context ------------------------------------------
+    const mobileContext = await browser.newContext({
+      viewport: { width: 844, height: 390 },
+      hasTouch: true,
+      isMobile: true,
+      deviceScaleFactor: 2,
+    });
+    const mobilePage = await mobileContext.newPage();
+    const mobileErrors = [];
+    mobilePage.on('pageerror', (err) => mobileErrors.push(String(err)));
+
+    await mobilePage.goto(base + '/game.html?test=1', { waitUntil: 'load' });
+    await mobilePage.waitForFunction(
+      () => window.__cc && window.__cc.ready, null, { timeout: 30000 });
+
+    const mState = () => mobilePage.evaluate(() => window.__cc.state());
+    const mPlayer = () => mobilePage.evaluate(() => window.__cc.player());
+    const mAmmo = () => mobilePage.evaluate(() => window.__cc.ammo());
+    const mStep = (n) => mobilePage.evaluate((n) => window.__cc.step(n), n);
+    const mRender = () => mobilePage.evaluate(() => window.__cc.render());
+
+    const tapCanvas = async () => {
+      await mobilePage.evaluate(() => {
+        const cv = document.getElementById('cv');
+        cv.dispatchEvent(new PointerEvent('pointerdown', {
+          bubbles: true, pointerId: 1, pointerType: 'touch'
+        }));
+        window.__cc.touch.update();
+      });
+      await mRender();
+    };
+
+    const touchVisible = await mobilePage.evaluate(() => {
+      const c = document.getElementById('touch-controls');
+      return c && !c.hidden;
+    });
+    check(touchVisible, 'touch controls auto-detect on a phone viewport');
+
+    await tapCanvas();
+    check((await mState()) === 15, 'canvas tap advances the logo screen');
+    await tapCanvas();
+    check((await mState()) === 2, 'canvas tap advances the attract screen');
+
+    const keyboardOpen = await mobilePage.evaluate(() => {
+      const k = document.getElementById('touch-keyboard');
+      return k && k.classList.contains('open');
+    });
+    check(keyboardOpen, 'soft keyboard opens on the menu');
+
+    await mobilePage.evaluate(() => {
+      const k = document.getElementById('touch-keyboard');
+      const n = [...k.querySelectorAll('button')]
+        .find((b) => b.textContent === 'N');
+      if (n) n.dispatchEvent(new PointerEvent('pointerdown', {
+        bubbles: true, pointerId: 2, pointerType: 'touch'
+      }));
+      window.__cc.touch.update();
+    });
+    await mRender();
+    check((await mState()) === 3, 'soft keyboard N starts a new game');
+
+    for (let i = 0; i < 8 && (await mState()) === 3; i++) await tapCanvas();
+    check((await mState()) === 4, 'intro story reaches the game on touch');
+
+    const rightBtn = await mobilePage.evaluate(() => {
+      const b = document.querySelector(
+        '#touch-controls .touch-btn[data-action="right"]');
+      const r = b.getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    });
+    await mobilePage.mouse.move(rightBtn.x, rightBtn.y);
+    await mobilePage.mouse.down();
+    const mStart = await mPlayer();
+    await mStep(10);
+    await mobilePage.mouse.up();
+    const mAfter = await mPlayer();
+    check(mAfter[0] > mStart[0], 'touch right pad moves the player');
+
+    const fireBtn = await mobilePage.evaluate(() => {
+      const b = document.querySelector(
+        '#touch-controls .touch-btn[data-action="fire"]');
+      const r = b.getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    });
+    const ammo0m = await mAmmo();
+    await mobilePage.mouse.move(fireBtn.x, fireBtn.y);
+    await mobilePage.mouse.down();
+    await mStep(2);
+    await mobilePage.mouse.up();
+    const ammo1m = await mAmmo();
+    check(ammo1m === ammo0m - 1, 'touch fire pad consumes ammo');
+
+    await mobilePage.evaluate(() => {
+      document.getElementById('touchToggle').click();
+    });
+    const hiddenAfterToggle = await mobilePage.evaluate(() => {
+      const c = document.getElementById('touch-controls');
+      return c && c.hidden;
+    });
+    check(hiddenAfterToggle, 'touch toggle hides the controls');
+
+    await mobilePage.evaluate(() => {
+      document.getElementById('touchToggle').click();
+    });
+    const visibleAgain = await mobilePage.evaluate(() => {
+      const c = document.getElementById('touch-controls');
+      return c && !c.hidden;
+    });
+    check(visibleAgain, 'touch toggle shows the controls again');
+
+    check(mobileErrors.length === 0,
+      `no mobile page errors${mobileErrors.length ? ': ' + mobileErrors.join('; ') : ''}`);
+    await mobileContext.close();
   } finally {
     await browser.close();
     server.close();

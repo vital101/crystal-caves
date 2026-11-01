@@ -101,6 +101,21 @@ def scale_nearest(rows, factor, bg=None):
     return out
 
 
+def centered_icon(size, rows, bg):
+    """Centre the 16x16 sprite in a size x size opaque square."""
+    scale = (size - SIZE) // SIZE
+    if scale < 1:
+        scale = 1
+    pad = (size - SIZE * scale) // 2
+    blank = [bg + (255,)] * size
+    out = [list(blank) for _ in range(pad)]
+    for row in scale_nearest(rows, scale, bg=bg + (255,)):
+        out.append([bg + (255,)] * pad + row
+                   + [bg + (255,)] * (size - pad - len(row)))
+    out += [list(blank) for _ in range(size - len(out))]
+    return out
+
+
 def png_bytes(rows):
     h, w = len(rows), len(rows[0])
 
@@ -212,21 +227,16 @@ def main():
     # iOS composites transparency over black; keep the tab-bar colour instead.
     # Largest integer scale that still leaves a margin, so the rounded-corner
     # mask iOS applies does not clip Milo's head or feet.
-    scale = (TOUCH_SIZE - SIZE) // SIZE          # 10x at 180 px -> 160 px art
-    pad = (TOUCH_SIZE - SIZE * scale) // 2
-    blank = [TOUCH_BG + (255,)] * TOUCH_SIZE
-    touch = [list(blank) for _ in range(pad)]
-    for row in scale_nearest(rows, scale, bg=TOUCH_BG + (255,)):
-        touch.append([TOUCH_BG + (255,)] * pad + row
-                     + [TOUCH_BG + (255,)] * (TOUCH_SIZE - pad - len(row)))
-    touch += [list(blank) for _ in range(TOUCH_SIZE - len(touch))]
-    write_png(base("apple-touch-icon.png"), touch)
+    write_png(base("apple-touch-icon.png"), centered_icon(TOUCH_SIZE, rows, TOUCH_BG))
+    write_png(base("favicon-192.png"), centered_icon(192, rows, TOUCH_BG))
+    write_png(base("favicon-512.png"), centered_icon(512, rows, TOUCH_BG))
 
     with open(base("favicon.svg"), "wb") as f:
         f.write(svg_bytes(px, pal))
 
     print("wrote favicon.ico, favicon-16.png, favicon-32.png, "
-          "apple-touch-icon.png, favicon.svg to %s (block %d shape 0x%02X)"
+          "apple-touch-icon.png, favicon-192.png, favicon-512.png, "
+          "favicon.svg to %s (block %d shape 0x%02X)"
           % (args.outdir, PLAYER_BLOCK, shape))
 
     if args.preview:

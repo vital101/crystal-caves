@@ -33,10 +33,14 @@ COPY wasm/game.html \
      wasm/persist.js \
      wasm/sound_synth.js \
      wasm/audio.js \
+     wasm/touch.js \
+     wasm/manifest.webmanifest \
      wasm/favicon.ico \
      wasm/favicon.svg \
      wasm/favicon-16.png \
      wasm/favicon-32.png \
+     wasm/favicon-192.png \
+     wasm/favicon-512.png \
      wasm/apple-touch-icon.png \
      wasm/social-card.png \
      /srv/

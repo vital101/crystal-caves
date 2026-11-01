@@ -88,6 +88,27 @@ On macOS, holding Ctrl and pressing Left/Right triggers the system Spaces
 shortcut. Use Space or Up Arrow to jump when steering through the air with
 arrow keys.
 
+### Touch controls
+
+On phones and tablets the page adds a semi-transparent virtual pad: ◀ ▶ at the
+bottom left and JUMP/FIRE at the bottom right. A soft-keyboard strip (Esc,
+Enter, Help, Pause) stays visible in menus and text entry, and a compact
+on-screen keyboard slides up for save slots and high-score name entry.
+Tapping the canvas advances the read-only "any key" screens (logo, story,
+messages, pause, high scores, ending).
+
+The controls auto-detect a coarse pointer and can be toggled from the button
+next to Fullscreen. The choice is remembered in `localStorage`
+(`cc1.touch.v1`), separate from the `CC1.CFG`-equivalent config.
+
+On iOS Safari, where the element Fullscreen API is unavailable, the button
+becomes an **Immersive** toggle that hides the page chrome. Adding the page to
+the Home Screen (via `manifest.webmanifest`) gives a chromeless standalone app.
+
+Known limits: iOS mutes WebAudio when the ringer switch is on; the in-browser
+URL bar cannot be hidden on iOS (use Add to Home Screen); key redefinition on
+touch uses the on-screen keyboard keys only.
+
 ### Browser substitutions
 
 DOS file I/O, BBS dialling and ordering are replaced by the original text
