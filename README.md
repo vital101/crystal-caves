@@ -63,7 +63,9 @@ This copies the portable assets from `../out/portable/` into `wasm/assets/` and
 produces `wasm/render.wasm` (about 155 KB at `-Oz`).
 
 `wasm/play.html` is a developer level-select harness.  `wasm/index.html` is a
-minimal renderer smoke page.
+minimal renderer smoke page.  `make social-card` regenerates
+`wasm/social-card.png` (1200x630) from the original title screen for link
+previews.
 
 ## Controls
 
@@ -98,10 +100,10 @@ therefore completely stateless — all player progress stays in the browser.
 
 The repo ships a `Dockerfile` that builds the wasm module with Debian
 `clang`/`lld` and serves it from `nginx:alpine`.  Only `game.html`, its four
-JS adapters, the favicon set, `render.wasm` and `assets/` are copied into the
-runtime image; no toolchain, test data or original EXE is present in the
-result.  That is about 1.6 MB of game files on top of `nginx:alpine`
-(≈65 MB total).
+JS adapters, the favicon set, the link-preview card, `render.wasm` and
+`assets/` are copied into the runtime image; no toolchain, test data or
+original EXE is present in the result.  That is about 1.6 MB of game files on
+top of `nginx:alpine` (≈65 MB total).
 
 Dokku auto-detects the root `Dockerfile` and needs no ports configured: the
 image exposes `80`, so the host's nginx proxies straight to it.

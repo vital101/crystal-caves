@@ -80,6 +80,10 @@ assets/sound.json: ../out/portable/sound.json
 favicon:
 	$(PYTHON) ../tools/make_favicon.py
 
+# 1200x630 Open Graph card from the original title screen (link previews).
+social-card:
+	$(PYTHON) ../tools/make_social_card.py
+
 # Regenerate the portable intermediate from the committed extracted assets.
 data:
 	$(PYTHON) ../tools/make_startup_data.py
@@ -281,4 +285,4 @@ test-all: test-data test-render-all test-view test-objects test-gameplay test-in
 clean:
 	rm -f $(OUT) app.js app.wasm out_wasm_level*.png oracle_level*.json
 
-.PHONY: clang emcc assets favicon data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-oracle-menus test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update perf test-all clean
+.PHONY: clang emcc assets favicon social-card data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-oracle-menus test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update perf test-all clean

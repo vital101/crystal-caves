@@ -38,6 +38,7 @@ COPY wasm/game.html \
      wasm/favicon-16.png \
      wasm/favicon-32.png \
      wasm/apple-touch-icon.png \
+     wasm/social-card.png \
      /srv/
 COPY --from=build /src/wasm/render.wasm /srv/render.wasm
 COPY --from=build /src/wasm/assets/ /srv/assets/

@@ -212,6 +212,7 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 | `tools/export_assets.py` | Portable level/GFX/font asset export |
 | `tools/export_shell_assets.py` | PCX screens, MNI banks, shell text/key/high-score export |
 | `tools/make_favicon.py` | Milo favicon set from GFX block 6 shape 0x19 (`make favicon`) |
+| `tools/make_social_card.py` | 1200x630 Open Graph card from the title screen (`make social-card`) |
 | `tools/oracle_shell.py` | Real HUD + text-window oracle (`notes/hud_fixtures.json`, `notes/text_fixtures.json`) |
 | `tools/shell_exactness.py` | P5.R5 shell exactness capture (`notes/shell_exactness_fixtures.json`, high-score/keymap fixtures) |
 | `tools/make_shell_exact_data.py` | Generate `wasm/shell_exact_data.h` from exactness fixtures |
@@ -256,6 +257,8 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - `wasm/game.html` — full shell page
 - `wasm/favicon.ico`, `favicon.svg`, `favicon-16/32.png`,
   `apple-touch-icon.png` — Milo favicon set (`make favicon`)
+- `wasm/social-card.png` — 1200x630 Open Graph link-preview card
+  (`make social-card`)
 - `wasm/text.c/h`, `wasm/shell.c/h`, `wasm/render.h` — Phase 5 code
 - `wasm/sound.c/h`, `wasm/sound_data.h`, `wasm/sound_synth.js`, `wasm/audio.js` — Phase 6 sound
 - `wasm/test_browser.js` / `wasm/browser_expectations.json` — Phase 8 headless browser smoke
