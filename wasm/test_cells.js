@@ -230,6 +230,21 @@ function applySeed(want, seed) {
       compare(want, `${sc.name} frame ${f + 1}`);
     }
   }
+  // 0xEAEA: an expired gravity timer calls 0x0FC5:0xBAF4 to flip gravity
+  // back.  This is not covered by the fixture file because the timer is
+  // advanced by the HUD (cc_hud_tick), not by cc_objects_step_full().
+  e.cc_objects_init(5);
+  e.cc_sound_log_clear();
+  e.cc_global_set(0xA100, 1);
+  e.cc_global_set(0xA0C4, -1);
+  e.cc_global_set(0x5132, -1);
+  e.cc_objects_step_full();
+  if ((e.cc_global_get(0x5132) & 0xffff) !== 1)
+    fail("gravity expiry", `gravity_scale=${e.cc_global_get(0x5132)} (expected 1)`);
+  if ((e.cc_global_get(0xA100) & 0xffff) !== 0)
+    fail("gravity expiry", `a100=${e.cc_global_get(0xA100)} (expected 0)`);
+  console.log("PASS: expired gravity timer restores normal gravity");
+
   if (failures) {
     console.error(`\n${failures} mismatch(es) over ${frameCount} frames`);
     process.exit(1);

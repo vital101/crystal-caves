@@ -3836,7 +3836,13 @@ static void cc_fire_timers(void) {
 /* 0xEAEA: status/invulnerability timers. */
 static void cc_status_timers(void) {
     if (S->a0f8 != 0 && (int16_t)S->power_timer <= -1) S->a0f8 = 0;
-    if (S->g_a100 != 0 && (int16_t)S->power_timer <= -1) S->g_a100 = 0;
+    if (S->g_a100 != 0 && (int16_t)S->power_timer <= -1) {
+        /* 0xEB0E: lcall 0x0FC5:0xBAF4.  The original flips gravity back when
+         * the shared power timer expires (0x1B744 is the same toggle the
+         * gravity switch uses). */
+        helper_toggle_gravity();
+        S->g_a100 = 0;
+    }
 
     if (S->status_30b != 0 && S->g_2f2 < OBJ_MAX) {
         ObjectEntry *o = &S->obj[S->g_2f2];
