@@ -34,7 +34,7 @@ are separate and need `tools/requirements.txt`.
 | Shell timing / story / high scores | `test-exactness` | `notes/shell_exactness_fixtures.json`, `notes/hiscore_fixtures.json` | `test_exactness.js` | yes |
 | DOS scan-code key map | `test-exactness` → `test-keymap` | `notes/keymap_fixtures.json` | `test_keymap.js` | yes (via exactness) |
 | Sound driver / synth / shell | `test-sound` | `notes/sound_fixtures.json`, `notes/sound_synth_fixtures.json`, `notes/sound_shell_fixtures.json` | `test_sound.js`, `test_sound_shell.js` | yes |
-| Browser smoke | `test-browser` | `wasm/browser_expectations.json` | `test_browser.js` (Playwright) | no (separate CI job) |
+| Browser smoke | `test-browser` | `wasm/browser_expectations.json` + message trigger | `test_browser.js` (Playwright) | no (separate CI job) |
 | Frame budget / wasm size | `perf` | `wasm/perf_baseline.json` | `measure_perf.js` | no (CI summary) |
 Oracle regeneration (not part of `test-all`; requires `tools/requirements.txt`):
 
@@ -57,6 +57,24 @@ running the inert fallback.
 per-run dumps produced by `tools/emulate_game.py`; they are gitignored and
 not used by any test.  `out/oracle_L*.png` are the committed static
 references.
+
+## Keyboard input across modal windows
+
+The original polls the live keyboard state every frame, so action keys are
+never "lost" to a modal: a direction held through a message/pause/help is
+still held when play resumes, and a direction released during it is not.
+`game.html` therefore latches bound action keys on any non-text-entry
+`keydown` and always forwards `keyup` releases, regardless of shell state.
+
+Regression: releasing the walk key while the locked-exit
+`message_more_crystals` window is up used to drop the release, leaving the
+direction latched.  Because the walk routine applies left and right in the
+same frame, pressing the opposite key produced two cancelling moves and Mylo
+appeared glued to the door until the key was pressed and released again.
+`test_browser.js` arms a locked exit cell, holds/releases a direction across
+the message window and asserts the resulting player movement; it fails on
+0 px of movement (keydown dropped) or ~44 px of phantom drift (keyup
+dropped).
 
 ## Build size and frame budget
 

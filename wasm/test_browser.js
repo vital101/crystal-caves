@@ -18,6 +18,12 @@ const path = require('path');
 const ROOT = __dirname;
 const UPDATE = process.argv.includes('--update');
 const EXPECT_FILE = path.join(ROOT, 'browser_expectations.json');
+// Message block ids come from the exported text table so inserting blocks
+// cannot silently shift the expected id (same derivation as test_messages.js).
+const blockTable = JSON.parse(
+  fs.readFileSync(path.join(ROOT, '..', 'out', 'portable', 'shell_text.json')));
+const BLOCK = {};
+blockTable.blocks.forEach((b, i) => { BLOCK[b.id] = i; });
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -214,6 +220,81 @@ function startServer() {
     const ammo1 = await page.evaluate(() => window.__cc.ammo());
     check(ammo1 === ammo0 - 1, `fire consumes ammo (${ammo0} -> ${ammo1})`);
     check((await state()) === 4, 'still in game after movement and fire');
+
+    // ---- locked-exit message must not latch movement --------------------
+    // The original polls the live keyboard every frame, so a direction held
+    // through the "Don't give up now Mylo" exit message is still held when
+    // play resumes, and a direction released during the message is not.
+    // Dropping those events glued Mylo to the door: the stale direction and
+    // the key the player pressed to walk away cancelled each other out.
+    const EXIT_CELL = [30, 20];
+    const cellByte = (c, r, o) => page.evaluate(([c, r, o]) =>
+      window.__cc.exports.cc_cell_byte(c, r, o), [c, r, o]);
+    const cellSet = (c, r, o, v) => page.evaluate(([c, r, o, v]) =>
+      window.__cc.exports.cc_cell_set(c, r, o, v), [c, r, o, v]);
+    const setWord = async (c, r, off, val) => {
+      await cellSet(c, r, off, val & 0xFF);
+      await cellSet(c, r, off + 1, (val >> 8) & 0xFF);
+    };
+    const globalGet = (off) => page.evaluate((off) =>
+      window.__cc.exports.cc_global_get(off), off);
+    const globalSet = (off, v) => page.evaluate(([off, v]) =>
+      window.__cc.exports.cc_global_set(off, v), [off, v]);
+    const fireCellEvent = (x, y) => page.evaluate(([x, y]) =>
+      window.__cc.exports.cc_test_cell_event(x, y), [x, y]);
+
+    const cellImage = [];
+    for (let off = 0; off < 20; off++)
+      cellImage.push(await cellByte(EXIT_CELL[0], EXIT_CELL[1], off));
+    const savedA106 = await globalGet(0xA106);
+    const savedA0F5 = await globalGet(0xA0F5);
+
+    const armExitMessage = async () => {
+      await setWord(EXIT_CELL[0], EXIT_CELL[1], 0x06, 0x0D); /* w3 exit tile */
+      await setWord(EXIT_CELL[0], EXIT_CELL[1], 0x0A, 0x0C); /* w5 exit layer */
+      await globalSet(0xA0F5, 0);              /* exit still locked */
+      await globalSet(0xA106, 1);              /* exit-open latch */
+      await fireCellEvent(EXIT_CELL[0] * 16 + 3, EXIT_CELL[1] * 16);
+    };
+
+    // Stand at the hub start, where walking right is already proven clear.
+    await globalSet(0x4611, 32);
+    await globalSet(0x4613, 64);
+    await step(2);
+
+    // A direction pressed while the message is up dismisses it and walks.
+    await armExitMessage();
+    check((await state()) === 14, 'locked exit opens the more-crystals message');
+    check((await page.evaluate(() =>
+      window.__cc.exports.cc_shell_message_block())) ===
+      BLOCK.message_more_crystals, 'exit message is the more-crystals block');
+    const pressed0 = await player();
+    await page.keyboard.down('ArrowRight');
+    check((await state()) === 4, 'direction key dismisses the exit message');
+    await step(10);
+    const pressed1 = await player();
+    check(pressed1[0] > pressed0[0],
+      `direction pressed in the message walks on return (${pressed0[0]} -> ${pressed1[0]})`);
+    await page.keyboard.up('ArrowRight');
+    await step(2);
+
+    // A direction released while the message is up must not stay latched.
+    await page.keyboard.down('ArrowRight');
+    await armExitMessage();
+    check((await state()) === 14, 'exit message re-opens');
+    await page.keyboard.up('ArrowRight');
+    await press('Escape');
+    check((await state()) === 4, 'exit message dismisses back to the game');
+    const latched0 = await player();
+    await step(12);
+    const latched1 = await player();
+    check(latched1[0] === latched0[0],
+      `direction released in the message stays released (${latched0[0]} -> ${latched1[0]})`);
+
+    for (let off = 0; off < 20; off++)
+      await cellSet(EXIT_CELL[0], EXIT_CELL[1], off, cellImage[off]);
+    await globalSet(0xA106, savedA106);
+    await globalSet(0xA0F5, savedA0F5);
 
     // ---- save -> reload -> restore through localStorage ------------------
     await press('Escape');
