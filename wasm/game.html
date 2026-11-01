@@ -8,21 +8,20 @@
   #wrap { display:flex; flex-direction:column; align-items:center; padding:12px; }
   canvas { image-rendering:pixelated; width:960px; height:600px; background:#000;
            border:1px solid #444; }
-  #bar { margin-top:8px; font-size:13px; color:#aaa; }
-  button { font:inherit; margin:0 4px; }
-  #diag { margin-top:4px; font-size:11px; color:#666; }
+  #bar { margin-top:10px; width:100%; max-width:960px; }
+  #diag { margin-top:6px; font-size:11px; color:#777; }
 </style>
 </head>
 <body>
 <div id="wrap">
   <canvas id="cv" width="320" height="200"></canvas>
   <div id="bar">
-    <button id="png">Save PNG</button>
-    <span id="hint">Click the game, then use the keyboard. Arrows move; Ctrl, Space or Up jump; Alt fire; Esc/F1 help; P pause. Keys can be redefined from help.</span>
+    <div id="legend"></div>
   </div>
   <div id="diag">loading...</div>
 </div>
 <script src="keymap.js"></script>
+<script src="legend.js"></script>
 <script src="persist.js"></script>
 <script src="sound_synth.js"></script>
 <script src="audio.js"></script>
@@ -33,12 +32,18 @@
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
   const diag = document.getElementById('diag');
+  const legend = document.getElementById('legend');
 
   const KEY = {
     BACKSPACE: 8, ENTER: 13, ESC: 27, SPACE: 32, F1: 0x13B,
   };
   const STEP_MS = 1000 * 8 * 0x2147 / 1193182;
   const TICK_MS = 1000 / 140.06;
+
+  /* DOS binds jump to Ctrl, but on macOS Ctrl+Arrow is the Spaces shortcut,
+   * so an arrow pressed while jump is held never reaches the page.  Space
+   * and Up also jump unless the player bound them to another action. */
+  const JUMP_ALIAS_SCANS = [0x39, 0x48];   /* Space, Up arrow */
 
   (async () => {
     const load = (p) => fetch(p + '?v=' + Date.now()).then(r => r.arrayBuffer());
@@ -99,6 +104,18 @@
     CCPersist.loadHighScores(localStorage, e, copyString);
     CCPersist.saveConfig(localStorage, cfg);
 
+    /* The four action keys are redefinable from the help screen, so the
+     * legend is rebuilt from the live bindings instead of listing them. */
+    function renderLegend() {
+      CCLegend.render(legend, {
+        keyForAction: (action) => e.cc_shell_key_for_action(action),
+        actionForScan: (scan) => e.cc_shell_action_for_scan(scan),
+        jumpAliases: JUMP_ALIAS_SCANS,
+        note: 'Click the game once to enable sound; every control is on the keyboard.'
+      });
+    }
+    renderLegend();
+
     function persistConfig() {
       const c = {
         version: 2,
@@ -109,6 +126,7 @@
       };
       audio.setEnabled(c.sound);
       CCPersist.saveConfig(localStorage, c);
+      renderLegend();
     }
     function persistHighScores() {
       CCPersist.saveHighScores(localStorage, e);
@@ -155,6 +173,7 @@
       else if (kind === 2)
         ok = CCPersist.loadSlot(localStorage, slot, e, stateP, stateSize, mem, true) ? 1 : 0;
       e.cc_shell_request_done(ok);
+      if (kind === 2 && ok) renderLegend();
       render();
     }
 
@@ -162,12 +181,8 @@
     let running = true;
     function sendShellKey(ch) { e.cc_shell_key(ch); }
 
-    /* DOS binds jump to Ctrl, but on macOS Ctrl+Arrow is the Spaces shortcut,
-     * so an arrow pressed while jump is held never reaches the page.  Space
-     * and Up also jump unless the player bound them to another action. */
     const JUMP_FLAG = 0x338B;
     const JUMP_ACTION = 2;
-    const JUMP_ALIAS_SCANS = [0x39, 0x48];   /* Space, Up arrow */
     const jumpHeld = new Set();
 
     function isJumpScan(scan) {
@@ -255,14 +270,6 @@
       for (let i = 0; i < 4; i++)
         e.cc_input_scan(e.cc_shell_key_for_action(i), 0);
     });
-
-    document.getElementById('png').onclick = () => {
-      const c = document.createElement('canvas'); c.width = W; c.height = H;
-      const cc = c.getContext('2d');
-      const fb = e.cc_view_framebuffer();
-      cc.putImageData(new ImageData(new Uint8ClampedArray(e.memory.buffer, fb, W * H * 4), W, H), 0, 0);
-      const a = document.createElement('a'); a.download = 'crystal-caves.png'; a.href = c.toDataURL(); a.click();
-    };
 
     // ---- sound event pump ----------------------------------------------
     function pumpSound() {
@@ -426,10 +433,11 @@
       return;
     }
 
-    diag.textContent = 'ready — ' + e.cc_shell_state();
+    diag.hidden = true;
     renderShell();
     requestAnimationFrame(frame);
   })().catch((err) => {
+    diag.hidden = false;
     diag.textContent = 'error: ' + err.message;
     console.error(err);
   });

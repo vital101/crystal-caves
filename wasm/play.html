@@ -10,7 +10,7 @@
   #msg { margin-top:6px; color:#ff6; font-weight:bold; }
   #diag { margin-top:6px; color:#0f0; font-family:monospace; font-size:11px; word-break:break-all; }
   button { font:inherit; margin:0 4px; }
-  .hint { color:#888; font-size:13px; margin-top:6px; }
+  #legend { margin-top:8px; }
 </style>
 </head>
 <body>
@@ -23,9 +23,9 @@
 <button id="render">Reload Level</button>
 <button id="run">Pause</button>
 <button id="step">Step Frame</button>
-<button id="saveFrame">Save Frame (PNG)</button>
-<div class="hint">Arrows: move / jump &nbsp;•&nbsp; Ctrl: jump &nbsp;•&nbsp; Alt: fire</div>
+<div id="legend"></div>
 <script src="keymap.js"></script>
+<script src="legend.js"></script>
 <script>
 (async () => {
   const W = 320, H = 200;
@@ -65,6 +65,12 @@
   e.cc_set_palette(palP);
 
   e.cc_shell_init();
+  /* Dev page: the shell's fixed keys (help/pause) do not apply here. */
+  CCLegend.render(document.getElementById('legend'), {
+    keyForAction: (action) => e.cc_shell_key_for_action(action),
+    actionForScan: (scan) => e.cc_shell_action_for_scan(scan),
+    fixed: []
+  });
   window.addEventListener('keydown', (ev) => {
     const scan = CCKeymap.scanFromEvent(ev);
     if (scan) { ev.preventDefault(); e.cc_input_scan(scan, 1); }
@@ -72,20 +78,6 @@
   window.addEventListener('keyup', (ev) => {
     const scan = CCKeymap.scanFromEvent(ev);
     if (scan) { ev.preventDefault(); e.cc_input_scan(scan, 0); }
-  });
-
-  document.getElementById('saveFrame').addEventListener('click', () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = W; canvas.height = H;
-    const cctx = canvas.getContext('2d');
-    const fb = e.cc_view_framebuffer();
-    const img = cctx.createImageData(W, H);
-    img.data.set(new Uint8ClampedArray(e.memory.buffer, fb, W * H * 4));
-    cctx.putImageData(img, 0, 0);
-    const link = document.createElement('a');
-    link.download = `frame_level${level}.png`;
-    link.href = canvas.toDataURL();
-    link.click();
   });
 
   let level = 2;

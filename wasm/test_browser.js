@@ -155,6 +155,40 @@ function startServer() {
   try {
     await boot(true);                           // clean localStorage
 
+    // ---- page chrome ----------------------------------------------------
+    const chrome = await page.evaluate(() => {
+      const legend = document.getElementById('legend');
+      return {
+        caps: [...legend.querySelectorAll('kbd')].map((k) => k.textContent),
+        actions: [...legend.querySelectorAll('.cc-act')].map((k) => k.textContent),
+        title: legend.querySelector('.cc-note')?.textContent || '',
+        overflow: legend.scrollWidth > legend.clientWidth + 1,
+        hasPng: !!document.getElementById('png'),
+      };
+    });
+    check(chrome.caps.join(' ') === '← → Ctrl Space ↑ Alt F1 Esc P',
+          'key legend shows the default bindings');
+    check(chrome.actions.join('|') === 'Move|Jump|Fire|Help & key setup|Pause',
+          'key legend groups the actions');
+    check(/Click the game once/.test(chrome.title), 'key legend keeps the sound note');
+    check(!chrome.overflow, 'key legend fits the page');
+    check(!chrome.hasPng, 'Save PNG button is gone');
+    const fireKeys = () => page.evaluate(() => {
+      const group = [...document.querySelectorAll('#legend .cc-grp')]
+        .find((g) => g.querySelector('.cc-act').textContent === 'Fire');
+      return [...group.querySelectorAll('kbd')].map((k) => k.textContent).join(',');
+    });
+    await page.evaluate(() => {
+      window.__cc.exports.cc_shell_set_key(3, 0x2C);  /* fire -> Z */
+      window.__cc.saveConfig();
+    });
+    check((await fireKeys()) === 'Z', 'key legend follows a rebound fire key');
+    await page.evaluate(() => {
+      window.__cc.exports.cc_shell_set_key(3, 0x38);  /* back to Alt */
+      window.__cc.saveConfig();
+    });
+    check((await fireKeys()) === 'Alt', 'key legend returns to the default binding');
+
     // ---- boot / shell screens ------------------------------------------
     check((await state()) === 0, 'boots to the logo screen');
     check((await nonBlack()) > 1000, 'logo screen renders content');
