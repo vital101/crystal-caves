@@ -314,7 +314,7 @@ void cc_jump_vertical(void) {
             g_state.jump_phase = 0;
             g_state.g_513d = 0;
             g_state.g_5142 = 0;
-            play_sound(1);
+            play_sound(SND_JUMP);
         } else {
             if (!g_state.g_a0b8) {
                 g_state.g_a0fc = 1;

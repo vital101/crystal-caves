@@ -398,7 +398,7 @@ void load_level(int level, int new_game, int fresh_image, int sound_start) {
     cc_sound_reset();
     /* 0xCF18: the level-start effect (ID 0x24).  Shell story backgrounds
      * opt out so the finale effect (0x1A) can play instead. */
-    if (sound_start) cc_sound_play(36);
+    if (sound_start) cc_sound_play(SND_LEVEL_START);
     if (new_game) apply_startup_state();
     /* Fresh loads use the baked image.  Real transitions preserve the source
      * memory and replay only the bytes the loader actually writes.  A debug

@@ -15,6 +15,7 @@
 #include "render.h"
 #include "objects.h"
 #include "sound.h"
+#include "sound_ids.h"
 #include "shell_text_data.h"
 #include "shell_exact_data.h"
 

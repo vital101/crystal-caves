@@ -39,7 +39,7 @@ void h_companion_spawner(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     if (r == 1 && idx > 0) {
         ObjectEntry *c = &g_state.obj[idx - 1];
         if (c->ready != 0) {
-            play_sound(0x10);
+            play_sound(SND_COMPANION);
             c->ready = 0;
             c->state = 0;
             c->x = o->x;
@@ -196,7 +196,7 @@ void h_group_move3(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         ObjectEntry *prev = &g_state.obj[idx - 1];
         if (dir == o->vx && prev->ready != 0) {
             if (cc_rng_next(100) < 5) {
-                play_sound(0x10);
+                play_sound(SND_COMPANION);
                 prev->vx = dir;
                 prev->ready = 0;
                 prev->state = 0;
@@ -272,7 +272,7 @@ void dig_cell(int col, int row) {
     cell_put(col, row, CELL_FLAG_SOLID_LO, 0);
     cell_word_put(col, row, CELL_W0, 0xFFA1);
     mark_redraw((int16_t)(col * 16), (int16_t)(row * 16));
-    play_sound(0x11);
+    play_sound(SND_DIG);
 }
 
 /* 0x1F9A:0x251D: slot-2 slash update (also the a0f8 direct path for kind 2). */
@@ -331,7 +331,7 @@ void h_dug_block(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         int row = (o->y + 8) / 16 + 1;
         int i = 0;
 
-        play_sound(0x1C);
+        play_sound(SND_FALLING_BLOCK);
         o->block = 1;
         o->shape = 0x1D;
         o->anim_shape_b = 0x1D;

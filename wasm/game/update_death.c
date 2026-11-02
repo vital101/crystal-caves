@@ -240,7 +240,7 @@ void cc_player_draw_sound(void) {
     ObjectEntry *p = &g_state.obj[1];
     if (p->state == 0 || p->state == 2) return;
     if (g_state.g_a0ea >= 4) return;
-    play_sound(7);
+    play_sound(SND_PLAYER_DRAW);
 }
 
 /* ---------------------------------------------------------------- collision

@@ -277,7 +277,7 @@ void h_move_v_paired(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         cell_byte_cur((o->x + 2) / 16, (o->y + 0x11) / 16, CELL_FLAG_EXIT_LO) != 0) {
         cell_put((o->x + 2) / 16, (o->y + 8) / 16, CELL_FLAG_EXIT_LO, 1);
         cell_put((child->x + 2) / 16, (child->y + 8) / 16, CELL_FLAG_EXIT_LO, 1);
-        play_sound(0x17);
+        play_sound(SND_MULTIPART_MOVE);
         o->state = 1;
         child->state = 1;
         o->vy = 0;
@@ -322,7 +322,7 @@ void h_move_v_formation(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             o->speed = 2;
             o->phase = 1;
             o->subtype = 0;
-            play_sound(0x17);
+            play_sound(SND_MULTIPART_MOVE);
         }
     }
     if (o->phase == 0) {
@@ -339,7 +339,7 @@ void h_move_v_formation(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         } else if ((int16_t)o->subtype == 3) {
             for (k = 0; k <= 3; k++)
                 g_state.obj[idx + k].y = (int16_t)(g_state.obj[idx + k].y + 3);
-            play_sound(0x17);
+            play_sound(SND_MULTIPART_MOVE);
         }
     }
     for (k = 0; k <= 3; k++)
@@ -373,7 +373,7 @@ void h_projectile(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     if (o->phase == 0 &&
         (cell_byte_cur((x + 8) / 16, (y + 3) / 16, CELL_FLAG_SOLID) ||
          cell_byte_cur((x + 8) / 16, (y + 0xc) / 16, CELL_FLAG_SOLID))) {
-        play_sound(0x17);
+        play_sound(SND_MULTIPART_MOVE);
         if (cc_rng_next(1000) < 0x64) {
             o->shape = 0x2e;
             dir = proximity_obj_dir(1, 0x20, 0x130, idx);
@@ -423,7 +423,7 @@ void h_spawn_projectile(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     if (proximity_test(2, 0x70, x, y) == 1 && idx > 0) {
         child = &g_state.obj[idx - 1];
         if (child->ready != 0) {
-            play_sound(0x10);
+            play_sound(SND_COMPANION);
             child->vx = 0;
             child->vy = 1;
             child->kind = 0x37;

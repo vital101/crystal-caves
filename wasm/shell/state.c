@@ -84,7 +84,7 @@ void set_pages(const int *blocks, int n, int return_state,
     cursor_reset();
     if (story_level >= 0) cc_objects_init_silent(story_level);
     /* Text-window page effect (0x23); 0x10930 plays it after drawing a page. */
-    cc_sound_play(35);
+    cc_sound_play(SND_TEXT_PAGE);
 }
 
 void set_story_pages(const ShellPageDef *pages, int n,
@@ -100,7 +100,7 @@ void set_story_pages(const ShellPageDef *pages, int n,
     cursor_reset();
     if (story_level >= 0) cc_objects_init_silent(story_level);
     /* 0x10930: page/window effect. */
-    cc_sound_play(35);
+    cc_sound_play(SND_TEXT_PAGE);
 }
 
 void show_block(int block, int return_state) {
@@ -112,19 +112,19 @@ void show_block(int block, int return_state) {
 /* ID 0x22: high-score display/entry screen. */
 void enter_high_score(void) {
     g_shell_state = CC_SHELL_HISCORE;
-    cc_sound_play(34);
+    cc_sound_play(SND_HISCORE_NAME);
 }
 
 /* ID 0x20: CC1.END ending screen. */
 void enter_ending(void) {
     g_shell_state = CC_SHELL_ENDING;
-    cc_sound_play(32);
+    cc_sound_play(SND_FANFARE);
 }
 
 /* 0xFB33: play the all-caves fanfare (ID 0x1A), wait for [0x513F] to clear,
  * then enter the ending screen. */
 void begin_ending_fanfare(void) {
-    cc_sound_play(26);
+    cc_sound_play(SND_FINALE_FANFARE);
     if (cc_sound_playing()) {
         g_wait_sound = 1;
         g_pending_ending = 1;
@@ -173,7 +173,7 @@ void cc_shell_init(void) {
     cc_shell_set_key(2, g_keys[2]);
     cc_shell_set_key(3, g_keys[3]);
     /* 0x1AAEB: the Apogee logo plays ID 32 before its 721-tick hold. */
-    cc_sound_play(32);
+    cc_sound_play(SND_FANFARE);
 }
 
 int cc_shell_state(void) { return g_shell_state; }

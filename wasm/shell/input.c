@@ -51,7 +51,7 @@ static void start_video_prompt(int return_state) {
     clear_pages();
     g_shell_state = CC_SHELL_VIDEO;
     cursor_reset();
-    cc_sound_play(35);
+    cc_sound_play(SND_TEXT_PAGE);
 }
 
 /* "Quit to DOS (Y-N)" confirm (0x114A1): Y sets [0x3396]=1, N/Esc clear it. */
@@ -60,7 +60,7 @@ static void start_quit_confirm(int return_state) {
     clear_pages();
     g_shell_state = CC_SHELL_QUIT_CONFIRM;
     cursor_reset();
-    cc_sound_play(35);
+    cc_sound_play(SND_TEXT_PAGE);
 }
 
 static void start_instructions(int return_state) {
@@ -102,7 +102,7 @@ static int text_key(int key) {
     g_page_index++;
     int pages = g_story_pages ? g_story_page_count : g_page_count;
     if (g_page_index < pages) {
-        cc_sound_play(35);
+        cc_sound_play(SND_TEXT_PAGE);
         return 1;
     }
     if (g_story_kind == 1) {
@@ -183,7 +183,7 @@ int cc_shell_key(int key) {
         case CC_SHELL_MENU: {
             int k = lower(key);
             if (k == 'n' || key == CC_KEY_ENTER || key == CC_KEY_SPACE) {
-                cc_sound_play(33);
+                cc_sound_play(SND_MENU_ACCEPT);
                 start_intro_story();
             } else if (k == 'r') {
                 g_return_state = CC_SHELL_MENU;
@@ -231,7 +231,7 @@ int cc_shell_key(int key) {
                 g_name[0] = 0;
                 g_name_len = 0;
                 g_shell_state = CC_SHELL_NAME_ENTRY;
-                cc_sound_play(34);
+                cc_sound_play(SND_HISCORE_NAME);
             } else {
                 enter_high_score();
             }

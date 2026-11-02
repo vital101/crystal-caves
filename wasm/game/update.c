@@ -144,7 +144,7 @@ void door_entry_frame(void) {
     mark_redraw((int16_t)(g_state.exit_col * 16), (int16_t)(g_state.exit_row * 16));
     g_state.spawn_col_override = (uint16_t)(g_state.exit_col - (int16_t)g_state.move_dir);
     g_state.spawn_row_override = (uint16_t)g_state.exit_row;
-    play_sound(0x14);
+    play_sound(SND_DOOR);
     g_state.jump_flag = 0;
     g_state.g_a0f6 = 0;
     c1 = g_state.exit_col + 1;
@@ -185,7 +185,7 @@ void exit_to_hub_frame(void) {
     g_state.player_x = (int16_t)(g_state.player_x + 1);
     if (g_state.player_x != (int16_t)((g_state.exit_col + 1) * 16)) return;
 
-    play_sound(0x14);
+    play_sound(SND_DOOR);
     g_state.jump_flag = 0;
     g_state.g_a0f6 = 0;
     cave_flag_set(g_state.next_level, 0);
@@ -200,7 +200,7 @@ void exit_to_hub_frame(void) {
     g_state.next_level = 0;
     /* 0xD4CC loads the hub without touching [0x2B72]/[0x2B74]: they still
      * hold the hub-door entry cell, so the player returns beside that door. */
-    play_sound(0x14);
+    play_sound(SND_DOOR);
     load_arg(0);
 }
 
@@ -209,7 +209,7 @@ void cc_fire(void) {
     ObjectEntry *a = &g_state.obj[2];
 
     if (g_state.g_509c <= 0 && g_state.power_shot == 0) {
-        play_sound(0x1E);
+        play_sound(SND_SHOT_DRY);
         if (!g_state.input_left && !g_state.input_right) {
             g_state.shape_player = (g_state.move_dir == 1) ? 0x1B : 0x1C;
             g_state.anim_timer = 1;
@@ -222,7 +222,7 @@ void cc_fire(void) {
 
     a->vx = (int16_t)g_state.move_dir;
     if (g_state.power_shot) {
-        play_sound(0x0F);
+        play_sound(SND_POWER_SHOT);
         a->speed = 8;
         a->anim_last = 4;
         a->subtype = 2;
@@ -236,7 +236,7 @@ void cc_fire(void) {
             g_state.shape_player = 0x1C;
         }
     } else {
-        play_sound(0x0E);
+        play_sound(SND_SHOT);
         a->speed = 4;
         a->anim_last = 6;
         a->subtype = 1;
@@ -292,7 +292,7 @@ void cc_fire_timers(void) {
                 g_state.g_a0d0 = (uint16_t)(c1 * 16 - 1);
                 g_state.g_a0d2 = (uint16_t)(r1 * 16 - 1);
                 mark_redraw((int16_t)g_state.g_a0d0, (int16_t)g_state.g_a0d2);
-                play_sound(0x0C);
+                play_sound(SND_NEW_ITEM);
             }
         } else if ((int16_t)g_state.g_a0ce > 0x19E) {
             int c1 = (int)g_state.g_a0d0 / 16 + 1;
@@ -307,7 +307,7 @@ void cc_fire_timers(void) {
     }
 
     if ((int16_t)g_state.next_level > 0 && g_state.g_a0cc == 0 && g_state.g_a0f5 == 0) {
-        play_sound(0x20);
+        play_sound(SND_FANFARE);
         if (g_state.g_a107 && (int16_t)g_state.next_level > 0) {
             helper_a110_clear();
             g_state.g_a107 = 0;

@@ -13,6 +13,7 @@
 #include "startup_data.h"
 #include "shell.h"
 #include "sound.h"
+#include "sound_ids.h"
 
 #define OBJ_MAX 60
 #define SCREEN_W 320

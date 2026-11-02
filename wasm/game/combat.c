@@ -41,7 +41,7 @@ void transform_object(ObjectEntry *o) {
             o->state = 0;
             o->handler = HDL_DISSOLVE;
             o->handler_seg = 0x1F9A;
-            play_sound(6);
+            play_sound(SND_HIT);
             break;
         default:
             break;
@@ -167,7 +167,7 @@ void slash_state1(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         return;
     }
 
-    play_sound(6);
+    play_sound(SND_HIT);
     o->ready = 1;
 
     if (kind == 0x1A || kind == 0x23 || kind == 0x17 || kind == 0x0C ||
@@ -263,7 +263,7 @@ void slash_state1(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         return;
     }
     if (kind == 0x2C) {
-        play_sound(0x0D);
+        play_sound(SND_HIT_2C);
         col = o->x / 16 + 1;
         row = o->y / 16 + 1;
         cell_border_word_put(col, row, CELL_W7, g_state.g_512c + 9);
@@ -291,7 +291,7 @@ void slash_state2(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         return;
 
     if (kind == 0x2C) {
-        play_sound(0x0D);
+        play_sound(SND_HIT_2C);
         o->ready = 1;
         col = o->x / 16 + 1;
         row = o->y / 16 + 1;
@@ -309,7 +309,7 @@ void slash_state2(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         spawn_effect(0x1C, (int16_t)((o->x + 8) / 16),
                      (int16_t)(o->y / 16));
         score_add(0x1388, 0);
-        play_sound(6);
+        play_sound(SND_HIT);
         return;
     }
     if (kind == 0x2F) {
@@ -323,7 +323,7 @@ void slash_state2(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             spawn_effect(0x1C, (int16_t)((p->x + 8) / 16),
                          (int16_t)(p->y / 16));
         score_add(0x1388, 0);
-        play_sound(6);
+        play_sound(SND_HIT);
         return;
     }
     if (kind == 0x33) {
@@ -343,7 +343,7 @@ void slash_state2(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             o->ready = 0;
             o->hit_flag = 1;
         }
-        play_sound(6);
+        play_sound(SND_HIT);
         return;
     }
     if (kind == 0x30) {
@@ -355,7 +355,7 @@ void slash_state2(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             spawn_effect(0x1C, (int16_t)((p->x + 8) / 16),
                          (int16_t)(p->y / 16));
         score_add(0x1388, 0);
-        play_sound(6);
+        play_sound(SND_HIT);
         return;
     }
     if (kind == 0x39) {
@@ -365,13 +365,13 @@ void slash_state2(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         spawn_effect(0x1C, (int16_t)((o->x + 8) / 16),
                      (int16_t)(o->y / 16));
         score_add(0x1388, 0);
-        play_sound(6);
+        play_sound(SND_HIT);
         return;
     }
     o->ready = 1;
     spawn_template_2002d(2);
     score_add(100, 0);
-    play_sound(6);
+    play_sound(SND_HIT);
 }
 
 /* 0x20406: player/object interaction. */
@@ -416,13 +416,13 @@ void player_interact(ObjectEntry *o, int16_t x, int16_t y) {
             g_state.obj[1].hit_flag = 0;
             o->ready = 1;
             spawn_effect(0x18, (int16_t)(x / 16), (int16_t)(y / 16));
-            play_sound(8);
+            play_sound(SND_CRYSTAL);
             score_add(1000, 0);
             break;
         default:
             break;
     }
-    if ((int16_t)g_state.g_5124 > 0) play_sound(5);
+    if ((int16_t)g_state.g_5124 > 0) play_sound(SND_HURT);
 
 slash_gate:
     slash_gate(o, x, y);

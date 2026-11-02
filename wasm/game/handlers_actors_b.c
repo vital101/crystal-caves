@@ -59,7 +59,7 @@ void h_boss_formation(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     dir = proximity_obj_dir(1, 6, 0x130, idx);
     if ((int16_t)o->vx == dir && idx >= 2 &&
         g_state.obj[idx - 2].ready != 0 && cc_rng_next(100) < 5) {
-        play_sound(0x10);
+        play_sound(SND_COMPANION);
         g_state.obj[idx - 2].vx = (uint16_t)dir;
         g_state.obj[idx - 2].ready = 0;
         g_state.obj[idx - 2].state = 0;
@@ -97,7 +97,7 @@ void h_walk_respawn(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     dir = proximity_obj_dir(1, 6, 0x130, idx);
     if ((int16_t)o->vx == dir && idx > 0 &&
         g_state.obj[idx - 1].ready != 0 && cc_rng_next(100) < 5) {
-        play_sound(0x10);
+        play_sound(SND_COMPANION);
         g_state.obj[idx - 1].vx = (uint16_t)dir;
         g_state.obj[idx - 1].ready = 0;
         g_state.obj[idx - 1].state = 0;
@@ -157,7 +157,7 @@ void h_move_v_prox(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         o->vy = (uint16_t)proximity_test(2, 0x70, x, y);
     }
     if ((int16_t)o->vy != 1) return;
-    if (o->state == 3) play_sound(0x19);
+    if (o->state == 3) play_sound(SND_MOVER_WAKE);
     o->state = 0;
     o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
     player_interact(o, (int16_t)o->x, (int16_t)o->y);
@@ -216,7 +216,7 @@ void h_lever_switch(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         if ((int16_t)o->anim_frame < (int16_t)o->anim_last)
             o->anim_frame = (uint16_t)(o->anim_frame + 1u);
         if ((int16_t)o->anim_frame > 1 && (int16_t)o->anim_frame < 4)
-            play_sound(0x1f);
+            play_sound(SND_SWITCH_ACTIVATE);
         player_interact(o, (int16_t)o->x, (int16_t)o->y);
         return;
     }
@@ -255,7 +255,7 @@ void h_move_v_companion(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     player_interact(o, (int16_t)o->x, (int16_t)o->y);
     if (cell_byte_cur((o->x + 2) / 16, (o->y + 8) / 16, CELL_FLAG_SOLID) != 0 ||
         cell_byte_cur((o->x + 2) / 16, (o->y + 8) / 16, CELL_FLAG_EXIT_LO) != 0) {
-        play_sound(0x18);
+        play_sound(SND_MOVER_STOP);
         o->ready = 1;
     }
 }
@@ -351,7 +351,7 @@ void h_companion_pair(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     n = &g_state.obj[idx + 1];
     dir = proximity_obj_dir(1, 6, 0x130, idx);
     if ((int16_t)n->vx == dir && n->state == 2) {
-        play_sound(0x10);
+        play_sound(SND_COMPANION);
         n->ready = 0;
         n->state = 0;
         if ((int16_t)n->vx == 1)
