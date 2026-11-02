@@ -41,11 +41,11 @@ GAME_SRC = game/state.c game/physics.c game/handlers_platforms.c game/combat.c \
 SHELL_SRC = shell/state.c shell/input.c shell/render.c shell/hiscore.c \
 	    shell/config.c shell/persist.c shell/scroll.c shell/shell.c
 TEXT_SRC = text/font.c text/window.c text/hud.c text/text.c
-RENDER_SRC = render/render.c
+RENDER_SRC = render/render.c render/runtime.c render/blit.c render/screens.c
 
 clang: assets $(OUT)
 
-$(OUT): render/render.c render.h $(GAME_SRC) game/game_internal.h objects.h objects_data.h cells_data.h startup_data.h $(TEXT_SRC) text/font.h text/window.h text/hud.h text.h $(SHELL_SRC) shell/shell_internal.h shell.h shell_text_data.h shell_exact_data.h sound.c sound.h sound_data.h
+$(OUT): $(RENDER_SRC) render/render_internal.h render/runtime.h render/blit.h render/screens.h render.h $(GAME_SRC) game/game_internal.h objects.h objects_data.h cells_data.h startup_data.h $(TEXT_SRC) text/font.h text/window.h text/hud.h text.h $(SHELL_SRC) shell/shell_internal.h shell.h shell_text_data.h shell_exact_data.h sound.c sound.h sound_data.h
 	@test -x "$(LLVM)/clang" || { echo "clang not found at $(LLVM)/clang"; \
 	  echo "Install Homebrew LLVM (brew install llvm) or pass LLVM=/path/to/bin"; exit 1; }
 	$(LLVM)/clang --target=wasm32 -Oz -nostdlib -ffreestanding -fno-builtin -I. \
@@ -228,6 +228,16 @@ test-digest: clang
 test-digest-update: clang
 	node test_refactor_digest.js --update
 
+# Phase 2 characterization digests for the shell/text/render surface
+# (static/cell renders, view ops, text drawing, screens, credits scroll).
+# Goldens live in notes/refactor_render_digests.json; the Phase 0 file is
+# never touched here.
+test-render-digest: clang
+	node test_render_digest.js
+
+render-digest-update: clang
+	node test_render_digest.js --update
+
 # Source-size limits (Phase 0).  Warning-only until Phase 1/2 bring the files
 # under the limits; `lint-strict` is the flip-the-switch variant for CI.
 lint:
@@ -317,4 +327,4 @@ test-all: test-data test-render-all test-view test-objects test-gameplay test-in
 clean:
 	rm -f $(OUT) app.js app.wasm out_wasm_level*.png oracle_level*.json
 
-.PHONY: clang emcc assets favicon social-card data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-oracle-menus test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update test-digest test-digest-update lint lint-strict perf test-all clean
+.PHONY: clang emcc assets favicon social-card data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-oracle-menus test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update test-digest test-digest-update test-render-digest render-digest-update lint lint-strict perf test-all clean
