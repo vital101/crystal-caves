@@ -38,9 +38,13 @@ GAME_SRC = game/state.c game/physics.c game/handlers_platforms.c game/combat.c \
 	   game/api_accessors.c game/api_globals.c game/rng.c game/handlers_table.c \
 	   game/save_state.c
 
+SHELL_SRC = shell/shell.c
+TEXT_SRC = text/text.c
+RENDER_SRC = render/render.c
+
 clang: assets $(OUT)
 
-$(OUT): render.c render.h $(GAME_SRC) game/game_internal.h objects.h objects_data.h cells_data.h startup_data.h text.c text.h shell.c shell.h shell_text_data.h shell_exact_data.h sound.c sound.h sound_data.h
+$(OUT): render/render.c render.h $(GAME_SRC) game/game_internal.h objects.h objects_data.h cells_data.h startup_data.h text/text.c text.h shell/shell.c shell.h shell_text_data.h shell_exact_data.h sound.c sound.h sound_data.h
 	@test -x "$(LLVM)/clang" || { echo "clang not found at $(LLVM)/clang"; \
 	  echo "Install Homebrew LLVM (brew install llvm) or pass LLVM=/path/to/bin"; exit 1; }
 	$(LLVM)/clang --target=wasm32 -Oz -nostdlib -ffreestanding -fno-builtin -I. \
@@ -48,7 +52,7 @@ $(OUT): render.c render.h $(GAME_SRC) game/game_internal.h objects.h objects_dat
 	  -Werror=return-type \
 	  -Wl,--no-entry -Wl,--no-gc-sections -Wl,--stack-first -Wl,-z,stack-size=65536 \
 	  -Wl,--export-memory -Wl,--initial-memory=16777216 -Wl,-z,stack-size=65536 \
-	  $(foreach s,$(EXPORTS),-Wl,--export=$(s)) -o $(OUT) render.c $(GAME_SRC) text.c shell.c sound.c
+	  $(foreach s,$(EXPORTS),-Wl,--export=$(s)) -o $(OUT) $(RENDER_SRC) $(GAME_SRC) $(TEXT_SRC) $(SHELL_SRC) sound.c
 
 assets: assets/gfx.bin assets/levels.bin assets/palette.json assets/cells.bin assets/level_overlay.bin assets/screens.bin assets/mni_f1.bin assets/mni_f2.bin assets/mni_spl.bin assets/sound.json
 
@@ -108,7 +112,7 @@ startup:
 
 # Emscripten path (produces app.js + app.wasm)
 emcc: assets
-	$(EMCC) render.c $(GAME_SRC) text.c shell.c sound.c -O2 -I. -o app.js -s WASM=1 \
+	$(EMCC) $(RENDER_SRC) $(GAME_SRC) $(TEXT_SRC) $(SHELL_SRC) sound.c -O2 -I. -o app.js -s WASM=1 \
 	  -Werror=implicit-function-declaration -Werror=incompatible-pointer-types \
 	  -Werror=return-type \
 	  -s EXPORTED_FUNCTIONS='[$(foreach s,$(EXPORTS),_$(s)),_malloc,_free]' \
