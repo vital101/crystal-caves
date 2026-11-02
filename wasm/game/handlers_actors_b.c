@@ -253,8 +253,8 @@ void h_32f6(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
     anim_next(o);
     player_interact(o, (int16_t)o->x, (int16_t)o->y);
-    if (cell_byte_cur((o->x + 2) / 16, (o->y + 8) / 16, 0x11) != 0 ||
-        cell_byte_cur((o->x + 2) / 16, (o->y + 8) / 16, 0x12) != 0) {
+    if (cell_byte_cur((o->x + 2) / 16, (o->y + 8) / 16, CELL_FLAG_SOLID) != 0 ||
+        cell_byte_cur((o->x + 2) / 16, (o->y + 8) / 16, CELL_FLAG_EXIT_LO) != 0) {
         play_sound(0x18);
         o->ready = 1;
     }
@@ -262,8 +262,8 @@ void h_32f6(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 
 /* 0x1F9A:0x4145 (kind 0x23): bouncing adversary. */
 int cell_blocked_4145(int col, int row) {
-    return cell_byte_cur(col, row, 0x11) != 0 ||
-           cell_word_cur(col, row, 0x00) == 0xFFA0;
+    return cell_byte_cur(col, row, CELL_FLAG_SOLID) != 0 ||
+           cell_word_cur(col, row, CELL_W0) == 0xFFA0;
 }
 void h_4145(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
@@ -332,8 +332,8 @@ void h_48fe(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             anim_select_shape(o);
         }
     }
-    if (cell_byte_cur((x + 3) / 16, (y + 8) / 16, 0x11) ||
-        cell_byte_cur((x + 0xc) / 16, (y + 8) / 16, 0x11)) {
+    if (cell_byte_cur((x + 3) / 16, (y + 8) / 16, CELL_FLAG_SOLID) ||
+        cell_byte_cur((x + 0xc) / 16, (y + 8) / 16, CELL_FLAG_SOLID)) {
         o->vx = (int16_t)(-o->vx);
         anim_select_shape(o);
     }
@@ -363,9 +363,9 @@ void h_6458(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         o->phase = 1;
     }
     anim_next(o);
-    if (cell_byte_cur((x + 8) / 16, (y + 5) / 16, 0x11) ||
-        cell_byte_cur((x + 8) / 16, (y + 0xa) / 16, 0x11) ||
-        cell_byte_cur((x + 8) / 16, (y + 5) / 16, 0x12) != 0)
+    if (cell_byte_cur((x + 8) / 16, (y + 5) / 16, CELL_FLAG_SOLID) ||
+        cell_byte_cur((x + 8) / 16, (y + 0xa) / 16, CELL_FLAG_SOLID) ||
+        cell_byte_cur((x + 8) / 16, (y + 5) / 16, CELL_FLAG_EXIT_LO) != 0)
         o->vy = (int16_t)(-o->vy);
     o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
 }

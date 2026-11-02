@@ -84,22 +84,21 @@ void h_2176(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 
 /* 0x1FD4B: is this cell part of the level's collectible/base tile set? */
 int cell_type_collectible(int col, int row) {
-    int shape = cell_byte_cur(col, row, 0x04) |
-                (cell_byte_cur(col, row, 0x05) << 8);
+    int shape = cell_word_cur(col, row, CELL_W2);
     int base = g_state.g_5122;
     switch (g_state.g_511e) {
         case 4:
-            if (cell_byte_cur(col, row, 0x11) != 0) return 0;
+            if (cell_byte_cur(col, row, CELL_FLAG_SOLID) != 0) return 0;
             return shape == base || shape == base + 1 ||
                    shape == base + 4 || shape == base + 5;
         case 1:
             return shape == base;
         case 6:
-            if (cell_byte_cur(col, row, 0x11) != 0) return 0;
+            if (cell_byte_cur(col, row, CELL_FLAG_SOLID) != 0) return 0;
             return shape == base || shape == base + 1 || shape == base + 2 ||
                    shape == base + 4 || shape == base + 5 || shape == base + 6;
         case 8:
-            if (cell_byte_cur(col, row, 0x11) != 0) return 0;
+            if (cell_byte_cur(col, row, CELL_FLAG_SOLID) != 0) return 0;
             return shape >= base && shape <= base + 7;
         default:
             return 0;
@@ -108,10 +107,10 @@ int cell_type_collectible(int col, int row) {
 
 /* 0x200FE: terrain/cell test used by movers and slash paths. */
 int cell_test_200fe(int x, int y) {
-    if (cell_byte_cur((x + 3) / 16, (y + 8) / 16, 0x11) != 0) return 1;
-    if (cell_byte_cur((x + 0xC) / 16, (y + 8) / 16, 0x11) != 0) return 1;
+    if (cell_byte_cur((x + 3) / 16, (y + 8) / 16, CELL_FLAG_SOLID) != 0) return 1;
+    if (cell_byte_cur((x + 0xC) / 16, (y + 8) / 16, CELL_FLAG_SOLID) != 0) return 1;
     if (cell_type_collectible((x + 4) / 16, (y + 0x12) / 16) &&
-        cell_byte_cur((x + 8) / 16, (y + 0x12) / 16, 0x12) == 0)
+        cell_byte_cur((x + 8) / 16, (y + 0x12) / 16, CELL_FLAG_EXIT_LO) == 0)
         return 1;
     return 0;
 }
@@ -267,12 +266,11 @@ void h_3be8(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 
 /* Clear a dug cell: +0x06/+0x10/+0x11 and w0=0xFFA1, then redraw/sound. */
 void dig_cell(int col, int row) {
-    if (cell_byte_cur(col, row, 0x10) == 0) return;
-    cell_put(col, row, 0x06, 0);
-    cell_put(col, row, 0x11, 0);
-    cell_put(col, row, 0x10, 0);
-    cell_put(col, row, 0x00, 0xA1);
-    cell_put(col, row, 0x01, 0xFF);
+    if (cell_byte_cur(col, row, CELL_FLAG_SOLID_LO) == 0) return;
+    cell_put(col, row, CELL_W3, 0);
+    cell_put(col, row, CELL_FLAG_SOLID, 0);
+    cell_put(col, row, CELL_FLAG_SOLID_LO, 0);
+    cell_word_put(col, row, CELL_W0, 0xFFA1);
     mark_redraw((int16_t)(col * 16), (int16_t)(row * 16));
     play_sound(0x11);
 }
@@ -290,8 +288,8 @@ void h_251d(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     o->phase = (uint16_t)(o->phase + 1);
     anim_next(o);
 
-    if (cell_byte_cur(col, row, 0x11) != 0 ||
-        cell_byte_cur(col2, row2, 0x11) != 0) {
+    if (cell_byte_cur(col, row, CELL_FLAG_SOLID) != 0 ||
+        cell_byte_cur(col2, row2, CELL_FLAG_SOLID) != 0) {
         o->kind = 0x2B;
         o->handler = 0x2241;
         o->handler_seg = 0x1F9A;
@@ -314,9 +312,14 @@ int cell_border_byte(int col, int row, int off) {
 void cell_border_put(int col, int row, int off, int value) {
     cell_put(col - 1, row - 1, off, value);
 }
+int cell_border_word(int col, int row, int woff) {
+    return cell_word_cur(col - 1, row - 1, woff);
+}
+void cell_border_word_put(int col, int row, int woff, int value) {
+    cell_word_put(col - 1, row - 1, woff, value);
+}
 int cell_w0_is_dig(int col, int row) {
-    return cell_border_byte(col, row, 0x00) == 0xA1 &&
-           cell_border_byte(col, row, 0x01) == 0xFF;
+    return cell_border_word(col, row, CELL_W0) == (int)0xFFA1;
 }
 
 /* 0x1F9A:0x2241: dug-block placement and animation. */
@@ -339,7 +342,7 @@ void h_2241(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 
         if (o->vx == -1) {
             for (;;) {
-                if (cell_border_byte(col, row, 0x11) != 0) break;
+                if (cell_border_byte(col, row, CELL_FLAG_SOLID) != 0) break;
                 if (cell_w0_is_dig(col + 1, row)) break;
                 if (i >= 2) break;
                 col--;
@@ -347,13 +350,12 @@ void h_2241(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             }
             o->x = (int16_t)(col * 16);
             if (cell_w0_is_dig(col + 1, row)) {
-                cell_border_put(col + 1, row, 0x00, 0);
-                cell_border_put(col + 1, row, 0x01, 0);
+                cell_border_word_put(col + 1, row, CELL_W0, 0);
             }
             o->vx = 0;
         } else if (o->vx == 1) {
             for (;;) {
-                if (cell_border_byte(col, row, 0x11) != 0) break;
+                if (cell_border_byte(col, row, CELL_FLAG_SOLID) != 0) break;
                 if (cell_w0_is_dig(col - 1, row)) break;
                 if (i >= 3) break;
                 col++;
@@ -361,8 +363,7 @@ void h_2241(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             }
             o->x = (int16_t)((col - 2) * 16);
             if (cell_w0_is_dig(col - 1, row)) {
-                cell_border_put(col - 1, row, 0x00, 0);
-                cell_border_put(col - 1, row, 0x01, 0);
+                cell_border_word_put(col - 1, row, CELL_W0, 0);
             }
             o->vx = 0;
         }

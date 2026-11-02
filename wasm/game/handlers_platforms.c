@@ -282,26 +282,16 @@ void base_cell_stamp(int xcell, int ycell) {
     }
     if (g_state.g_30d) cache = 0xFFFF;
     g_state.g_2f6 = (uint16_t)cache;
-    cell_put(xcell, ycell, 0x00, 0);
-    cell_put(xcell, ycell, 0x01, 0);
-    cell_put(xcell, ycell, 0x02, cache & 0xFF);
-    cell_put(xcell, ycell, 0x03, (cache >> 8) & 0xFF);
-    cell_put(xcell, ycell, 0x04, shape & 0xFF);
-    cell_put(xcell, ycell, 0x05, (shape >> 8) & 0xFF);
-    cell_put(xcell, ycell, 0x06, 0);
-    cell_put(xcell, ycell, 0x07, 0);
-    cell_put(xcell, ycell, 0x08, g_state.g_2b8 & 0xFF);
-    cell_put(xcell, ycell, 0x09, (g_state.g_2b8 >> 8) & 0xFF);
-    cell_put(xcell, ycell, 0x0A, 0);
-    cell_put(xcell, ycell, 0x0B, 0);
-    cell_put(xcell, ycell, 0x0C, 0);
-    cell_put(xcell, ycell, 0x0D, 0);
-    cell_put(xcell, ycell, 0x0E, 0);
-    cell_put(xcell, ycell, 0x0F, 0);
-    cell_put(xcell, ycell, 0x10, 0);
-    cell_put(xcell, ycell, 0x11, 0);
-    cell_put(xcell, ycell, 0x12, 0);
-    cell_put(xcell, ycell, 0x13, 0);
+    cell_word_put(xcell, ycell, CELL_W0, 0);
+    cell_word_put(xcell, ycell, CELL_W1, (uint16_t)cache);
+    cell_word_put(xcell, ycell, CELL_W2, (uint16_t)shape);
+    cell_word_put(xcell, ycell, CELL_W3, 0);
+    cell_word_put(xcell, ycell, CELL_W4, g_state.g_2b8);
+    cell_word_put(xcell, ycell, CELL_W5, 0);
+    cell_word_put(xcell, ycell, CELL_W6, 0);
+    cell_word_put(xcell, ycell, CELL_W7, 0);
+    cell_word_put(xcell, ycell, CELL_W8, 0);
+    cell_word_put(xcell, ycell, CELL_W9, 0);
 }
 
 /* 0x1FFC8: walk the cursor back over reusable free slots. */

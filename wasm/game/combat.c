@@ -192,24 +192,17 @@ void slash_state1(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     if (kind == 0x09 || kind == 0x05) {
         col = o->x / 16 + 1;
         row = o->y / 16 + 1;
-        if (cell_border_byte(col, row + 1, 0x11) == 0 &&
-            cell_border_byte(col, row + 1, 0x12) == 0)
+        if (cell_border_byte(col, row + 1, CELL_FLAG_SOLID) == 0 &&
+            cell_border_byte(col, row + 1, CELL_FLAG_EXIT_LO) == 0)
             col--;
-        cell_border_put(col, row, 0x00, 0x9F);
-        cell_border_put(col, row, 0x01, 0xFF);
-        cell_border_put(col, row, 0x00, 0x9F);
-        cell_border_put(col, row, 0x01, 0xFF);
-        if (cell_border_byte(col, row, 0x0A) == 0 &&
-            cell_border_byte(col, row, 0x0B) == 0) {
-            cell_border_put(col, row, 0x0A, o->block & 0xFF);
-            cell_border_put(col, row, 0x0B, (o->block >> 8) & 0xFF);
-            cell_border_put(col, row, 0x06, kind == 0x09 ? 0x31 : 0x18);
-            cell_border_put(col, row, 0x07, 0);
+        cell_border_word_put(col, row, CELL_W0, 0xFF9F);
+        cell_border_word_put(col, row, CELL_W0, 0xFF9F);
+        if (cell_border_word(col, row, CELL_W5) == 0) {
+            cell_border_word_put(col, row, CELL_W5, o->block);
+            cell_border_word_put(col, row, CELL_W3, kind == 0x09 ? 0x31 : 0x18);
         } else {
-            cell_border_put(col, row, 0x0C, o->block & 0xFF);
-            cell_border_put(col, row, 0x0D, (o->block >> 8) & 0xFF);
-            cell_border_put(col, row, 0x0E, kind == 0x09 ? 0x31 : 0x18);
-            cell_border_put(col, row, 0x0F, 0);
+            cell_border_word_put(col, row, CELL_W6, o->block);
+            cell_border_word_put(col, row, CELL_W7, kind == 0x09 ? 0x31 : 0x18);
         }
         mark_redraw((int16_t)(col * 16), (int16_t)(row * 16));
         spawn_template_2002d(kind == 0x09 ? 1 : 2);
@@ -273,13 +266,8 @@ void slash_state1(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         play_sound(0x0D);
         col = o->x / 16 + 1;
         row = o->y / 16 + 1;
-        {
-            int v = g_state.g_512c + 9;
-            cell_border_put(col, row, 0x0E, v & 0xFF);
-            cell_border_put(col, row, 0x0F, (v >> 8) & 0xFF);
-        }
-        cell_border_put(col, row, 0x0C, 9);
-        cell_border_put(col, row, 0x0D, 0);
+        cell_border_word_put(col, row, CELL_W7, g_state.g_512c + 9);
+        cell_border_word_put(col, row, CELL_W6, 9);
         g_state.g_512c = (uint16_t)(g_state.g_512c + 1u);
         if (g_state.g_512c > 4) g_state.g_512c = 0;
         return;
@@ -307,13 +295,8 @@ void slash_state2(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         o->ready = 1;
         col = o->x / 16 + 1;
         row = o->y / 16 + 1;
-        {
-            int v = g_state.g_512c + 9;
-            cell_border_put(col, row, 0x0E, v & 0xFF);
-            cell_border_put(col, row, 0x0F, (v >> 8) & 0xFF);
-        }
-        cell_border_put(col, row, 0x0C, 9);
-        cell_border_put(col, row, 0x0D, 0);
+        cell_border_word_put(col, row, CELL_W7, g_state.g_512c + 9);
+        cell_border_word_put(col, row, CELL_W6, 9);
         g_state.g_512c = (uint16_t)(g_state.g_512c + 1u);
         if (g_state.g_512c > 4) g_state.g_512c = 0;
         return;

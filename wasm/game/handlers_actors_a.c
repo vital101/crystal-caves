@@ -83,7 +83,7 @@ void h_69d3(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         o->y = (int16_t)(o->y + (int16_t)o->speed);
     } else if ((int16_t)o->phase == 8) {
         o->ready = 1;
-        cell_word_put((int)o->x / 16, (int)o->y / 16, 0x06, o->anim_shape_b);
+        cell_word_put((int)o->x / 16, (int)o->y / 16, CELL_W3, o->anim_shape_b);
         mark_redraw(o->x, o->y);
         if (idx + 1 < OBJ_MAX) g_state.obj[idx + 1].state = 0;
     }
@@ -273,10 +273,10 @@ void h_2f83(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     child->y = (int16_t)(child->y + (int32_t)child->vy * child->speed);
     player_interact(o, (int16_t)o->x, (int16_t)o->y);
     player_interact(child, (int16_t)child->x, (int16_t)child->y);
-    if (cell_byte_cur((o->x + 2) / 16, (o->y + 0x11) / 16, 0x11) != 0 ||
-        cell_byte_cur((o->x + 2) / 16, (o->y + 0x11) / 16, 0x12) != 0) {
-        cell_put((o->x + 2) / 16, (o->y + 8) / 16, 0x12, 1);
-        cell_put((child->x + 2) / 16, (child->y + 8) / 16, 0x12, 1);
+    if (cell_byte_cur((o->x + 2) / 16, (o->y + 0x11) / 16, CELL_FLAG_SOLID) != 0 ||
+        cell_byte_cur((o->x + 2) / 16, (o->y + 0x11) / 16, CELL_FLAG_EXIT_LO) != 0) {
+        cell_put((o->x + 2) / 16, (o->y + 8) / 16, CELL_FLAG_EXIT_LO, 1);
+        cell_put((child->x + 2) / 16, (child->y + 8) / 16, CELL_FLAG_EXIT_LO, 1);
         play_sound(0x17);
         o->state = 1;
         child->state = 1;
@@ -315,8 +315,8 @@ void h_36b0(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     g_state.obj[idx + 1].state = 0xFFFF;
     g_state.obj[idx + 2].state = 0xFFFF;
     g_state.obj[idx + 3].state = 0xFFFF;
-    if (cell_byte_cur((x + 0x10) / 16, y / 16, 0x11) ||
-        cell_byte_cur((x + 0x10) / 16, (y + 0x1b) / 16, 0x11)) {
+    if (cell_byte_cur((x + 0x10) / 16, y / 16, CELL_FLAG_SOLID) ||
+        cell_byte_cur((x + 0x10) / 16, (y + 0x1b) / 16, CELL_FLAG_SOLID)) {
         o->vy = (int16_t)(-o->vy);
         if ((int16_t)o->vy == -1) {
             o->speed = 2;
@@ -351,8 +351,8 @@ void h_36b0(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 void h_4eeb(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     anim_next(o);
-    if (cell_byte_cur((x + 3) / 16, (y + 8) / 16, 0x11) ||
-        cell_byte_cur((x + 0xc) / 16, (y + 8) / 16, 0x11))
+    if (cell_byte_cur((x + 3) / 16, (y + 8) / 16, CELL_FLAG_SOLID) ||
+        cell_byte_cur((x + 0xc) / 16, (y + 8) / 16, CELL_FLAG_SOLID))
         o->vx = (int16_t)(-o->vx);
     o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
     player_interact(o, (int16_t)o->x, (int16_t)o->y);
@@ -371,8 +371,8 @@ void h_52e7(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         }
     }
     if (o->phase == 0 &&
-        (cell_byte_cur((x + 8) / 16, (y + 3) / 16, 0x11) ||
-         cell_byte_cur((x + 8) / 16, (y + 0xc) / 16, 0x11))) {
+        (cell_byte_cur((x + 8) / 16, (y + 3) / 16, CELL_FLAG_SOLID) ||
+         cell_byte_cur((x + 8) / 16, (y + 0xc) / 16, CELL_FLAG_SOLID))) {
         play_sound(0x17);
         if (cc_rng_next(1000) < 0x64) {
             o->shape = 0x2e;
@@ -442,8 +442,8 @@ void h_4c92(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             child->shape = 0x27;
         }
     }
-    if (cell_byte_cur((x + 3) / 16, (y + 8) / 16, 0x11) ||
-        cell_byte_cur((x + 0xc) / 16, (y + 8) / 16, 0x11))
+    if (cell_byte_cur((x + 3) / 16, (y + 8) / 16, CELL_FLAG_SOLID) ||
+        cell_byte_cur((x + 0xc) / 16, (y + 8) / 16, CELL_FLAG_SOLID))
         o->vx = (int16_t)(-o->vx);
     o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
     player_interact(o, (int16_t)o->x, (int16_t)o->y);

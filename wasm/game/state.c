@@ -122,6 +122,6 @@ void cave_flag_set(int idx, int value) {
  * the baked solid bitmap from cells_data.h. */
 int cell_solid_cur(int col, int row) {
     if (col < 0 || col >= CELL_COLS || row < 0 || row >= CELL_ROWS) return 1;
-    if (g_cells_asset) return g_state.cells[row][col][17] != 0;
+    if (g_cells_asset) return g_state.cells[row][col][CELL_FLAG_SOLID] != 0;
     return cc_cell_solid(g_state.cur_level, col, row);
 }

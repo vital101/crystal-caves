@@ -36,8 +36,8 @@ int cc_cell_byte(int col, int row, int off) {
     if (col < 0 || col >= CELL_COLS || row < 0 || row >= CELL_ROWS ||
         off < 0 || off >= 20) return -1;
     if (g_cells_asset) return g_state.cells[row][col][off];
-    if (off == 17) return cc_cell_solid(g_state.cur_level, col, row);
-    if (off == 19) return cc_cell_exit(g_state.cur_level, col, row);
+    if (off == CELL_FLAG_SOLID) return cc_cell_solid(g_state.cur_level, col, row);
+    if (off == CELL_FLAG_EXIT) return cc_cell_exit(g_state.cur_level, col, row);
     return 0;
 }
 void cc_cell_set(int col, int row, int off, int value) {

@@ -108,8 +108,8 @@ int count_crystal_cells(void) {
     int n = 0;
     for (int r = 0; r < CELL_ROWS; r++) {
         for (int c = 0; c < CELL_COLS; c++) {
-            int w6 = cell_word_cur(c, r, 0x0C);
-            int w7 = cell_word_cur(c, r, 0x0E);
+            int w6 = cell_word_cur(c, r, CELL_W6);
+            int w7 = cell_word_cur(c, r, CELL_W7);
             if (w6 == 0x0D && w7 >= 1 && w7 <= 4) n++;
         }
     }
@@ -134,7 +134,7 @@ void door_entry_frame(void) {
     g_state.exit_step = (uint16_t)(g_state.exit_step + 1u);
     if ((int16_t)g_state.exit_step < 3) {
         w3 = (int)g_state.exit_step + 0x0D;
-        cell_word_put(g_state.exit_col, g_state.exit_row, 0x06, w3);
+        cell_word_put(g_state.exit_col, g_state.exit_row, CELL_W3, w3);
         mark_redraw((int16_t)(g_state.exit_col * 16), (int16_t)(g_state.exit_row * 16));
         return;
     }
@@ -150,7 +150,7 @@ void door_entry_frame(void) {
     c1 = g_state.exit_col + 1;
     r1 = g_state.exit_row + 1;
     {
-        int arg = cell_word_cur(g_state.exit_col, g_state.exit_row, 0x00);
+        int arg = cell_word_cur(g_state.exit_col, g_state.exit_row, CELL_W0);
         g_state.next_level = (int16_t)arg;
         load_arg(arg);
     }
@@ -163,10 +163,10 @@ void exit_to_hub_frame(void) {
     int i;
     g_state.exit_step = (uint16_t)(g_state.exit_step + 1u);
     if ((int16_t)g_state.exit_step < 4) {
-        cell_word_put(g_state.exit_col, g_state.exit_row, 0x06,
+        cell_word_put(g_state.exit_col, g_state.exit_row, CELL_W3,
                       (uint16_t)(g_state.exit_step + 0x0D));
         mark_redraw((int16_t)(g_state.exit_col * 16), (int16_t)(g_state.exit_row * 16));
-        cell_word_put(g_state.exit_col, (int16_t)(g_state.exit_row + 1), 0x06,
+        cell_word_put(g_state.exit_col, (int16_t)(g_state.exit_row + 1), CELL_W3,
                       (uint16_t)(g_state.exit_step + 0x11));
         mark_redraw((int16_t)(g_state.exit_col * 16),
                     (int16_t)((g_state.exit_row + 1) * 16));
@@ -284,11 +284,11 @@ void cc_fire_timers(void) {
             int ry = (int)cc_rng_next(0xC8);
             int c1 = (rx + g_state.cam_x) / 16 + 1;
             int r1 = (ry + g_state.cam_y) / 16 + 1;
-            if (cell_word_raw(c1, r1, 0x0E) == 0 &&
-                cell_byte_cur(c1 - 1, r1 - 1, 0x11) == 0) {
+            if (cell_word_raw(c1, r1, CELL_W7) == 0 &&
+                cell_byte_cur(c1 - 1, r1 - 1, CELL_FLAG_SOLID) == 0) {
                 int shape = (int)cc_rng_next(3) + 0x25;
-                cell_word_raw_put(c1, r1, 0x0E, shape);
-                cell_word_raw_put(c1, r1, 0x0C, 1);
+                cell_word_raw_put(c1, r1, CELL_W7, shape);
+                cell_word_raw_put(c1, r1, CELL_W6, 1);
                 g_state.g_a0d0 = (uint16_t)(c1 * 16 - 1);
                 g_state.g_a0d2 = (uint16_t)(r1 * 16 - 1);
                 mark_redraw((int16_t)g_state.g_a0d0, (int16_t)g_state.g_a0d2);
@@ -299,7 +299,7 @@ void cc_fire_timers(void) {
             int r1 = (int)g_state.g_a0d2 / 16 + 1;
             g_state.g_a10b = 0;
             g_state.g_a0ce = 0;
-            cell_word_raw_put(c1, r1, 0x0E, 0);
+            cell_word_raw_put(c1, r1, CELL_W7, 0);
             mark_redraw((int16_t)g_state.g_a0d0, (int16_t)g_state.g_a0d2);
             g_state.g_a0d0 = 0xFFFF;
             g_state.g_a0d2 = 0xFFFF;
@@ -314,9 +314,9 @@ void cc_fire_timers(void) {
         }
         g_state.g_a0f5 = 1;
         cc_shell_notify_last_crystal();
-        cell_put(g_state.exit_col, g_state.exit_row, 0x11, 0);
-        cell_put(g_state.exit_col, (int16_t)(g_state.exit_row + 1), 0x11, 0);
-        cell_put(g_state.exit_col, g_state.exit_row, 0x11, 0);
+        cell_put(g_state.exit_col, g_state.exit_row, CELL_FLAG_SOLID, 0);
+        cell_put(g_state.exit_col, (int16_t)(g_state.exit_row + 1), CELL_FLAG_SOLID, 0);
+        cell_put(g_state.exit_col, g_state.exit_row, CELL_FLAG_SOLID, 0);
     }
 
     if (g_state.power_shot != 0 && (int16_t)g_state.power_timer <= -1 &&

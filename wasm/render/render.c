@@ -26,6 +26,7 @@
 #include "runtime.h"
 #include "blit.h"
 #include "screens.h"
+#include "game/cell_fields.h"
 
 /* --- render state ------------------------------------------------------- */
 const unsigned char *g_gfx = 0;
@@ -76,7 +77,8 @@ static void render_level_buf(int level) {
 /* Dynamic renderer: draw the mutable 20-byte cell records owned by the
  * gameplay modules (cc_cell_byte in objects.h).
  * Mapping confirmed by tools/build_cells.py:
- *   layer1 = (w4,w2), layer2 = (w5,w3) if shape, layer3 = (w6,w7) if shape. */
+ *   layer1 = (CELL_W4,CELL_W2), layer2 = (CELL_W5,CELL_W3) if shape,
+ *   layer3 = (CELL_W6,CELL_W7) if shape. */
 static int cell_word(int col, int row, int off) {
     return cc_cell_byte(col, row, off) |
            (cc_cell_byte(col, row, off + 1) << 8);
@@ -89,9 +91,9 @@ static void render_cells_buf(int level) {
     for (int r = 0; r < LEVEL_H; r++) {
         for (int c = 0; c < LEVEL_W; c++) {
             int b[3], sh[3];
-            b[0] = cell_word(c, r, 0x08); sh[0] = cell_word(c, r, 0x04);
-            b[1] = cell_word(c, r, 0x0A); sh[1] = cell_word(c, r, 0x06);
-            b[2] = cell_word(c, r, 0x0C); sh[2] = cell_word(c, r, 0x0E);
+            b[0] = cell_word(c, r, CELL_W4); sh[0] = cell_word(c, r, CELL_W2);
+            b[1] = cell_word(c, r, CELL_W5); sh[1] = cell_word(c, r, CELL_W3);
+            b[2] = cell_word(c, r, CELL_W6); sh[2] = cell_word(c, r, CELL_W7);
             for (int l = 0; l < 3; l++) {
                 int blk = b[l];
                 if (l > 0 && sh[l] == 0) continue;

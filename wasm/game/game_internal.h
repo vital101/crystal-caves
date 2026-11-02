@@ -9,6 +9,7 @@
 #include "objects.h"
 #include "objects_data.h"
 #include "cells_data.h"
+#include "cell_fields.h"
 #include "startup_data.h"
 #include "shell.h"
 #include "sound.h"
@@ -286,6 +287,8 @@ void dig_cell(int col, int row);
 void h_251d(ObjectEntry *o, int idx, int16_t x, int16_t y);
 int cell_border_byte(int col, int row, int off);
 void cell_border_put(int col, int row, int off, int value);
+int cell_border_word(int col, int row, int woff);
+void cell_border_word_put(int col, int row, int woff, int value);
 int cell_w0_is_dig(int col, int row);
 void h_2241(ObjectEntry *o, int idx, int16_t x, int16_t y);
 void helper_a110_clear(void);
