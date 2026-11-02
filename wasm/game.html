@@ -286,6 +286,9 @@
 
     const stateSize = e.cc_state_size();
     const stateP = e.cc_alloc(stateSize);
+    // Scratch buffer for the test hook's cc_state_save (mirrors the harnesses,
+    // which allocate a separate save buffer; saveSlot keeps using stateP).
+    const saveScratchP = e.cc_alloc(stateSize);
 
     // ---- persistent config / high scores -------------------------------
     e.cc_sound_init();
@@ -595,9 +598,9 @@
         return n;
       };
       const stateHash = () => {
-        const n = e.cc_state_save(stateP, stateSize);
+        const n = e.cc_state_save(saveScratchP, stateSize);
         if (!(n > 0)) return 0;
-        return hashBytes(new Uint8Array(e.memory.buffer, stateP, n));
+        return hashBytes(new Uint8Array(e.memory.buffer, saveScratchP, n));
       };
       const step = (n) => {
         for (let i = 0; i < n; i++) {
