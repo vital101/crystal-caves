@@ -35,6 +35,7 @@
    * high-score name entry.  The keyboard slides up automatically here. */
   const KEYBOARD = [2, 8, 9, 12];
 
+  /** @returns {boolean} true when a coarse pointer or touch events are present. */
   function detectTouch() {
     if (typeof window === 'undefined') return false;
     const coarse = window.matchMedia &&
@@ -63,6 +64,13 @@
    *   onShellKey(key)             -> cc_shell_key
    *   getShellState()             -> cc_shell_state
    *   releaseAll()                -> clear the four action flags
+   */
+  /**
+   * Attach the pointer pad, soft keys and canvas tap-to-advance.
+   * @param {object} opts DOM nodes plus cc_input_set/cc_shell_key callbacks.
+   * @returns {{setEnabled: function(boolean): void,
+   *            update: function(): void,
+   *            enabled: function(): boolean}}
    */
   function attach(opts) {
     const {

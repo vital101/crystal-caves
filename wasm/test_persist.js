@@ -1,76 +1,26 @@
 // Phase 7 persistence regression: save format, round-trips, corruption,
 // high scores and config reload/migration.
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
 const CCPersist = require('./persist.js');
+const {
+  loadWasm, bindMemory, copyAssets, stateBytes: saveStateBytes,
+  makeStorage, createAsserts, bytesEqual, cstr, key, sha256, readJson
+} = require('./test_helpers.js');
 
-const read = (p) => fs.readFileSync(path.join(__dirname, p));
-const wasm = read('render.wasm');
-const gfx = read('assets/gfx.bin');
-const levels = read('assets/levels.bin');
-const cells = read('assets/cells.bin');
-const overlay = read('assets/level_overlay.bin');
-const screens = read('assets/screens.bin');
-const f1 = read('assets/mni_f1.bin');
-const f2 = read('assets/mni_f2.bin');
-const spl = read('assets/mni_spl.bin');
-const pal = JSON.parse(read('assets/palette.json'));
-const hiscoreFixture = JSON.parse(fs.readFileSync(
-  path.join(__dirname, '..', 'notes', 'hiscore_fixtures.json'), 'utf8'));
-const v1Fixture = JSON.parse(fs.readFileSync(
-  path.join(__dirname, '..', 'notes', 'persist_v1_fixture.json'), 'utf8'));
+const hiscoreFixture = readJson('../notes/hiscore_fixtures.json');
+const v1Fixture = readJson('../notes/persist_v1_fixture.json');
 // Derive enum indices from the exported block table so adding shell blocks
 // does not silently shift the expected message ids.
-const blockTable = JSON.parse(fs.readFileSync(
-  path.join(__dirname, '..', 'out', 'portable', 'shell_text.json'), 'utf8'));
+const blockTable = readJson('../out/portable/shell_text.json');
 const IDX = {};
 blockTable.blocks.forEach((b, i) => { IDX[b.id] = i; });
 
-let failures = 0;
-function assert(cond, msg) {
-  if (!cond) { console.error('FAIL:', msg); failures++; }
-  else console.log('PASS', msg);
-}
-function key(ch) { return typeof ch === 'number' ? ch : ch.charCodeAt(0); }
-
-function mockStorage() {
-  const m = new Map();
-  return {
-    failWrites: false,
-    getItem(k) { return m.has(k) ? m.get(k) : null; },
-    setItem(k, v) {
-      if (this.failWrites) throw new Error('quota');
-      m.set(k, String(v));
-    },
-    removeItem(k) { m.delete(k); },
-    raw() { return m; }
-  };
-}
+const asserts = createAsserts();
+const assert = asserts.assert;
 
 async function makeInstance() {
-  const { instance } = await WebAssembly.instantiate(wasm, {});
-  const e = instance.exports;
-  const mem = () => new Uint8Array(e.memory.buffer);
-  const copy = (b) => { const p = e.cc_alloc(b.length); mem().set(b, p); return p; };
-  const sput = (s) => {
-    const p = e.cc_alloc(s.length + 1);
-    const m = mem();
-    for (let i = 0; i < s.length; i++) m[p + i] = s.charCodeAt(i);
-    m[p + s.length] = 0;
-    return p;
-  };
-  e.cc_set_assets(copy(gfx), copy(levels));
-  e.cc_set_cells(copy(cells));
-  const ovp = e.cc_alloc(overlay.length);
-  mem().set(overlay, ovp);
-  e.cc_set_level_overlay(ovp);
-  e.cc_set_screens(copy(screens));
-  e.cc_text_set_fonts(copy(f1), copy(f2), copy(spl));
-  const pp = e.cc_alloc(64);
-  const p32 = new Uint32Array(e.memory.buffer, pp, 16);
-  pal.colors.forEach(([r, g, b], i) => { p32[i] = (r << 16) | (g << 8) | b; });
-  e.cc_set_palette(pp);
+  const e = await loadWasm();
+  const { mem, copy, copyString: sput } = bindMemory(e);
+  copyAssets(e, copy);
   /* The persistence tests do not exercise audio; disable it so the finale
    * ID-26 wait does not hold the shell in the story state. */
   e.cc_sound_init();
@@ -83,14 +33,7 @@ async function makeInstance() {
 }
 
 function stateBytes(inst) {
-  const n = inst.e.cc_state_save(inst.stateP, inst.stateSize);
-  return inst.mem().slice(inst.stateP, inst.stateP + n);
-}
-
-function bytesEqual(a, b) {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-  return true;
+  return saveStateBytes(inst.e, inst.stateP, inst.stateSize, inst.mem);
 }
 
 function crc32(bytes) {
@@ -130,13 +73,6 @@ function toGame(e) {
   toMenu(e);
   e.cc_shell_key(key('n'));
   for (let i = 0; i < 20 && e.cc_shell_state() === 3; i++) e.cc_shell_key(13);
-}
-
-function cstr(e, p) {
-  const m = new Uint8Array(e.memory.buffer);
-  let s = '';
-  for (let i = 0; i < 64 && m[p + i]; i++) s += String.fromCharCode(m[p + i]);
-  return s;
 }
 
 function buildConfig(e) {
@@ -264,8 +200,7 @@ function applyConfig(e, cfg) {
     assert(e.cc_state_load(A.tmpP, bytes.length) === 1,
            'real Phase 5 v1 save migrates');
     const v2 = stateBytes(A);
-    const sha = crypto.createHash('sha256')
-      .update(Buffer.from(v2.subarray(12))).digest('hex');
+    const sha = sha256(Buffer.from(v2.subarray(12)));
     assert(sha === v1Fixture.v2_payload_sha256,
            'real v1 save produces the expected v2 payload');
     assert(e.cc_cur_level() === v1Fixture.level &&
@@ -287,7 +222,7 @@ function applyConfig(e, cfg) {
          'general load accepts a cave save');
 
   // ---- high-score persistence ---------------------------------------------
-  const hsStore = mockStorage();
+  const hsStore = makeStorage();
   {
     const inst = await makeInstance();
     inst.e.cc_shell_init();
@@ -324,7 +259,7 @@ function applyConfig(e, cfg) {
     new Array(10).fill({ name: 7, score: 1 })
   ];
   for (let i = 0; i < corruptTables.length; i++) {
-    const store = mockStorage();
+    const store = makeStorage();
     if (corruptTables[i] !== null)
       store.setItem(CCPersist.HS_KEY, JSON.stringify(corruptTables[i]));
     const inst = await makeInstance();
@@ -346,7 +281,7 @@ function applyConfig(e, cfg) {
 
   // valid custom table, including 20-char name and 0xFFFFFFFF
   {
-    const store = mockStorage();
+    const store = makeStorage();
     const rows = [];
     for (let i = 0; i < 10; i++)
       rows.push({ name: ('ROW' + i).padEnd(20, '.'), score: 1000000 - i });
@@ -362,7 +297,7 @@ function applyConfig(e, cfg) {
 
   {
     // Full name-entry -> high-score -> reload path.
-    const store = mockStorage();
+    const store = makeStorage();
     const inst = await makeInstance();
     toGame(inst.e);
     const score = 200000;
@@ -391,7 +326,7 @@ function applyConfig(e, cfg) {
 
   // ---- config persistence / migration -------------------------------------
   {
-    const store = mockStorage();
+    const store = makeStorage();
     const cfg = CCPersist.loadConfig(store);
     assert(cfg.version === 2 && cfg.sound === 1 && cfg.joystick === 0 &&
            cfg.video === 0 && cfg.keys.join(',') === '75,77,29,56',
@@ -421,7 +356,7 @@ function applyConfig(e, cfg) {
            'corrupt config fields fall back to defaults');
   }
   {
-    const store = mockStorage();
+    const store = makeStorage();
     const inst = await makeInstance();
     inst.e.cc_shell_init();
     inst.e.cc_shell_set_config(0, 1, 1);
@@ -442,7 +377,7 @@ function applyConfig(e, cfg) {
   }
   {
     // Sound/joystick toggles in the help menu persist.
-    const store = mockStorage();
+    const store = makeStorage();
     const inst = await makeInstance();
     toGame(inst.e);
     inst.e.cc_shell_key(27);       // help
@@ -459,7 +394,7 @@ function applyConfig(e, cfg) {
   }
   {
     // Key redefine confirmation persists.
-    const store = mockStorage();
+    const store = makeStorage();
     const inst = await makeInstance();
     toGame(inst.e);
     inst.e.cc_shell_key(27);
@@ -478,7 +413,7 @@ function applyConfig(e, cfg) {
   }
 
   // ---- slot persistence / shell flow --------------------------------------
-  const slotStore = mockStorage();
+  const slotStore = makeStorage();
   {
     const inst = await makeInstance();
     toGame(inst.e);
@@ -513,7 +448,7 @@ function applyConfig(e, cfg) {
   }
   {
     const inst = await makeInstance();
-    assert(CCPersist.loadSlot(mockStorage(), 9, inst.e, inst.stateP,
+    assert(CCPersist.loadSlot(makeStorage(), 9, inst.e, inst.stateP,
                               inst.stateSize, inst.mem, true) === false,
            'empty slot is rejected');
   }
@@ -564,7 +499,7 @@ function applyConfig(e, cfg) {
 
   {
     // Storage failures are reported without throwing.
-    const store = mockStorage();
+    const store = makeStorage();
     store.failWrites = true;
     const inst = await makeInstance();
     toGame(inst.e);
@@ -669,7 +604,7 @@ function applyConfig(e, cfg) {
   }
   {
     // Corrupt restore shows File Error.
-    const store = mockStorage();
+    const store = makeStorage();
     store.setItem(CCPersist.SAVE_PREFIX + '4', 'not base64 !!!');
     const inst = await makeInstance();
     toMenu(inst.e);
@@ -708,9 +643,5 @@ function applyConfig(e, cfg) {
     }
   }
 
-  if (failures) {
-    console.error('\n' + failures + ' persistence check(s) failed');
-    process.exit(1);
-  }
-  console.log('\nPASS: Phase 7 persistence, high-score and config checks');
+  asserts.finish('Phase 7 persistence, high-score and config checks');
 })();

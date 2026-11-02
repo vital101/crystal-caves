@@ -6,6 +6,7 @@
  */
 #include "sound.h"
 #include "sound_data.h"
+#include "objects.h"
 
 #define SOUND_EVENT_MAX 16
 
@@ -19,6 +20,37 @@ static uint32_t s_unknown_hits;
 
 static uint16_t s_events[SOUND_EVENT_MAX];
 static int      s_event_count;
+
+/* Host-only sound attempt log/callback.  Deliberately outside cc_state_t so
+ * the deterministic save payload never contains pointers or host state. */
+void (*g_sound_callback)(uint16_t id);
+uint16_t g_sound_log[256];
+uint16_t g_sound_log_count;
+uint32_t g_sound_log_total;
+
+/* Raw attempt log + host callback.  This is deliberately separate from the
+ * Phase 6 driver state below: the existing combat/cell/handler fixtures
+ * compare the exact sequence of IDs passed to 0x1F9A:0x21F, regardless of
+ * the sound-enable/priority decision inside the routine. */
+void cc_sound_note(uint16_t id) {
+    if (g_sound_log_count < 256)
+        g_sound_log[g_sound_log_count++] = id;
+    g_sound_log_total++;
+    if (g_sound_callback) g_sound_callback(id);
+}
+
+void cc_sound_set_callback(void (*cb)(uint16_t id)) {
+    g_sound_callback = cb;
+}
+void cc_sound_log_clear(void) {
+    g_sound_log_count = 0;
+    g_sound_log_total = 0;
+}
+int cc_sound_log_count(void) { return g_sound_log_count; }
+int cc_sound_log_total(void) { return (int)g_sound_log_total; }
+uint16_t cc_sound_log_at(int i) {
+    return (i >= 0 && i < g_sound_log_count) ? g_sound_log[i] : 0;
+}
 
 static int sound_valid(uint16_t id) {
     return id >= 1 && id <= CC_SOUND_COUNT;

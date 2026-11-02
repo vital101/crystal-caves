@@ -1,0 +1,77 @@
+# syntax=docker/dockerfile:1
+#
+# Crystal Caves Episode 1 - development toolchain image.
+#
+#   docker compose build
+#   docker compose run --rm dev make -C wasm test-all
+#
+# Gives every wasm/Makefile target a Linux toolchain on machines without
+# Homebrew LLVM (Windows, plain Linux):
+#
+#   clang + lld (wasm-ld)    the freestanding wasm32 build, same as CI
+#   Node.js 22               the JS test harnesses, same major as CI
+#   /opt/cc1/venv            capstone + unicorn for the test-oracle-* targets
+#   /opt/cc1/node_modules    playwright for make test-browser
+#   /opt/cc1/ms-playwright   the Chromium those tests drive
+#
+# The toolchain lives outside the /src bind mount, so host edits - and a
+# host-side wasm/node_modules - can never shadow it.  No repository source is
+# copied into the image; the checkout is mounted at run time, so the image
+# stays valid across edits and rebuilds only when the deps below change.
+#
+# The production image is the root Dockerfile (Debian clang/lld + nginx), not
+# this file.
+
+FROM node:22-trixie-slim
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      clang lld make \
+      python3 python3-venv python3-pip \
+      git unzip xz-utils bzip2 ca-certificates procps less \
+ && rm -rf /var/lib/apt/lists/*
+
+# wasm/Makefile assigns LLVM/PYTHON/EMCC with ?=, so an environment value
+# always wins over its Homebrew / ../.venv default: no Makefile change needed.
+ENV LLVM=/usr/bin \
+    PYTHON=/opt/cc1/venv/bin/python \
+    NODE_PATH=/opt/cc1/node_modules \
+    PLAYWRIGHT_BROWSERS_PATH=/opt/cc1/ms-playwright
+
+# Oracle tools (tools/requirements.txt).  Both packages ship py3/abi3 manylinux
+# wheels, so this needs no compiler.
+COPY tools/requirements.txt /tmp/cc1/requirements.txt
+RUN python3 -m venv /opt/cc1/venv \
+ && /opt/cc1/venv/bin/pip install --no-cache-dir --only-binary=:all: \
+      -r /tmp/cc1/requirements.txt
+
+# Test-only npm deps plus the browser they drive; the manifests are copied on
+# their own so this layer is reused until the dependency set changes.
+COPY wasm/package.json wasm/package-lock.json /tmp/cc1/
+WORKDIR /tmp/cc1
+RUN npm ci --no-audit --no-fund \
+ && npx playwright install --with-deps chromium \
+ && mv node_modules /opt/cc1/node_modules
+
+COPY docker/cc1-entrypoint.sh /usr/local/bin/cc1-entrypoint.sh
+# A Windows checkout can still hand us CRLF; keep the entrypoint runnable.
+RUN sed -i 's/\r$//' /usr/local/bin/cc1-entrypoint.sh \
+ && chmod +x /usr/local/bin/cc1-entrypoint.sh
+
+# Fail the image build, not the first make target, if any piece is missing.
+RUN clang --version \
+ && wasm-ld --version \
+ && /opt/cc1/venv/bin/python -c \
+      'import capstone, unicorn; print("capstone", capstone.__version__, "unicorn", unicorn.__version__)' \
+ && node -e "console.log(require('playwright').chromium.executablePath())"
+
+# The checkout is bind-mounted, so its owner differs from this image's user.
+RUN git config --system safe.directory '*'
+
+# Non-root (uid 1000 in the base image) so container-written build outputs in
+# the mounted working tree are not owned by root on the host.
+USER node
+
+WORKDIR /src
+ENTRYPOINT ["cc1-entrypoint.sh"]
+CMD ["bash"]

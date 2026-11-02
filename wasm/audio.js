@@ -22,6 +22,7 @@
       this.volume = 0.7;
     }
 
+    /** @param {object} data parsed sound.json (sounds[] with tick traces). */
     load(data) {
       this.data = data;
       this.byId = {};
@@ -29,8 +30,10 @@
       for (const s of (data.sounds || [])) this.byId[s.id] = s;
     }
 
+    /** @returns {boolean} true once an AudioContext exists. */
     get ready() { return !!this.ctx; }
 
+    /** Create/resume the AudioContext from a user gesture. @returns {Promise<boolean>} */
     async unlock() {
       if (typeof window === "undefined") return false;
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -47,11 +50,13 @@
       return this.ctx.state === "running";
     }
 
+    /** Mirror the original [0x513E] toggle without cutting the current sound. */
     setEnabled(on) {
       this.enabled = on ? 1 : 0;
       /* Exact original [0x513E] semantics: do not cut the current sound. */
     }
 
+    /** @param {number} v master gain in the range 0..1. */
     setVolume(v) {
       this.volume = v;
       if (this.master) this.master.gain.value = v;
@@ -78,6 +83,7 @@
       try { src.disconnect(); } catch (_) {}
     }
 
+    /** Start one effect on the single channel. @returns {number} 1 if started. */
     play(id) {
       if (!this.enabled || !this.ctx) return 0;
       const buf = this._buffer(id);
@@ -102,6 +108,7 @@
       return 1;
     }
 
+    /** Stop the current source without firing the onended callback. */
     stop() {
       this._stopSource();
       this.sourceId = 0;

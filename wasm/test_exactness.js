@@ -1,12 +1,9 @@
 // P5.R5 exactness regression: timing, story pages, high scores, scan codes.
-const fs = require('fs');
-const path = require('path');
+const { loadGame, readJson, cstr: readCstr } = require('./test_helpers.js');
 
-const read = (p) => fs.readFileSync(path.join(__dirname, p));
-const fixture = JSON.parse(fs.readFileSync(
-  path.join(__dirname, '..', 'notes', 'shell_exactness_fixtures.json'), 'utf8'));
-const keymapFixture = JSON.parse(fs.readFileSync(
-  path.join(__dirname, '..', 'notes', 'keymap_fixtures.json'), 'utf8'));
+const fixture = readJson('../notes/shell_exactness_fixtures.json');
+const keymapFixture = readJson('../notes/keymap_fixtures.json');
+const pal = readJson('assets/palette.json');
 const zlib = require('zlib');
 
 function assert(cond, msg) {
@@ -16,36 +13,11 @@ function assert(cond, msg) {
 function key(ch) { return typeof ch === 'number' ? ch : ch.charCodeAt(0); }
 
 (async () => {
-  const wasm = read('render.wasm');
-  const gfx = read('assets/gfx.bin');
-  const levels = read('assets/levels.bin');
-  const cells = read('assets/cells.bin');
-  const overlay = read('assets/level_overlay.bin');
-  const screens = read('assets/screens.bin');
-  const f1 = read('assets/mni_f1.bin');
-  const f2 = read('assets/mni_f2.bin');
-  const spl = read('assets/mni_spl.bin');
-  const pal = JSON.parse(read('assets/palette.json'));
-
-  const { instance } = await WebAssembly.instantiate(wasm, {});
-  const e = instance.exports;
   /* P5 exactness covers layout/timing, not audio; keep the Phase 6 shell
-   * fanfare/wait from delaying page transitions in this fixture. */
-  e.cc_sound_set_enabled(0);
-  const mem = () => new Uint8Array(e.memory.buffer);
-  const copy = (b) => { const p = e.cc_alloc(b.length); mem().set(b, p); return p; };
-  const sput = (s) => {
-    const p = e.cc_alloc(s.length + 1);
-    const m = mem();
-    for (let i = 0; i < s.length; i++) m[p + i] = s.charCodeAt(i);
-    m[p + s.length] = 0;
-    return p;
-  };
-  const cstr = (p) => {
-    const m = mem(); let s = '';
-    for (let i = 0; p && m[p + i]; i++) s += String.fromCharCode(m[p + i]);
-    return s;
-  };
+   * fanfare/wait from delaying page transitions in this fixture.  The
+   * helper disables sound before copying assets so boot order is unchanged. */
+  const { e, copyString: sput } = await loadGame({ sound: false });
+  const cstr = (p) => readCstr(e, p);
   const toMenu = () => {
     for (let i = 0; i < 3; i++) e.cc_shell_step_ticks(1000);
     if (e.cc_shell_state() !== 2) {
@@ -58,17 +30,6 @@ function key(ch) { return typeof ch === 'number' ? ch : ch.charCodeAt(0); }
     e.cc_shell_key(key('n'));
     for (let i = 0; i < 20 && e.cc_shell_state() === 3; i++) e.cc_shell_key(13);
   };
-
-  e.cc_set_assets(copy(gfx), copy(levels));
-  e.cc_set_cells(copy(cells));
-  const ovp = e.cc_alloc(overlay.length); mem().set(overlay, ovp);
-  e.cc_set_level_overlay(ovp);
-  e.cc_set_screens(copy(screens));
-  e.cc_text_set_fonts(copy(f1), copy(f2), copy(spl));
-  const pp = e.cc_alloc(64);
-  const p32 = new Uint32Array(e.memory.buffer, pp, 16);
-  pal.colors.forEach(([r, g, b], i) => { p32[i] = (r << 16) | (g << 8) | b; });
-  e.cc_set_palette(pp);
 
   // ---- boot / screen timing ------------------------------------------------
   e.cc_shell_init();

@@ -1,27 +1,13 @@
 // Phase 5 in-game message trigger regression (P5.R2).
 // Exercises the cell-event branches that display the remaining messages and
 // their guard conditions, using the real shell state machine.
-const fs = require('fs');
-const path = require('path');
-
-const read = (p) => fs.readFileSync(path.join(__dirname, p));
-const wasm = read('render.wasm');
-const gfx = read('assets/gfx.bin');
-const levels = read('assets/levels.bin');
-const cells = read('assets/cells.bin');
-const overlay = read('assets/level_overlay.bin');
-const screens = read('assets/screens.bin');
-const f1 = read('assets/mni_f1.bin');
-const f2 = read('assets/mni_f2.bin');
-const spl = read('assets/mni_spl.bin');
-const pal = JSON.parse(read('assets/palette.json'));
+const { loadGame, readJson } = require('./test_helpers.js');
 
 const GAME = 4;
 const MESSAGE = 14;
 // Derive the enum indices from the exported block table so adding blocks
 // does not silently shift the expected message ids.
-const blockTable = JSON.parse(
-  fs.readFileSync(path.join(__dirname, '..', 'out', 'portable', 'shell_text.json')));
+const blockTable = readJson('../out/portable/shell_text.json');
 const IDX = {};
 blockTable.blocks.forEach((b, i) => { IDX[b.id] = i; });
 const BLOCK = {
@@ -42,19 +28,7 @@ function assert(cond, msg) {
 }
 
 (async () => {
-  const { instance } = await WebAssembly.instantiate(wasm, {});
-  const e = instance.exports;
-  const mem = () => new Uint8Array(e.memory.buffer);
-  const copy = (b) => { const p = e.cc_alloc(b.length); mem().set(b, p); return p; };
-  e.cc_set_assets(copy(gfx), copy(levels));
-  e.cc_set_cells(copy(cells));
-  const ovp = e.cc_alloc(overlay.length); mem().set(overlay, ovp); e.cc_set_level_overlay(ovp);
-  e.cc_set_screens(copy(screens));
-  e.cc_text_set_fonts(copy(f1), copy(f2), copy(spl));
-  const pp = e.cc_alloc(64);
-  const p32 = new Uint32Array(e.memory.buffer, pp, 16);
-  pal.colors.forEach(([r, g, b], i) => { p32[i] = (r << 16) | (g << 8) | b; });
-  e.cc_set_palette(pp);
+  const { e } = await loadGame();
 
   // Enter the game through the real title/menu/intro flow.
   e.cc_shell_init();

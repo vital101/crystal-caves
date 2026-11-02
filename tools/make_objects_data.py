@@ -10,6 +10,11 @@ Coordinate fields (x, y, x_prev, y_prev, vx, vy) are signed 16-bit: the
 original uses word registers that go negative (e.g. spawn x=-41), so they must
 NOT be masked to uint16_t.
 
+Emitted shape (Phase 4): the header carries generated data arrays only and
+pulls the hand-written ObjectEntry type from wasm/game/object.h.  The single
+translation unit that includes this header is game/level.c (the level
+loader); everything else sees only the type.
+
 Output: work/wasm/objects_data.h
 """
 import hashlib
@@ -34,14 +39,18 @@ def s16(v):
     return v - 0x10000 if v >= 0x8000 else v
 
 # (C struct field name, oracle record key, signed?) in struct member order.
+# The C names are the Phase 3 readable names; the oracle keys stay the raw
+# DS-offset names emitted by tools/build_oracle_catalog.py.
 OBJ_FIELDS = [
-    ("state", "state", False), ("p02", "p02", False), ("p04", "p04", False),
+    ("state", "state", False),
+    ("hit_flag", "p02", False), ("hit_points", "p04", False),
     ("x", "x", True), ("y", "y", True), ("x_prev", "x_prev", True),
-    ("y_prev", "y_prev", True), ("tile", "tile", False),
-    ("p10", "p10", False), ("p12", "p12", False), ("p14", "p14", False),
-    ("p16", "p16", False), ("p18", "p18", False), ("p1a", "p1a", False),
+    ("y_prev", "y_prev", True), ("block", "tile", False),
+    ("anim_frame", "p10", False), ("anim_shape_a", "p12", False),
+    ("anim_shape_b", "p14", False), ("anim_last", "p16", False),
+    ("phase", "p18", False), ("subtype", "p1a", False),
     ("shape", "shape", False), ("vx", "p1e", True), ("vy", "p20", True),
-    ("speed", "p22", False), ("p24", "p24", False),
+    ("speed", "p22", False), ("unused24", "p24", False),
     ("kind", "kind", False), ("ready", "ready", False),
     ("handler", "handler_off", False), ("handler_seg", "handler_seg", False),
 ]
@@ -101,21 +110,10 @@ def main():
         "#ifndef OBJECTS_DATA_H",
         "#define OBJECTS_DATA_H",
         "",
-        "#include <stdint.h>",
-        "",
-        "typedef struct __attribute__((packed)) {",
-        "    uint16_t state, p02, p04;",
-        "    int16_t  x, y, x_prev, y_prev;",       # signed: positions may be negative
-        "    uint16_t tile;",
-        "    uint16_t p10, p12, p14, p16, p18, p1a, shape;",
-        "    int16_t  vx, vy;",                     # signed velocity
-        "    uint16_t speed, p24, kind;",
-        "    uint8_t  ready;",
-        "    uint16_t handler, handler_seg;",       # handler_seg is always 0x1F9A
-        "} ObjectEntry;",
-        "",
-        "#define OBJ_MAX 60",
-        "#define OBJ_LEVELS 19",
+        "/* Generated data arrays only.  The ObjectEntry type, OBJ_MAX and",
+        " * OBJ_LEVELS are hand-written in game/object.h; include ownership of",
+        " * this header belongs to game/level.c. */",
+        '#include "game/object.h"',
         "",
     ]
     for lv in LEVELS:

@@ -1,0 +1,146 @@
+/* Crystal Caves Episode 1 - wasm render core (original, clean-room).
+ *
+ * Freestanding: compiles with either `emcc` or `clang --target=wasm32
+ * -nostdlib` (linked by wasm-ld).  Consumes the portable intermediate from
+ * work/tools/export_assets.py:
+ *   gfx.bin     CC1.GFX (23 blocks x 8003 B; block & shape indices are 1-based)
+ *   levels.bin  19 levels x 40*25 cells x 6 B [b1,s1,b2,s2,b3,s3]
+ *   palette   16 x uint32 0x00RRGGBB (loaded via cc_set_palette)
+ *
+ * A shape is 16x16, stored as 16 rows x 2 groups x 5 bytes
+ * [mask][plane0..plane3]; mask bit set = opaque pixel, colour index =
+ * p0 + 2*p1 + 4*p2 + 8*p3, MSB = leftmost.  This only rasterises the baked
+ * tile map; gameplay is a later phase.
+ *
+ * Phase 2 split (mechanical).  Module ownership:
+ *
+ *   runtime.c   memset/memcpy + the bump allocator (cc_alloc)
+ *   blit.c      shape_ptr/blit_to/blit, object draw and the view glyph blit
+ *   screens.c   PCX screens and 320x200 view primitives (view_pixel, ...)
+ *   render.c    asset setup, framebuffer accessors, level/cells renderers
+ *
+ * render.h stays the public API; render_internal.h holds the shared
+ * geometry constants and render state for these modules.
+ */
+#include "render_internal.h"
+#include "runtime.h"
+#include "blit.h"
+#include "screens.h"
+#include "game/cell_fields.h"
+
+/* --- render state ------------------------------------------------------- */
+const unsigned char *g_gfx = 0;
+const unsigned char *g_levels = 0;
+unsigned int g_palette[PALETTE_SIZE];
+unsigned char g_rgba[TILE_W * TILE_H * 4];
+unsigned char g_view[SCREEN_W * SCREEN_H * 4];
+
+void cc_set_assets(const unsigned char *gfx, const unsigned char *levels) {
+    g_gfx = gfx;
+    g_levels = levels;
+}
+void cc_set_palette(const unsigned int *pal32) {
+    memcpy(g_palette, pal32, sizeof(g_palette));
+}
+unsigned char *cc_framebuffer(void) { return g_rgba; }
+int cc_tex_width(void)  { return TILE_W; }
+int cc_tex_height(void) { return TILE_H; }
+
+unsigned char *cc_view_framebuffer(void) { return g_view; }
+int cc_view_width(void)  { return SCREEN_W; }
+int cc_view_height(void) { return SCREEN_H; }
+
+/* Render a baked level: layer 1, then 2, then 3 (SetCell helper CS:0x0000;
+ * layers 2 and 3 are skipped when their shape is 0). */
+static void render_level_buf(int level) {
+    memset(g_rgba, 0, sizeof(g_rgba));
+    if (!g_gfx || !g_levels) return;
+    if (level < 0 || level >= LEVELS) level = 0;
+
+    const unsigned char *cells =
+        g_levels + (unsigned)level * LEVEL_W * LEVEL_H * CELL_BYTES;
+    for (int r = 0; r < LEVEL_H; r++) {
+        for (int c = 0; c < LEVEL_W; c++) {
+            const unsigned char *cell = cells + (unsigned)(r * LEVEL_W + c) * CELL_BYTES;
+            /* cell layout: [b1,s1,b2,s2,b3,s3]; draw order 1, 2, 3. */
+            int b1 = cell[0], s1 = cell[1], b2 = cell[2], s2 = cell[3];
+            int b3 = cell[4], s3 = cell[5];
+            int px = c * SHAPE_W, py = r * SHAPE_H;
+            const unsigned char *s;
+            if ((s = shape_ptr(b1, s1))) blit(s, px, py);
+            if ((s = shape_ptr(b2, s2))) blit(s, px, py);
+            if ((s = shape_ptr(b3, s3))) blit(s, px, py);
+        }
+    }
+}
+
+/* Dynamic renderer: draw the mutable 20-byte cell records owned by the
+ * gameplay modules (cc_cell_byte in objects.h).
+ * Mapping confirmed by tools/build_cells.py:
+ *   layer1 = (CELL_W4,CELL_W2), layer2 = (CELL_W5,CELL_W3) if shape,
+ *   layer3 = (CELL_W6,CELL_W7) if shape. */
+static int cell_word(int col, int row, int off) {
+    return cc_cell_byte(col, row, off) |
+           (cc_cell_byte(col, row, off + 1) << 8);
+}
+
+static void render_cells_buf(int level) {
+    (void)level;
+    memset(g_rgba, 0, sizeof(g_rgba));
+    if (!g_gfx) return;
+    for (int r = 0; r < LEVEL_H; r++) {
+        for (int c = 0; c < LEVEL_W; c++) {
+            int b[3], sh[3];
+            b[0] = cell_word(c, r, CELL_W4); sh[0] = cell_word(c, r, CELL_W2);
+            b[1] = cell_word(c, r, CELL_W5); sh[1] = cell_word(c, r, CELL_W3);
+            b[2] = cell_word(c, r, CELL_W6); sh[2] = cell_word(c, r, CELL_W7);
+            for (int l = 0; l < 3; l++) {
+                int blk = b[l];
+                if (l > 0 && sh[l] == 0) continue;
+                if (blk == 0 && sh[l] != 0) blk = 20;
+                const unsigned char *s = shape_ptr(blk, sh[l]);
+                if (s) blit(s, c * SHAPE_W, r * SHAPE_H);
+            }
+        }
+    }
+}
+
+void cc_render_cells(int level, unsigned char *out_rgba) {
+    render_cells_buf(level);
+    memcpy(out_rgba, g_rgba, sizeof(g_rgba));
+}
+
+/* Viewport from the current mutable cell records (used by the game shell). */
+void cc_render_view_cells(int level, int cam_x, int cam_y) {
+    int x0 = cam_x, y0 = cam_y;
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x0 > TILE_W - SCREEN_W) x0 = TILE_W - SCREEN_W;
+    if (y0 > TILE_H - SCREEN_H) y0 = TILE_H - SCREEN_H;
+    render_cells_buf(level);
+    for (int y = 0; y < SCREEN_H; y++) {
+        memcpy(&g_view[y * SCREEN_W * 4],
+               &g_rgba[((y + y0) * TILE_W + x0) * 4],
+               SCREEN_W * 4);
+    }
+}
+
+void cc_render_level(int level, unsigned char *out_rgba) {
+    render_level_buf(level);
+    memcpy(out_rgba, g_rgba, sizeof(g_rgba));
+}
+
+/* Render the 320x200 camera viewport from a baked level. */
+void cc_render_view(int level, int cam_x, int cam_y) {
+    int x0 = cam_x, y0 = cam_y;
+    if (x0 < 0) x0 = 0;
+    if (y0 < 0) y0 = 0;
+    if (x0 > TILE_W - SCREEN_W) x0 = TILE_W - SCREEN_W;
+    if (y0 > TILE_H - SCREEN_H) y0 = TILE_H - SCREEN_H;
+    render_level_buf(level);
+    for (int y = 0; y < SCREEN_H; y++) {
+        memcpy(&g_view[y * SCREEN_W * 4],
+               &g_rgba[((y + y0) * TILE_W + x0) * 4],
+               SCREEN_W * 4);
+    }
+}

@@ -41,6 +41,9 @@ jobs:
       - name: Regression suite (committed fixtures)
         run: make -C wasm test-all LLVM="$LLVM"
 
+      - name: Source-size guardrail
+        run: make -C wasm lint-strict
+
       - name: wasm size and frame budget
         run: |
           summary="${GITHUB_STEP_SUMMARY:-/dev/null}"

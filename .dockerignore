@@ -1,3 +1,8 @@
+# Build context for the production image (root Dockerfile: wasm build + nginx).
+# The dev toolchain image is built from docker/Dockerfile.dev, which uses its
+# own sibling ignore file (docker/Dockerfile.dev.dockerignore) and needs the
+# tools/ and notes/ trees excluded here.
+#
 # Only what the image build needs: wasm/ sources and out/portable/ assets.
 .git
 .github

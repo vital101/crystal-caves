@@ -5,21 +5,10 @@
 #ifndef OBJECTS_DATA_H
 #define OBJECTS_DATA_H
 
-#include <stdint.h>
-
-typedef struct __attribute__((packed)) {
-    uint16_t state, p02, p04;
-    int16_t  x, y, x_prev, y_prev;
-    uint16_t tile;
-    uint16_t p10, p12, p14, p16, p18, p1a, shape;
-    int16_t  vx, vy;
-    uint16_t speed, p24, kind;
-    uint8_t  ready;
-    uint16_t handler, handler_seg;
-} ObjectEntry;
-
-#define OBJ_MAX 60
-#define OBJ_LEVELS 19
+/* Generated data arrays only.  The ObjectEntry type, OBJ_MAX and
+ * OBJ_LEVELS are hand-written in game/object.h; include ownership of
+ * this header belongs to game/level.c. */
+#include "game/object.h"
 
 static const ObjectEntry g_obj_level0[OBJ_MAX] = {
     {2, 0, 0, -41, 0, -41, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 2, 0, 0, 1, 0, 0},  /* slot 0 */

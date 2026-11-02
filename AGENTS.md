@@ -4,13 +4,33 @@
 
 There is no root Makefile; the build lives in `wasm/`.
 
+**No local toolchain (typical on Windows)? Run the dev container instead.**
+`compose.yaml` + `docker/Dockerfile.dev` provide clang/lld, Node.js, the
+capstone/unicorn venv and Playwright Chromium; every target in the table below
+works unchanged:
+
+```sh
+docker compose build                                  # once, from the repo root
+docker compose run --rm dev make -C wasm test-all     # any make target, -C wasm
+```
+
+The production image is the root `Dockerfile` (nginx static host), which is a
+different thing.  See the README section *Develop in Docker (any platform)*.
+
 | Command | Description |
 |---|---|
 | `make clang` | Build freestanding wasm via Homebrew LLVM (default) |
 | `make emcc` | Emscripten build (needs `emcc` on PATH; secondary, not in CI) |
 | `make test-all` | Data checks + all-19 render + gameplay/loader/text/shell regression |
+| `make test-digest` | Golden-master SHA-256 digests (state/view/sound) over scripted runs |
+| `make test-digest-update` | Rewrite `notes/refactor_digests.json` after an intentional change |
+| `make test-render-digest` | Phase 2 render/text/scroll digests (`notes/refactor_render_digests.json`) |
+| `make render-digest-update` | Rewrite those Phase 2 digests after an intentional change |
+| `make lint` | Source-size/function-length report (0 failures since Phase 3) |
+| `make lint-strict` | Same report, exit 1 on violations (what CI runs) |
 | `make test-render-all` | Pixel-diff every level against `out/oracle_L*.png` |
 | `make test-data` | Run `../tools/check_oracle.py` (structural oracle assertions) |
+| `make test-exports` | Built wasm exports must match the Makefile `EXPORTS` list |
 | `make test-view` | 320x200 viewport crop regression |
 | `make test-objects` | Object init/input/collision smoke test |
 | `make test-gameplay` | Level-2 fixture smoke test |
@@ -63,6 +83,14 @@ needs it. CI is `.github/workflows/ci.yml` (GitHub Actions or Forgejo Actions on
 build + `test-all` + size/perf summary, browser smoke, manual oracle
 regeneration).
 
+Inside `docker/Dockerfile.dev` all of that is preinstalled and exported through
+the environment (`LLVM=/usr/bin`, `PYTHON=/opt/cc1/venv/bin/python`,
+`NODE_PATH=/opt/cc1/node_modules`, `PLAYWRIGHT_BROWSERS_PATH`), which wins
+against the Makefile's `?=` defaults, so no target needs `LLVM=...`. Node
+matches CI (22) and Chromium is baked in, so `make test-browser` runs instead of
+SKIPping. `.gitattributes` pins makefiles/shell scripts to LF because GNU make in
+the container misreads a CRLF `wasm/Makefile`.
+
 ## Data Pipeline
 
 `extracted/` and `out/portable/` are committed, so builds/tests do not need the
@@ -78,6 +106,66 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 7. `python3 tools/render_oracle.py 0..18` — regenerate static oracle PNGs
 8. `python3 tools/export_level_overlay.py` — generates `out/portable/level_overlay.bin`
 9. `wasm: make data` — exports `out/portable/{gfx,levels,cells,palette,mni,commands,objects,level_overlay,screens,shell_text,sound}`
+
+## Source Layout & Refactor Conventions
+
+`wasm/ARCHITECTURE.md` is the detailed layer/ownership document; this is the
+short version.
+
+**Layers.** Public wasm exports → gameplay (`wasm/game/*.c`), shell
+(`wasm/shell/*.c`), text (`wasm/text/*.c`) and render (`wasm/render/*.c`) →
+shared state (`game/state.c`, `shell/state.c`).  Dependencies point
+downward only: gameplay may call the `cc_shell_notify_*` helpers declared in
+`shell.h` for original state transitions, but must not depend on shell page or
+rendering state; shell may drive gameplay through the public API; render may
+read gameplay state but must not mutate game rules.  `wasm/objects.c`,
+`wasm/shell.c`, `wasm/text.c` and `wasm/render.c` no longer exist; the
+shell/text/render facades are `shell/shell.c`, `text/text.c` and
+`render/render.c`, while the gameplay public API is declared in `objects.h`
+and implemented across `game/*.c` (there is no gameplay facade file).
+
+**Generated headers.** `wasm/startup_data.h`, `wasm/objects_data.h`,
+`wasm/cells_data.h`, `wasm/sound_data.h`, `wasm/shell_text_data.h`,
+`wasm/shell_exact_data.h` and the asset `.bin`/`.json` files are generated.
+Never hand-edit them; change the
+`tools/` producer and regenerate.  `objects_data.h` is data only — the
+`ObjectEntry` type lives in the hand-written `game/object.h`.  Modules should
+include generated headers only where the data is owned (for example
+`game/level.c` includes `objects_data.h`).
+
+**No-behaviour-change rule.** A structural commit (move/split/rename) must
+leave the 929 `notes/refactor_digests.json` snapshots unchanged.  Run
+`make test-digest` before and after; only an intentional behaviour change may
+use `make test-digest-update` (and it needs an explanation in the commit).
+Phase 2 surfaces additionally use `make test-render-digest` /
+`make render-digest-update`.
+
+**Size budgets.** `make lint` reports file/function sizes; `make lint-strict`
+fails CI.  Files: 500 lines warns, 600 lines fails.  Functions: 120 lines
+fails.  Split by responsibility rather than shaving lines.
+
+**Handlers and cell rules.** Every gameplay handler lives in
+`game/handlers_*.c`, has a descriptive `h_*`/named function and one row in
+`HandlerEntry g_handlers[]` (`game/handlers_table.c`) keyed by its original
+offset.  A new handler needs a row, a name, a fixture scenario in
+`notes/handler_fixtures.json` (via `tools/handler_fixtures.py`) and a digest
+run.  Cell-event behaviour belongs in the `CellPickupRule` and
+`CellSwitchRule` tables in `game/cell_event.c`; preserve the documented
+`(w6,w7)` layer order and add a `notes/cell_fixtures.json` case.  Trace original routines with
+`/* CC1 0x1F9A:0x2877 */` comments and update `notes/handlers.md` when names
+change.
+
+**Test ladder.** Fast structural/data (`test-data`, `test-view`) → unit
+fixtures (`test-physics`, `test-combat`, `test-handlers`, `test-loader`,
+`test-cells`, `test-caves`) → shell/text (`test-hud`, `test-text`,
+`test-messages`, `test-menus`, `test-shell`, `test-shell-flow`,
+`test-cursor`, `test-exactness`, `test-keymap`) → persistence/sound
+(`test-persist`, `test-sound`) → digest/render (`test-digest`,
+`test-render-digest`, `test-render-all`) → browser/perf (`test-browser`,
+`make perf`).  `make test-all` runs the committed-fixture suite with the
+unknown-handler guard.  Oracle regeneration targets (`test-oracle-*`) need
+the venv deps and committed oracle data and are manual smoke tests, not CI.
+The authoritative target list is the table at the top of this file.
 
 ## Level Model (important)
 
@@ -109,7 +197,8 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - **TP RNG** is at `0x2BB5:0x980`, state `DS:0x2A6/0x2A8`. The high word uses
   the original byte-wise add/shift sequence, not a plain 32-bit multiply.
 - **Cell addressing**: `0x508C + (col+1)*500 + (row+1)*20`; slash/dug-block
-  paths use the original +1 border indices (see `cell_border_*` in `objects.c`).
+  paths use the original +1 border indices (see `cell_border_*` in
+  `wasm/game/handlers_interaction.c`).
 - **Cell events**: handler is `0x0FC5:0xBB26` (linear `0x1B776`).  Layer
   mapping is `(w4,w2)`, `(w5,w3)`, `(w6,w7)`; crystal cells are `w6=0xD`,
   `w7=1..4`.  Counters: `0x509E` health, `0x509C` ammo, `0x50A2` collected,
@@ -120,9 +209,10 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 
 - Static level rendering is **bit-exact on all 19 levels** (Python oracle + wasm).
 - Loader/object snapshots and structural oracle checks are done.
-- The 0xD72A update loop and **all 46 handler-table entries** are ported
-  (including the dynamic `0x4EEB` phase). `notes/handler_fixtures.json`
-  covers 235 scenarios / 376 frames; `make test-handlers` passes.
+- The 0xD72A update loop and **all 46 handler behaviours** are ported
+  (49 dispatch offsets in `g_handlers[]`; includes the dynamic `0x4EEB` phase).
+  `notes/handler_fixtures.json` covers 235 scenarios / 376 frames;
+  `make test-handlers` passes.
 - Full mutable 20-byte cells are exported as `out/portable/cells.bin` and
   verified byte-for-byte by `test_oracle_objects.js`.
 - All 16 caves pass committed full-frame integration fixtures
@@ -176,6 +266,76 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   57.1 ms budget), and the build uses `-Oz` (~152 KB vs ~180 KB at `-O2`).
   `notes/regression.md` maps every subsystem to its fixture and target; the
   root `README.md` documents build/run/test.
+- The development toolchain also runs in Docker: `compose.yaml` +
+  `docker/Dockerfile.dev` (apt clang/lld, Node 22, capstone/unicorn venv,
+  Playwright Chromium) let hosts with no local toolchain, e.g. Windows, build,
+  test and regenerate fixtures in the container.  The root `Dockerfile` stays
+  the production (nginx) image and is unaffected.
+- Refactor Phase 0 is implemented: `notes/refactor_baseline.md` records the
+  pre-refactor commit, wasm size, perf timings and 184 public exports;
+  `wasm/test_refactor_digest.js` + `notes/refactor_digests.json` provide 929
+  deterministic SHA-256 snapshots (static render, 480-frame gameplay runs,
+  hub/cave transitions, warps, shell flow, save round-trip);
+  `cc_state_t`/`ObjectEntry` layout asserts are in `wasm/game/state.c`;
+  `tools/check_source_limits.py` + `make lint` report the current size and
+  function-length violations (warning-only until the Phase 1/2 split), and
+  `wasm/ARCHITECTURE.md` is the architecture document.  See
+  `refactor/phase-0-safety-net.md` for the exit criteria.
+- Refactor Phase 1 (gameplay split) is implemented: `wasm/objects.c` is split
+  into `wasm/game/*.c` modules with a shared `game_internal.h` umbrella header
+  and removed from the tree.  The split is mechanical: the 929 digest
+  snapshots are unchanged, `make test-all` passes, and `make perf` reports
+  ~1.15 ms per level frame and a 163,796-byte `render.wasm`.  See
+  `notes/refactor_map.md` for the implemented module/function map.  Semantic
+  regrouping and per-module headers remain Phase 3/4 work; pre-existing long
+  functions are Phase 3 targets.
+- Refactor Phase 2 (shell/text/render split) is implemented: `wasm/shell.c`,
+  `wasm/text.c` and `wasm/render.c` moved into `wasm/shell/`, `wasm/text/` and
+  `wasm/render/` (path-only commits) and split mechanically per responsibility,
+  with `shell/shell.c`, `text/text.c` and `render/render.c` kept as facades.
+  Shell uses a `shell_internal.h` umbrella (its internal `g_state` was renamed
+  `g_shell_state` to avoid a link clash with the gameplay `cc_state_t`); text
+  and render use small per-module headers including a new
+  `render/render_internal.h`.  The sound attempt log (`cc_sound_note`, host
+  callback and log accessors) moved from the gameplay modules into
+  `wasm/sound.c`.  No public export name changed, the 929 Phase 0 digest
+  snapshots are unchanged, and `wasm/test_render_digest.js` +
+  `notes/refactor_render_digests.json` add 155 render/text/scroll digests
+  (A/B-baselined against the pre-split build) behind `make test-render-digest`
+  / `render-digest-update`.  Largest remaining shell/text/render file is
+  `shell/input.c` (411 lines); long functions stay Phase 3 targets.
+- Refactor Phase 3 (readability) is implemented: sound-effect IDs
+  (`wasm/sound_ids.h`), cell-record field names (`wasm/game/cell_fields.h`),
+  all handlers descriptively named behind one `g_handlers[]` table in
+  `wasm/game/handlers_table.c`, decoded `cc_state_t` field renames (DS offsets
+  kept as comments), a rule-table `cell_event()`, a data-table
+  `cc_global_get/set()` (`g_global_fields[]` in `wasm/game/api_globals.c`,
+  fixing latent `0x5132` signed and `0xA0BE` unsigned read mismatches), and
+  splits of every oversized function (`cc_horizontal`, `slash_state1`,
+  `apply_startup_state`, `apply_level_overlay`, `cc_shell_key`,
+  `cc_shell_render`).  `make lint` reports zero function-length failures and
+  CI runs `lint-strict`; the 929 digest goldens are unchanged from Phase 0.
+- Refactor Phase 4 (structural cleanups) is implemented for gameplay: the build
+  uses deterministic wildcard source lists with per-file objects and `-MMD -MP`
+  depfiles; `ObjectEntry` lives in hand-written `wasm/game/object.h`; the
+  `game_internal.h` umbrella has been split into per-module headers
+  (`state.h`, `math.h`, `cell_ops.h`, `object_ops.h`, `physics.h`,
+  `combat.h`, `cell_event.h`, `handlers.h`, `level.h`, `update.h`, `save.h`,
+  `rng.h`, `sound_ops.h`), with the old name kept as a small aggregator;
+  `cells_data.h` is included only by its cell consumers and `startup_data.h`
+  only by `level.c`/`physics.c`/`handlers_actors_a.c`; and
+  `make test-exports` validates the 184 wasm exports against `EXPORTS`.
+  Remaining follow-up: split the smaller `shell_internal.h` umbrella the same
+  way.  See `refactor/phase-4-structural-cleanups.md`.
+- Refactor Phase 5 (browser JS, tests and docs) is implemented: the ~507-line
+  inline `game.html` script moved to `wasm/game.js` plus
+  `game/render.js`, `game/input.js` and `game/requests.js`; the shared
+  `wasm/test_helpers.js` serves the large Node harnesses; `persist.js`,
+  `keymap.js`, `touch.js`, `audio.js` and `sound_synth.js` have JSDoc on their
+  public entry points; `wasm/ARCHITECTURE.md`, `notes/refactor_map.md` and this
+  file document the final layout and conventions.  `window.__cc` and
+  `browser_expectations.json` are unchanged.  The JS modules remain plain
+  ordered scripts; there is no bundler and none is planned.
 - Phase 6 sound is implemented: all 36 Crystal Caves Sound effects are
   trace-captured from the real `0x1FBBF`/`0x0A3F` driver, rendered by
   `wasm/sound_synth.js`, and played through a single WebAudio channel.
@@ -251,10 +411,21 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - `wasm/persist.js` — browser localStorage config/high-score/slot adapter
 - `wasm/test_persist.js` — Phase 7 persistence regression
 - `notes/sound_fixtures.json` — committed 36-ID sound-driver trace (`make test-sound`)
+- `notes/refactor_baseline.md` — Phase 0 size/perf/test/export baseline
+- `notes/refactor_digests.json` — Phase 0 golden-master SHA-256 digests (`make test-digest`)
+- `notes/refactor_render_digests.json` — Phase 2 render/text/scroll digests (`make test-render-digest`)
+- `wasm/test_render_digest.js` — Phase 2 render-surface characterization harness
+- `wasm/test_refactor_digest.js` — Phase 0 characterization harness
+- `tools/check_source_limits.py` — Phase 0 file/function size guardrail (`make lint`)
+- `wasm/ARCHITECTURE.md` — module/layer/ownership architecture document
 - `notes/sound_synth_fixtures.json` — Python-reference JS synth hashes
 - `notes/sound_shell_fixtures.json` — recovered shell sound call sites
 - `notes/sound.md` — Phase 6 driver/format/browser notes
-- `wasm/game.html` — full shell page
+- `wasm/game.html` — shell page markup and script tags
+- `wasm/game.js`, `wasm/game/{render,input,requests}.js` — browser boot/frame loop,
+  rendering, save/restore handshake and input wiring
+- `wasm/test_helpers.js` — shared Node test load/asset/state/assertion helpers
+- `wasm/test_exports.js` — wasm export-stability check (`make test-exports`)
 - `wasm/favicon.ico`, `favicon.svg`, `favicon-16/32.png`,
   `apple-touch-icon.png` — Milo favicon set (`make favicon`)
 - `wasm/social-card.png` — 1200x630 Open Graph link-preview card
@@ -264,6 +435,12 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - `wasm/test_browser.js` / `wasm/browser_expectations.json` — Phase 8 headless browser smoke
 - `wasm/measure_perf.js` / `wasm/perf_baseline.json` — Phase 8 frame-budget/size checks
 - `notes/regression.md` — Phase 8 coverage matrix (target → fixture → harness)
+- `compose.yaml` + `docker/Dockerfile.dev` (+ `Dockerfile.dev.dockerignore`,
+  `cc1-entrypoint.sh`) — development toolchain container (clang/lld, Node 22,
+  capstone/unicorn venv, Playwright Chromium) for hosts with no local toolchain,
+  e.g. Windows
+- `.gitattributes` — LF pin for makefiles/shell scripts, required by GNU make in
+  that container
 - `README.md` — build, run, controls, test and oracle-regeneration guide
 
 ## Known Constraints
@@ -271,6 +448,9 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - No `pip` project or `cargo`; the game build is Python + clang/emcc only.
   npm exists solely for the optional Playwright browser test
   (`wasm/package.json`).
+- Windows hosts have no Homebrew: run the toolchain in the dev container
+  (`docker compose run --rm dev make -C wasm <target>`).  Keep `wasm/Makefile`
+  LF (`.gitattributes`) or GNU make inside the container misreads it.
 - Static levels are baked from oracle dumps; `cells.bin` carries mutable 20-byte records, dynamic redraw is implemented, and the HUD/text windows are oracle-exact.
 - Oracle catalog is the regression reference; never hand-edit generated headers
 - Level layout is code-encoded — changing map heights requires editing binary/code assumptions

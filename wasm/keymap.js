@@ -53,6 +53,7 @@
     117: 0x40, 118: 0x41, 119: 0x42, 120: 0x43, 121: 0x44
   };
 
+  /** @param {string} code KeyboardEvent.code; @returns {number} set-1 scan code. */
   function scanFromCode(code) {
     if (!code) return 0;
     if (CODE[code] !== undefined) return CODE[code];
@@ -70,6 +71,7 @@
     return 0;
   }
 
+  /** Map a KeyboardEvent, falling back to the legacy keyCode field. */
   function scanFromEvent(ev) {
     if (!ev) return 0;
     const scan = scanFromCode(ev.code);
