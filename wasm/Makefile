@@ -38,13 +38,14 @@ GAME_SRC = game/state.c game/physics.c game/handlers_platforms.c game/combat.c \
 	   game/api_accessors.c game/api_globals.c game/rng.c game/handlers_table.c \
 	   game/save_state.c
 
-SHELL_SRC = shell/shell.c
+SHELL_SRC = shell/state.c shell/input.c shell/render.c shell/hiscore.c \
+	    shell/config.c shell/persist.c shell/scroll.c shell/shell.c
 TEXT_SRC = text/text.c
 RENDER_SRC = render/render.c
 
 clang: assets $(OUT)
 
-$(OUT): render/render.c render.h $(GAME_SRC) game/game_internal.h objects.h objects_data.h cells_data.h startup_data.h text/text.c text.h shell/shell.c shell.h shell_text_data.h shell_exact_data.h sound.c sound.h sound_data.h
+$(OUT): render/render.c render.h $(GAME_SRC) game/game_internal.h objects.h objects_data.h cells_data.h startup_data.h text/text.c text.h $(SHELL_SRC) shell/shell_internal.h shell.h shell_text_data.h shell_exact_data.h sound.c sound.h sound_data.h
 	@test -x "$(LLVM)/clang" || { echo "clang not found at $(LLVM)/clang"; \
 	  echo "Install Homebrew LLVM (brew install llvm) or pass LLVM=/path/to/bin"; exit 1; }
 	$(LLVM)/clang --target=wasm32 -Oz -nostdlib -ffreestanding -fno-builtin -I. \
