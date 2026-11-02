@@ -44,7 +44,7 @@ int32_t cc_global_get(int off) {
         case 0x4619: return g_state.player_block;
         case 0x4627: return g_state.shape_player;
         case 0x4629: return g_state.move_dir;
-        case 0x460D: return g_state.obj[1].p02;
+        case 0x460D: return g_state.obj[1].hit_flag;
         case 0x5118: return g_state.g_5118;
         case 0x5126: return g_state.g_5126;
         case 0x5128: return g_state.g_5128;
@@ -60,7 +60,7 @@ int32_t cc_global_get(int off) {
         case 0x509C: return g_state.g_509c;
         case 0x509E: return g_state.g_509e;
         case 0x4660: return g_state.obj[2].ready;
-        case 0x4652: return g_state.obj[2].p1a;
+        case 0x4652: return g_state.obj[2].subtype;
         case 0x02A6: return g_state.rng_lo;
         case 0x02A8: return g_state.rng_hi;
         case 0x02DA: return g_state.fire_impulse;
@@ -164,13 +164,13 @@ void cc_global_set(int off, int32_t v) {
         case 0x030A: g_state.anim_suppress = (uint8_t)v; break;
         case 0x030B: g_state.status_30b = (uint8_t)v; break;
         case 0x030C: g_state.paused_30c = (uint8_t)v; break;
-        case 0x461B: g_state.anim_timer = (uint16_t)v; g_state.obj[1].p10 = (uint16_t)v; break;
-        case 0x461D: g_state.shape_b = (uint16_t)v; g_state.obj[1].p12 = (uint16_t)v; break;
-        case 0x461F: g_state.shape_a = (uint16_t)v; g_state.obj[1].p14 = (uint16_t)v; break;
-        case 0x4619: g_state.player_block = (uint16_t)v; g_state.obj[1].tile = (uint16_t)v; break;
+        case 0x461B: g_state.anim_timer = (uint16_t)v; g_state.obj[1].anim_frame = (uint16_t)v; break;
+        case 0x461D: g_state.shape_b = (uint16_t)v; g_state.obj[1].anim_shape_a = (uint16_t)v; break;
+        case 0x461F: g_state.shape_a = (uint16_t)v; g_state.obj[1].anim_shape_b = (uint16_t)v; break;
+        case 0x4619: g_state.player_block = (uint16_t)v; g_state.obj[1].block = (uint16_t)v; break;
         case 0x4627: g_state.shape_player = (uint16_t)v; g_state.obj[1].shape = (uint16_t)v; break;
         case 0x4629: g_state.move_dir = (uint16_t)v; g_state.obj[1].vx = (int16_t)v; break;
-        case 0x460D: g_state.obj[1].p02 = (uint16_t)v; break;
+        case 0x460D: g_state.obj[1].hit_flag = (uint16_t)v; break;
         case 0x5118: g_state.g_5118 = (uint16_t)v; break;
         case 0x5126: g_state.g_5126 = (uint16_t)v; break;
         case 0x5128: g_state.g_5128 = (uint16_t)v; break;
@@ -186,7 +186,7 @@ void cc_global_set(int off, int32_t v) {
         case 0x509C: g_state.g_509c = (uint16_t)v; break;
         case 0x509E: g_state.g_509e = (uint16_t)v; break;
         case 0x4660: g_state.obj[2].ready = (uint8_t)v; break;
-        case 0x4652: g_state.obj[2].p1a = (uint16_t)v; break;
+        case 0x4652: g_state.obj[2].subtype = (uint16_t)v; break;
         case 0x02A6: g_state.rng_lo = (uint16_t)v; break;
         case 0x02A8: g_state.rng_hi = (uint16_t)v; break;
         case 0x02DA: g_state.fire_impulse = (uint16_t)v; break;

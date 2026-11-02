@@ -189,8 +189,8 @@ typedef struct {
 
 typedef struct {
     uint16_t handler, handler_seg;
-    uint16_t p18, speed, p16, p14, p12, vy, vx;
-    uint16_t ycell, xcell, tile, kind;
+    uint16_t phase, speed, anim_last, anim_shape_b, anim_shape_a, vy, vx;
+    uint16_t ycell, xcell, block, kind;
     int slot;
 } SpawnArgs;
 
@@ -342,7 +342,7 @@ uint32_t cc_unknown_handler_hits(void);
 void cc_test_spawn_2002d(int mode);
 void cc_test_cell_event(int x, int y);
 void cc_test_contact(void);
-void cc_test_spawn_47d(int handler, int handler_seg, int p18, int speed, int p16, int p14, int p12, int vy, int vx, int ycell, int xcell, int tile, int kind, int slot);
+void cc_test_spawn_47d(int handler, int handler_seg, int phase, int speed, int anim_last, int anim_shape_b, int anim_shape_a, int vy, int vx, int ycell, int xcell, int block, int kind, int slot);
 void cc_objects_step_physics(void);
 void cc_objects_step(void);
 void restore_checkpoint(void);

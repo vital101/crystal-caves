@@ -8,26 +8,26 @@ int32_t  cc_obj_x(int i)      { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].
 int32_t  cc_obj_y(int i)      { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].y      : 0; }
 uint16_t cc_obj_kind(int i)   { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].kind   : 0; }
 uint16_t cc_obj_shape(int i)  { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].shape  : 0; }
-uint16_t cc_obj_tile(int i)   { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].tile   : 0; }
-uint16_t cc_obj_p10(int i)    { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].p10    : 0; }
-/* Shape actually selected by the original draw loop: base + p10 - 1. */
+uint16_t cc_obj_tile(int i)   { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].block   : 0; }
+uint16_t cc_obj_p10(int i)    { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].anim_frame    : 0; }
+/* Shape actually selected by the original draw loop: base + anim_frame - 1. */
 uint16_t cc_obj_draw_shape(int i) {
     if (i < 0 || i >= OBJ_MAX) return 0;
     uint16_t base = g_state.obj[i].shape;
     if (!base) return 0;
-    int sh = (int)base - 1 + (int)g_state.obj[i].p10;
+    int sh = (int)base - 1 + (int)g_state.obj[i].anim_frame;
     return sh < 1 ? 0 : (uint16_t)sh;
 }
-uint16_t cc_obj_p12(int i)    { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].p12    : 0; }
-uint16_t cc_obj_p14(int i)    { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].p14    : 0; }
-uint16_t cc_obj_p16(int i)    { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].p16    : 0; }
-uint16_t cc_obj_p18(int i)    { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].p18    : 0; }
-uint16_t cc_obj_p1a(int i)    { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].p1a    : 0; }
+uint16_t cc_obj_p12(int i)    { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].anim_shape_a    : 0; }
+uint16_t cc_obj_p14(int i)    { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].anim_shape_b    : 0; }
+uint16_t cc_obj_p16(int i)    { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].anim_last    : 0; }
+uint16_t cc_obj_p18(int i)    { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].phase    : 0; }
+uint16_t cc_obj_p1a(int i)    { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].subtype    : 0; }
 uint16_t cc_obj_ready(int i)  { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].ready  : 0; }
 int32_t  cc_obj_vx(int i)     { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].vx     : 0; }
 int32_t  cc_obj_vy(int i)     { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].vy     : 0; }
 uint16_t cc_obj_speed(int i)  { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].speed  : 0; }
-uint16_t cc_obj_p24(int i)    { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].p24    : 0; }
+uint16_t cc_obj_p24(int i)    { return (i >= 0 && i < OBJ_MAX) ? g_state.obj[i].unused24    : 0; }
 uint16_t cc_obj_cursor(void)  { return g_state.obj_cursor; }
 void     cc_obj_set_cursor(int value) { g_state.obj_cursor = (uint16_t)value; }
 /* Current level index (updated by cc_level_exit / cc_objects_init). */
@@ -55,24 +55,24 @@ int32_t cc_obj_get(int i, int off) {
     const ObjectEntry *o = &g_state.obj[i];
     switch (off) {
         case 0x00: return o->state;
-        case 0x02: return o->p02;
-        case 0x04: return o->p04;
+        case 0x02: return o->hit_flag;
+        case 0x04: return o->hit_points;
         case 0x06: return (int16_t)o->x;
         case 0x08: return (int16_t)o->y;
         case 0x0a: return (int16_t)o->x_prev;
         case 0x0c: return (int16_t)o->y_prev;
-        case 0x0e: return o->tile;
-        case 0x10: return o->p10;
-        case 0x12: return o->p12;
-        case 0x14: return o->p14;
-        case 0x16: return o->p16;
-        case 0x18: return o->p18;
-        case 0x1a: return o->p1a;
+        case 0x0e: return o->block;
+        case 0x10: return o->anim_frame;
+        case 0x12: return o->anim_shape_a;
+        case 0x14: return o->anim_shape_b;
+        case 0x16: return o->anim_last;
+        case 0x18: return o->phase;
+        case 0x1a: return o->subtype;
         case 0x1c: return o->shape;
         case 0x1e: return (int16_t)o->vx;
         case 0x20: return (int16_t)o->vy;
         case 0x22: return o->speed;
-        case 0x24: return o->p24;
+        case 0x24: return o->unused24;
         case 0x26: return o->kind;
         case 0x28: return o->ready;
         case 0x29: return o->handler;
@@ -85,24 +85,24 @@ void cc_obj_set(int i, int off, int32_t v) {
     ObjectEntry *o = &g_state.obj[i];
     switch (off) {
         case 0x00: o->state = (uint16_t)v; break;
-        case 0x02: o->p02 = (uint16_t)v; break;
-        case 0x04: o->p04 = (uint16_t)v; break;
+        case 0x02: o->hit_flag = (uint16_t)v; break;
+        case 0x04: o->hit_points = (uint16_t)v; break;
         case 0x06: o->x = (int16_t)v; break;
         case 0x08: o->y = (int16_t)v; break;
         case 0x0a: o->x_prev = (int16_t)v; break;
         case 0x0c: o->y_prev = (int16_t)v; break;
-        case 0x0e: o->tile = (uint16_t)v; break;
-        case 0x10: o->p10 = (uint16_t)v; break;
-        case 0x12: o->p12 = (uint16_t)v; break;
-        case 0x14: o->p14 = (uint16_t)v; break;
-        case 0x16: o->p16 = (uint16_t)v; break;
-        case 0x18: o->p18 = (uint16_t)v; break;
-        case 0x1a: o->p1a = (uint16_t)v; break;
+        case 0x0e: o->block = (uint16_t)v; break;
+        case 0x10: o->anim_frame = (uint16_t)v; break;
+        case 0x12: o->anim_shape_a = (uint16_t)v; break;
+        case 0x14: o->anim_shape_b = (uint16_t)v; break;
+        case 0x16: o->anim_last = (uint16_t)v; break;
+        case 0x18: o->phase = (uint16_t)v; break;
+        case 0x1a: o->subtype = (uint16_t)v; break;
         case 0x1c: o->shape = (uint16_t)v; break;
         case 0x1e: o->vx = (int16_t)v; break;
         case 0x20: o->vy = (int16_t)v; break;
         case 0x22: o->speed = (uint16_t)v; break;
-        case 0x24: o->p24 = (uint16_t)v; break;
+        case 0x24: o->unused24 = (uint16_t)v; break;
         case 0x26: o->kind = (uint16_t)v; break;
         case 0x28: o->ready = (uint8_t)v; break;
         case 0x29: o->handler = (uint16_t)v; break;

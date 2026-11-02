@@ -6,7 +6,7 @@ void damage_life(void) {
     if ((int16_t)g_state.g_509e > 1) {
         g_state.g_a0ea = 0;
         g_state.g_509e--;
-        g_state.obj[1].p02 = 1;
+        g_state.obj[1].hit_flag = 1;
     } else if (g_state.g_5124 == 0) {
         g_state.g_5124 = 1;
         g_state.g_509e--;
@@ -30,12 +30,12 @@ void transform_object(ObjectEntry *o) {
             o->x = (int16_t)((o->x / 16) * 16);
             o->vx = 0;
             o->vy = 0;
-            o->p18 = 0;
-            o->p1a = 0;
+            o->phase = 0;
+            o->subtype = 0;
             o->shape = 0x19;
-            o->p16 = 9;
-            o->tile = 7;
-            o->p10 = 1;
+            o->anim_last = 9;
+            o->block = 7;
+            o->anim_frame = 1;
             o->kind = 3;
             o->ready = 0;
             o->state = 0;
@@ -58,19 +58,19 @@ void slash_gate(ObjectEntry *o, int16_t x, int16_t y) {
     if (a->ready != 0) return;
 
     if (g_state.g_5140 == 0 && g_state.g_513c != 0 && o->kind == 0x24) {
-        o->p10 = 1;
-        o->p16 = 1;
+        o->anim_frame = 1;
+        o->anim_last = 1;
         g_state.g_5124 = 2;
     }
 
-    o->p04 = (uint16_t)(o->p04 - 1u);
+    o->hit_points = (uint16_t)(o->hit_points - 1u);
     a->ready = 1;
     kind = o->kind;
     if (kind == 0x15 || kind == 0x1D || kind == 0x12 ||
         kind == 0x37 || kind == 0x19)
         a->ready = 0;
 
-    if (a->p1a == 1) slash_state1(o, (int)(o - g_state.obj), x, y);
+    if (a->subtype == 1) slash_state1(o, (int)(o - g_state.obj), x, y);
     else slash_state2(o, (int)(o - g_state.obj), x, y);
 }
 
@@ -88,7 +88,7 @@ void slash_state1(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     ObjectEntry *p;
     int col, row;
 
-    if ((int16_t)o->p04 >= 1) {
+    if ((int16_t)o->hit_points >= 1) {
         int k = o->kind;
         if (k == 0x24 || k == 0x16 || k == 0x1D || k == 0x15 ||
             k == 0x0E || k == 0x10 || k == 0x19)
@@ -98,10 +98,10 @@ void slash_state1(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             side = (p && p->kind == 0x2F) ? 1 : -1;
             p = obj_safe(idx + side);
             if (p) {
-                p->p04 = (uint16_t)(p->p04 - 1u);
-                p->p02 = 1;
+                p->hit_points = (uint16_t)(p->hit_points - 1u);
+                p->hit_flag = 1;
             }
-            o->p02 = 1;
+            o->hit_flag = 1;
             if (o->vx == g_state.obj[2].vx) {
                 o->vx = (int16_t)-o->vx;
                 anim_select_shape(o);
@@ -113,9 +113,9 @@ void slash_state1(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             return;
         }
         if (k == 0x30) {
-            o->p02 = 1;
-            if ((p = obj_safe(idx + 1))) p->p02 = 1;
-            if ((p = obj_safe(idx + 2))) p->p02 = 1;
+            o->hit_flag = 1;
+            if ((p = obj_safe(idx + 1))) p->hit_flag = 1;
+            if ((p = obj_safe(idx + 2))) p->hit_flag = 1;
             if (o->vx == g_state.obj[2].vx) {
                 o->vx = (int16_t)-o->vx;
                 if ((p = obj_safe(idx + 1))) {
@@ -130,8 +130,8 @@ void slash_state1(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             return;
         }
         if (k == 0x39) {
-            if (o->shape == 0x2D) o->p02 = 1;
-            else o->p04 = (uint16_t)(o->p04 + 1u);
+            if (o->shape == 0x2D) o->hit_flag = 1;
+            else o->hit_points = (uint16_t)(o->hit_points + 1u);
             if (o->vx == g_state.obj[2].vx) o->vx = (int16_t)-o->vx;
             return;
         }
@@ -139,23 +139,23 @@ void slash_state1(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             if (g_state.obj[2].vx == 1) {
                 p = obj_safe(idx - 1);
                 if (p && p->shape == 9) {
-                    p->p04 = (uint16_t)(p->p04 - 1u);
-                    if ((int16_t)p->p04 < 1) p->shape = 0x15;
-                    else p->p02 = 1;
+                    p->hit_points = (uint16_t)(p->hit_points - 1u);
+                    if ((int16_t)p->hit_points < 1) p->shape = 0x15;
+                    else p->hit_flag = 1;
                 }
             } else {
                 p = obj_safe(idx + 1);
                 if (p && p->shape == 0x11) {
-                    p->p04 = (uint16_t)(p->p04 - 1u);
-                    if ((int16_t)p->p04 < 1) p->shape = 0x19;
-                    else p->p02 = 1;
+                    p->hit_points = (uint16_t)(p->hit_points - 1u);
+                    if ((int16_t)p->hit_points < 1) p->shape = 0x19;
+                    else p->hit_flag = 1;
                 }
             }
-            if ((obj_safe(idx + 1) && (int16_t)obj_safe(idx + 1)->p04 > 0) ||
-                (obj_safe(idx - 1) && (int16_t)obj_safe(idx - 1)->p04 > 0))
-                o->p04 = (uint16_t)(o->p04 + 1u);
+            if ((obj_safe(idx + 1) && (int16_t)obj_safe(idx + 1)->hit_points > 0) ||
+                (obj_safe(idx - 1) && (int16_t)obj_safe(idx - 1)->hit_points > 0))
+                o->hit_points = (uint16_t)(o->hit_points + 1u);
             else
-                o->p02 = 1;
+                o->hit_flag = 1;
             if (o->vx == g_state.obj[2].vx) {
                 o->vx = (int16_t)-o->vx;
                 if ((p = obj_safe(idx + 1))) p->vx = (int16_t)-p->vx;
@@ -163,7 +163,7 @@ void slash_state1(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             }
             return;
         }
-        o->p02 = 1;
+        o->hit_flag = 1;
         return;
     }
 
@@ -201,13 +201,13 @@ void slash_state1(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         cell_border_put(col, row, 0x01, 0xFF);
         if (cell_border_byte(col, row, 0x0A) == 0 &&
             cell_border_byte(col, row, 0x0B) == 0) {
-            cell_border_put(col, row, 0x0A, o->tile & 0xFF);
-            cell_border_put(col, row, 0x0B, (o->tile >> 8) & 0xFF);
+            cell_border_put(col, row, 0x0A, o->block & 0xFF);
+            cell_border_put(col, row, 0x0B, (o->block >> 8) & 0xFF);
             cell_border_put(col, row, 0x06, kind == 0x09 ? 0x31 : 0x18);
             cell_border_put(col, row, 0x07, 0);
         } else {
-            cell_border_put(col, row, 0x0C, o->tile & 0xFF);
-            cell_border_put(col, row, 0x0D, (o->tile >> 8) & 0xFF);
+            cell_border_put(col, row, 0x0C, o->block & 0xFF);
+            cell_border_put(col, row, 0x0D, (o->block >> 8) & 0xFF);
             cell_border_put(col, row, 0x0E, kind == 0x09 ? 0x31 : 0x18);
             cell_border_put(col, row, 0x0F, 0);
         }
@@ -235,7 +235,7 @@ void slash_state1(ObjectEntry *o, int idx, int16_t x, int16_t y) {
                          (int16_t)(o->y / 16));
             score_add(0x1388, 0);
         } else {
-            o->p04 = (uint16_t)(o->p04 + 1u);
+            o->hit_points = (uint16_t)(o->hit_points + 1u);
             o->ready = 0;
             if (o->vx == g_state.obj[2].vx) o->vx = (int16_t)-o->vx;
         }
@@ -252,11 +252,11 @@ void slash_state1(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         return;
     }
     if (kind == 0x33) {
-        if (o->p14 == 0x2F) {
+        if (o->anim_shape_b == 0x2F) {
             p = obj_safe(idx + 1);
             if (p && p->kind == 0x33) {
-                p->p14 = 0x2F;
-                p->p12 = 0x25;
+                p->anim_shape_b = 0x2F;
+                p->anim_shape_a = 0x25;
             }
             if (p) anim_select_shape(p);
             spawn_effect(0x18, (int16_t)((o->x + 8) / 16),
@@ -265,7 +265,7 @@ void slash_state1(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             spawn_template_2002d(1);
         } else {
             o->ready = 0;
-            o->p02 = 1;
+            o->hit_flag = 1;
         }
         return;
     }
@@ -344,11 +344,11 @@ void slash_state2(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         return;
     }
     if (kind == 0x33) {
-        if (o->p14 == 0x2F) {
+        if (o->anim_shape_b == 0x2F) {
             p = obj_safe(idx + 1);
             if (p && p->kind == 0x33) {
-                p->p14 = 0x2F;
-                p->p12 = 0x25;
+                p->anim_shape_b = 0x2F;
+                p->anim_shape_a = 0x25;
             }
             if (p) anim_select_shape(p);
             o->ready = 1;
@@ -358,7 +358,7 @@ void slash_state2(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             score_add(0x3E8, 0);
         } else {
             o->ready = 0;
-            o->p02 = 1;
+            o->hit_flag = 1;
         }
         play_sound(6);
         return;
@@ -414,13 +414,13 @@ void player_interact(ObjectEntry *o, int16_t x, int16_t y) {
         case 0x10: case 0x0E:
             g_state.g_a0ea = 0xFFFF;
             g_state.g_5124 = 1;
-            g_state.obj[1].p02 = 0;
+            g_state.obj[1].hit_flag = 0;
             break;
         case 0x24:
             g_state.g_5124 = 0;
             g_state.g_a0ea = 0xFFFF;
             g_state.g_509e++;
-            g_state.obj[1].p02 = 0;
+            g_state.obj[1].hit_flag = 0;
             break;
         case 0x16:
             if (g_state.g_5124 == 1)
@@ -430,7 +430,7 @@ void player_interact(ObjectEntry *o, int16_t x, int16_t y) {
             g_state.g_5124 = 0;
             g_state.g_a0ea = 0xFFFF;
             g_state.g_509e++;
-            g_state.obj[1].p02 = 0;
+            g_state.obj[1].hit_flag = 0;
             o->ready = 1;
             spawn_effect(0x18, (int16_t)(x / 16), (int16_t)(y / 16));
             play_sound(8);

@@ -18,7 +18,7 @@ void helper_toggle_gravity(void) {
     }
     g_state.g_3392 = 0;
     g_state.airborne = 1;
-    g_state.obj[1].tile = g_state.player_block;
+    g_state.obj[1].block = g_state.player_block;
 }
 /* 0x0FC5:0xB607: a switch cell toggles the objects of kind `kind` in slots
  * 4..obj_cursor.  For the moving kinds (0x27/0x3B/0x26) the original flips
@@ -504,12 +504,12 @@ after_hazards:
         {
             SpawnArgs a;
             a.handler = 0x672B; a.handler_seg = 0x1F9A;
-            a.p18 = 0; a.speed = 2; a.p16 = 1;
-            a.p14 = 0x25; a.p12 = 0x25;
+            a.phase = 0; a.speed = 2; a.anim_last = 1;
+            a.anim_shape_b = 0x25; a.anim_shape_a = 0x25;
             a.vy = 0xFFFF; a.vx = 0;
             a.ycell = (uint16_t)(row - 1);
             a.xcell = (uint16_t)col;
-            a.tile = 0x0D; a.kind = 0x2E;
+            a.block = 0x0D; a.kind = 0x2E;
             a.slot = (int)g_state.obj_cursor;
             spawn_object_47d(&a);
         }
@@ -520,12 +520,12 @@ after_hazards:
         SpawnArgs a;
         int shape = w3;
         a.handler = 0x69D3; a.handler_seg = 0x1F9A;
-        a.p18 = 0; a.speed = 1; a.p16 = 1;
-        a.p14 = (uint16_t)shape; a.p12 = (uint16_t)shape;
+        a.phase = 0; a.speed = 1; a.anim_last = 1;
+        a.anim_shape_b = (uint16_t)shape; a.anim_shape_a = (uint16_t)shape;
         a.vy = 0xFFFF; a.vx = 0;
         a.ycell = (uint16_t)row;
         a.xcell = (uint16_t)col;
-        a.tile = 0x14; a.kind = 0x2D;
+        a.block = 0x14; a.kind = 0x2D;
         a.slot = (int)g_state.obj_cursor;
         spawn_object_47d(&a);
     }

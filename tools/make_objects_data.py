@@ -34,14 +34,18 @@ def s16(v):
     return v - 0x10000 if v >= 0x8000 else v
 
 # (C struct field name, oracle record key, signed?) in struct member order.
+# The C names are the Phase 3 readable names; the oracle keys stay the raw
+# DS-offset names emitted by tools/build_oracle_catalog.py.
 OBJ_FIELDS = [
-    ("state", "state", False), ("p02", "p02", False), ("p04", "p04", False),
+    ("state", "state", False),
+    ("hit_flag", "p02", False), ("hit_points", "p04", False),
     ("x", "x", True), ("y", "y", True), ("x_prev", "x_prev", True),
-    ("y_prev", "y_prev", True), ("tile", "tile", False),
-    ("p10", "p10", False), ("p12", "p12", False), ("p14", "p14", False),
-    ("p16", "p16", False), ("p18", "p18", False), ("p1a", "p1a", False),
+    ("y_prev", "y_prev", True), ("block", "tile", False),
+    ("anim_frame", "p10", False), ("anim_shape_a", "p12", False),
+    ("anim_shape_b", "p14", False), ("anim_last", "p16", False),
+    ("phase", "p18", False), ("subtype", "p1a", False),
     ("shape", "shape", False), ("vx", "p1e", True), ("vy", "p20", True),
-    ("speed", "p22", False), ("p24", "p24", False),
+    ("speed", "p22", False), ("unused24", "p24", False),
     ("kind", "kind", False), ("ready", "ready", False),
     ("handler", "handler_off", False), ("handler_seg", "handler_seg", False),
 ]
@@ -104,12 +108,13 @@ def main():
         "#include <stdint.h>",
         "",
         "typedef struct __attribute__((packed)) {",
-        "    uint16_t state, p02, p04;",
+        "    uint16_t state, hit_flag, hit_points;",
         "    int16_t  x, y, x_prev, y_prev;",       # signed: positions may be negative
-        "    uint16_t tile;",
-        "    uint16_t p10, p12, p14, p16, p18, p1a, shape;",
+        "    uint16_t block;",                     # shape's block index (DS 0x12)
+        "    uint16_t anim_frame, anim_shape_a, anim_shape_b;",
+        "    uint16_t anim_last, phase, subtype, shape;",
         "    int16_t  vx, vy;",                     # signed velocity
-        "    uint16_t speed, p24, kind;",
+        "    uint16_t speed, unused24, kind;",
         "    uint8_t  ready;",
         "    uint16_t handler, handler_seg;",       # handler_seg is always 0x1F9A
         "} ObjectEntry;",

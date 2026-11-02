@@ -4,9 +4,9 @@
 /* 0x1F9A:0x3E70 (kind 36): two-frame ambient animation. */
 void h_3e70(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
-    o->p18 = (uint16_t)(o->p18 + 1);
-    if (o->p18 > 0x7d00) o->p18 = 0;
-    if (o->p18 % 2 == 0) anim_next(o);
+    o->phase = (uint16_t)(o->phase + 1);
+    if (o->phase > 0x7d00) o->phase = 0;
+    if (o->phase % 2 == 0) anim_next(o);
     player_interact(o, x, y);
     player_interact(o, x, (int16_t)(y + 0x10));
 }
@@ -14,8 +14,8 @@ void h_3e70(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 /* 0x1F9A:0x4A4B (kind 31): two-frame ambient animation. */
 void h_4a4b(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx; (void)x; (void)y;
-    o->p18 = (uint16_t)(o->p18 + 1);
-    if (o->p18 % 2 == 0) anim_next(o);
+    o->phase = (uint16_t)(o->phase + 1);
+    if (o->phase % 2 == 0) anim_next(o);
 }
 
 /* 0x1F9A:0x4A82 (kind 44): interaction helper with state toggles. */
@@ -62,12 +62,12 @@ void h_323c(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     if (idx + 1 < OBJ_MAX) {
         ObjectEntry *n = &g_state.obj[idx + 1];
         if (n->state == 2) anim_next(o);
-        if (o->p10 == 6) {
+        if (o->anim_frame == 6) {
             n->state = 0;
             n->ready = 0;
             n->x = o->x;
             n->y = (int16_t)(o->y + 8);
-            o->p10 = 1;
+            o->anim_frame = 1;
         }
     }
 }
@@ -182,8 +182,8 @@ void h_5855(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     int16_t y2 = (int16_t)(n2->y + (int32_t)n2->vy * n2->speed);
     int flip = 0;
 
-    o->p18 = (uint16_t)(o->p18 + 1);
-    if (o->p18 % 2 == 0) {
+    o->phase = (uint16_t)(o->phase + 1);
+    if (o->phase % 2 == 0) {
         anim_next(o);
         anim_next(n1);
         anim_next(n2);
@@ -244,23 +244,23 @@ void h_5bbe(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 /* 0x1F9A:0x3BE8 (kind 21): expanding/contracting animator. */
 void h_3be8(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
-    o->p18 = (uint16_t)(o->p18 + 1);
-    if (o->p18 == 0x19) o->p1a = 1;
-    if (o->p1a == 0) return;
+    o->phase = (uint16_t)(o->phase + 1);
+    if (o->phase == 0x19) o->subtype = 1;
+    if (o->subtype == 0) return;
 
-    if (o->p10 > 6) {
+    if (o->anim_frame > 6) {
         o->shape = (uint16_t)(o->shape + 3);
-        o->p16 = (uint16_t)(o->p16 - 3);
-        o->p10 = 1;
+        o->anim_last = (uint16_t)(o->anim_last - 3);
+        o->anim_frame = 1;
     }
-    if (o->p18 % 2 == 0) anim_next(o);
-    o->p1a = (uint16_t)(o->p1a + 1);
-    if (o->p1a > 0x3c) {
-        o->p18 = 0;
-        o->p1a = 0;
+    if (o->phase % 2 == 0) anim_next(o);
+    o->subtype = (uint16_t)(o->subtype + 1);
+    if (o->subtype > 0x3c) {
+        o->phase = 0;
+        o->subtype = 0;
         o->shape = (uint16_t)(o->shape - 3);
-        o->p16 = (uint16_t)(o->p16 + 3);
-        o->p10 = 1;
+        o->anim_last = (uint16_t)(o->anim_last + 3);
+        o->anim_frame = 1;
     }
     player_interact(o, o->x, o->y);
 }
@@ -287,7 +287,7 @@ void h_251d(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     int row2 = (y + 9) / 16;
     (void)idx;
 
-    o->p18 = (uint16_t)(o->p18 + 1);
+    o->phase = (uint16_t)(o->phase + 1);
     anim_next(o);
 
     if (cell_byte_cur(col, row, 0x11) != 0 ||
@@ -295,14 +295,14 @@ void h_251d(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         o->kind = 0x2B;
         o->handler = 0x2241;
         o->handler_seg = 0x1F9A;
-        o->p18 = 0;
+        o->phase = 0;
         dig_cell(col, row);
         dig_cell(col2, row2);
         return;
     }
 
     o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
-    if (o->p1a == 1 && o->p18 > 6 && o->speed < 0xE)
+    if (o->subtype == 1 && o->phase > 6 && o->speed < 0xE)
         o->speed = (uint16_t)(o->speed + 2);
 }
 
@@ -323,19 +323,19 @@ int cell_w0_is_dig(int col, int row) {
 
 void h_2241(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx; (void)x; (void)y;
-    if (o->p18 == 0) {
+    if (o->phase == 0) {
         int col = o->x / 16 + 1;
         int row = (o->y + 8) / 16 + 1;
         int i = 0;
 
         play_sound(0x1C);
-        o->tile = 1;
+        o->block = 1;
         o->shape = 0x1D;
-        o->p14 = 0x1D;
-        o->p12 = 0x1D;
-        o->p10 = 0;
-        o->p16 = 4;
-        o->p18 = 1;
+        o->anim_shape_b = 0x1D;
+        o->anim_shape_a = 0x1D;
+        o->anim_frame = 0;
+        o->anim_last = 4;
+        o->phase = 1;
 
         if (o->vx == -1) {
             for (;;) {
@@ -368,11 +368,11 @@ void h_2241(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         }
     }
 
-    if (o->p18 == 1) {
-        if (o->p10 < o->p16) o->p10 = (uint16_t)(o->p10 + 1u);
-        else o->p18 = (uint16_t)(o->p18 + 1u);
-    } else if (o->p18 == 2) {
-        if (o->p10 > 1) o->p10 = (uint16_t)(o->p10 - 1u);
+    if (o->phase == 1) {
+        if (o->anim_frame < o->anim_last) o->anim_frame = (uint16_t)(o->anim_frame + 1u);
+        else o->phase = (uint16_t)(o->phase + 1u);
+    } else if (o->phase == 2) {
+        if (o->anim_frame > 1) o->anim_frame = (uint16_t)(o->anim_frame - 1u);
         else o->ready = 1;
     }
 }

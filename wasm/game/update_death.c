@@ -5,16 +5,16 @@ uint32_t cc_unknown_handler_hits(void) { return g_unknown_handler_hits; }
 void cc_test_spawn_2002d(int mode) { spawn_template_2002d(mode); }
 void cc_test_cell_event(int x, int y) { cell_event((int16_t)x, (int16_t)y); }
 void cc_test_contact(void) { contact_frame(); }
-void cc_test_spawn_47d(int handler, int handler_seg, int p18, int speed,
-                       int p16, int p14, int p12, int vy, int vx,
-                       int ycell, int xcell, int tile, int kind, int slot) {
+void cc_test_spawn_47d(int handler, int handler_seg, int phase, int speed,
+                       int anim_last, int anim_shape_b, int anim_shape_a, int vy, int vx,
+                       int ycell, int xcell, int block, int kind, int slot) {
     SpawnArgs a;
     a.handler = (uint16_t)handler; a.handler_seg = (uint16_t)handler_seg;
-    a.p18 = (uint16_t)p18; a.speed = (uint16_t)speed;
-    a.p16 = (uint16_t)p16; a.p14 = (uint16_t)p14; a.p12 = (uint16_t)p12;
+    a.phase = (uint16_t)phase; a.speed = (uint16_t)speed;
+    a.anim_last = (uint16_t)anim_last; a.anim_shape_b = (uint16_t)anim_shape_b; a.anim_shape_a = (uint16_t)anim_shape_a;
     a.vy = (uint16_t)vy; a.vx = (uint16_t)vx;
     a.ycell = (uint16_t)ycell; a.xcell = (uint16_t)xcell;
-    a.tile = (uint16_t)tile; a.kind = (uint16_t)kind; a.slot = slot;
+    a.block = (uint16_t)block; a.kind = (uint16_t)kind; a.slot = slot;
     spawn_object_47d(&a);
 }
 
@@ -65,10 +65,10 @@ void restart_sequence(void) {
 }
 
 /* 0x0FC5:0xB7B7: player death animation.  Uses [0x4623]/[0x4625]
- * (slot-1 p18/p1a) as phase/frame and returns 1 when the final phase ends. */
+ * (slot-1 phase/subtype) as phase/frame and returns 1 when the final phase ends. */
 int death_animation(void) {
-    uint16_t *phase = &g_state.obj[1].p18;
-    uint16_t *frame = &g_state.obj[1].p1a;
+    uint16_t *phase = &g_state.obj[1].phase;
+    uint16_t *frame = &g_state.obj[1].subtype;
     int done = 0;
 
     switch (*phase) {
@@ -77,9 +77,9 @@ int death_animation(void) {
                 g_state.player_block = 0x11;
                 g_state.anim_timer = 1;
                 g_state.shape_player = 1;
-                g_state.obj[1].p16 = 6;
+                g_state.obj[1].anim_last = 6;
             }
-            if (*frame > 0xC && g_state.anim_timer <= g_state.obj[1].p16)
+            if (*frame > 0xC && g_state.anim_timer <= g_state.obj[1].anim_last)
                 g_state.anim_timer = (uint16_t)(g_state.anim_timer + 1u);
             (*frame)++;
             if (*frame > 0x18) { *frame = 0; (*phase)++; }
@@ -88,7 +88,7 @@ int death_animation(void) {
             if (*frame == 0) {
                 g_state.anim_timer = 1;
                 g_state.shape_player = 8;
-                g_state.obj[1].p16 = 2;
+                g_state.obj[1].anim_last = 2;
             }
             if (*frame < 9) player_anim_next();
             (*frame)++;
@@ -106,7 +106,7 @@ int death_animation(void) {
             if (*frame == 0) {
                 g_state.anim_timer = 1;
                 g_state.shape_player = 0xB;
-                g_state.obj[1].p16 = 5;
+                g_state.obj[1].anim_last = 5;
             }
             if (*frame < 0xF) player_anim_next();
             (*frame)++;
@@ -116,7 +116,7 @@ int death_animation(void) {
             if (*frame == 0) {
                 g_state.anim_timer = 1;
                 g_state.shape_player = 0x10;
-                g_state.obj[1].p16 = 2;
+                g_state.obj[1].anim_last = 2;
             }
             if (*frame == 3) player_anim_next();
             (*frame)++;
@@ -135,25 +135,25 @@ void death_state1(void) {
         restart_sequence();
         return;
     }
-    if ((g_state.g_2b5e > 0 && g_state.g_2b5e < 0x80 && g_state.obj[1].p18 > 0) ||
+    if ((g_state.g_2b5e > 0 && g_state.g_2b5e < 0x80 && g_state.obj[1].phase > 0) ||
         g_state.input_fire || g_state.input_joystick_fire)
         restart_sequence();
 }
 
 /* 0xD1C6: death state 2 - spawn 0x6681 and play the fall/restart sequence. */
 void death_state2(void) {
-    uint16_t *phase = &g_state.obj[1].p18;
-    uint16_t *frame = &g_state.obj[1].p1a;
+    uint16_t *phase = &g_state.obj[1].phase;
+    uint16_t *frame = &g_state.obj[1].subtype;
 
     if (*phase == 0) {
         if (*frame == 0) {
             g_state.player_block = 0x11;
             g_state.anim_timer = 1;
             g_state.shape_player = 0x12;
-            g_state.obj[1].p16 = 3;
+            g_state.obj[1].anim_last = 3;
         }
         if (*frame > 3 && (*frame % 3) == 0 &&
-            g_state.anim_timer < g_state.obj[1].p16)
+            g_state.anim_timer < g_state.obj[1].anim_last)
             g_state.anim_timer = (uint16_t)(g_state.anim_timer + 1u);
         *frame = (uint16_t)(*frame + 1u);
         if (*frame > 0x11) {
@@ -172,12 +172,12 @@ void death_state2(void) {
             SpawnArgs a;
             g_state.obj[slot].state = 0x63;
             a.handler = 0x6681; a.handler_seg = 0x1F9A;
-            a.p18 = 0; a.speed = 4; a.p16 = 1;
-            a.p14 = 0x15; a.p12 = 0x15;
+            a.phase = 0; a.speed = 4; a.anim_last = 1;
+            a.anim_shape_b = 0x15; a.anim_shape_a = 0x15;
             a.vy = 0xFFFF; a.vx = 0;
             a.ycell = (uint16_t)(g_state.player_y / 16);
             a.xcell = (uint16_t)(g_state.player_x / 16 + 1);
-            a.tile = 0x11; a.kind = 0x29; a.slot = slot;
+            a.block = 0x11; a.kind = 0x29; a.slot = slot;
             spawn_object_47d(&a);
             g_state.obj[slot].state = 0;
             g_state.obj[slot].x = g_state.player_x;
@@ -188,10 +188,10 @@ void death_state2(void) {
         g_state.player_block = 7;
         g_state.anim_timer = 0;
         g_state.shape_player = 0x19;
-        g_state.obj[1].p16 = 9;
+        g_state.obj[1].anim_last = 9;
         *frame = (uint16_t)(*frame + 1u);
     }
-    if (g_state.anim_timer < g_state.obj[1].p16)
+    if (g_state.anim_timer < g_state.obj[1].anim_last)
         g_state.anim_timer = (uint16_t)(g_state.anim_timer + 1u);
     else
         *frame = (uint16_t)(*frame + 1u);

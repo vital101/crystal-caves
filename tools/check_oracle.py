@@ -111,6 +111,9 @@ def check_signed_coords():
         fail("objects_data.h: x/y are not int16_t")
     if "int16_t  vx, vy;" not in h:
         fail("objects_data.h: vx/vy are not int16_t")
+    # Phase 3: the helper words carry readable names, not raw p-offset names.
+    if "state, hit_flag, hit_points;" not in h or "phase, subtype, shape;" not in h:
+        fail("objects_data.h: ObjectEntry fields must use the Phase 3 names")
     if "g_obj_level0[OBJ_MAX] = {" not in h:
         fail("objects_data.h: missing level arrays")
     # Find a negative coordinate literal somewhere (must not be all unsigned).

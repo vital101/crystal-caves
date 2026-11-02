@@ -19,38 +19,38 @@ void h_5c8f(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     if (g_state.g_a0f0 != 0) {
         if (cc_rng_next(1000) < 0x14 && (int16_t)prev->shape < 0x15) {
             prev->shape = 5;
-            prev->p10 = (uint16_t)(prev->p16 + 1u);
+            prev->anim_frame = (uint16_t)(prev->anim_last + 1u);
             g_state.g_a0f0 = 0;
         }
     }
     if (g_state.g_a0fa != 0) {
         if (cc_rng_next(1000) < 0x14 && (int16_t)next->shape < 0x15) {
             next->shape = 0x0D;
-            next->p10 = (uint16_t)(next->p16 + 1u);
+            next->anim_frame = (uint16_t)(next->anim_last + 1u);
             g_state.g_a0fa = 0;
         }
     }
     if (g_state.g_a0f0 == 0 && cc_rng_next(1000) < 0x14) g_state.g_a0f0 = 1;
     if (g_state.g_a0fa == 0 && cc_rng_next(1000) < 0x14) g_state.g_a0fa = 1;
 
-    o->p18 = (uint16_t)(o->p18 + 1u);
-    if ((int16_t)o->p18 % 2 == 0) {
+    o->phase = (uint16_t)(o->phase + 1u);
+    if ((int16_t)o->phase % 2 == 0) {
         if (g_state.g_a0f0 == 0) {
-            prev->p10 = (uint16_t)(prev->p10 - 1u);
-            if ((int16_t)prev->p10 < 1) prev->p10 = 1;
+            prev->anim_frame = (uint16_t)(prev->anim_frame - 1u);
+            if ((int16_t)prev->anim_frame < 1) prev->anim_frame = 1;
         } else {
             if ((int16_t)prev->shape == 5 &&
-                (int16_t)prev->p10 == (int16_t)prev->p16)
+                (int16_t)prev->anim_frame == (int16_t)prev->anim_last)
                 prev->shape = 9;
             anim_next(prev);
         }
         anim_next(o);
         if (g_state.g_a0fa == 0) {
-            next->p10 = (uint16_t)(next->p10 - 1u);
-            if ((int16_t)next->p10 < 1) next->p10 = 1;
+            next->anim_frame = (uint16_t)(next->anim_frame - 1u);
+            if ((int16_t)next->anim_frame < 1) next->anim_frame = 1;
         } else {
             if ((int16_t)next->shape == 0x0D &&
-                (int16_t)next->p10 == (int16_t)next->p16)
+                (int16_t)next->anim_frame == (int16_t)next->anim_last)
                 next->shape = 0x11;
             anim_next(next);
         }
@@ -111,32 +111,32 @@ void h_62f2(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 /* 0x1F9A:0x3416 (kind 0x0C): proximity walker with companion spawn. */
 void h_3416(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     ObjectEntry *child;
-    o->p18 = (uint16_t)proximity_test(1, 0x15, x, y);
+    o->phase = (uint16_t)proximity_test(1, 0x15, x, y);
     if ((int16_t)o->x > (int16_t)g_state.player_x &&
-        (int16_t)o->p18 == -1 && (int16_t)o->vx == 1)
-        o->p18 = 0;
+        (int16_t)o->phase == -1 && (int16_t)o->vx == 1)
+        o->phase = 0;
     if (idx + 1 >= OBJ_MAX) return;
     child = &g_state.obj[idx + 1];
-    if (o->p18 != 0 && (int16_t)o->p18 == (int16_t)o->vx) {
+    if (o->phase != 0 && (int16_t)o->phase == (int16_t)o->vx) {
         child->state = 0;
         child->ready = 0;
         child->y = o->y;
         player_interact(child, (int16_t)child->x, (int16_t)child->y);
         anim_next(child);
-        if (o->p18 == 1) {
-            o->p10 = 9;
+        if (o->phase == 1) {
+            o->anim_frame = 9;
             child->x = (int16_t)(o->x + 0x11);
         } else {
-            o->p10 = 6;
+            o->anim_frame = 6;
             child->x = (int16_t)(o->x - 0x10);
         }
         return;
     }
     child->ready = 1;
     anim_next(o);
-    o->p1a = (uint16_t)(o->p1a + 1u);
-    if ((int16_t)o->p1a > 0x1e) {
-        o->p1a = 0;
+    o->subtype = (uint16_t)(o->subtype + 1u);
+    if ((int16_t)o->subtype > 0x1e) {
+        o->subtype = 0;
         if (cc_rng_next(100) > 0x32) {
             o->vx = (int16_t)(-o->vx);
             anim_select_shape(o);
@@ -167,14 +167,14 @@ void h_2d37(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 /* 0x1F9A:0x2ACF (kind 0x06): flip-on-contact walker. */
 void h_2acf(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
-    if (cell_test_200fe(x, y) && o->p18 == 0) {
+    if (cell_test_200fe(x, y) && o->phase == 0) {
         o->vx = (int16_t)(-o->vx);
-        o->p18 = 1;
+        o->phase = 1;
     }
-    if ((int16_t)o->p18 > 0) {
-        o->p18 = (uint16_t)(o->p18 + 1u);
-        o->p10 = 1;
-        if ((int16_t)o->p18 > 0x39) o->p18 = 0;
+    if ((int16_t)o->phase > 0) {
+        o->phase = (uint16_t)(o->phase + 1u);
+        o->anim_frame = 1;
+        if ((int16_t)o->phase > 0x39) o->phase = 0;
         player_interact(o, (int16_t)o->x, (int16_t)o->y);
         return;
     }
@@ -190,17 +190,17 @@ void h_2bd4(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         o->vx = (uint16_t)proximity_test(1, 0x80, x, y);
     if ((int16_t)o->vx == 0) return;
     o->state = 0;
-    if ((int16_t)o->p10 > 4 && o->p18 != 1) {
-        o->p18 = 1;
-        o->p12 = (uint16_t)(o->p12 + 4u);
-        o->p14 = (uint16_t)(o->p14 + 4u);
-        o->p16 = (uint16_t)(o->p16 - 4u);
+    if ((int16_t)o->anim_frame > 4 && o->phase != 1) {
+        o->phase = 1;
+        o->anim_shape_a = (uint16_t)(o->anim_shape_a + 4u);
+        o->anim_shape_b = (uint16_t)(o->anim_shape_b + 4u);
+        o->anim_last = (uint16_t)(o->anim_last - 4u);
     }
     anim_next(o);
     if (cell_test_200fe(x, y))
         o->vx = (int16_t)(-o->vx);
     anim_select_shape(o);
-    if (o->p18 == 1)
+    if (o->phase == 1)
         o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
     player_interact(o, (int16_t)o->x, (int16_t)o->y);
 }
@@ -213,15 +213,15 @@ void h_3904(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     dir = proximity_test(2, 0x40, (int16_t)o->x, (int16_t)o->y);
     if (dir != 0 && (int16_t)(g_state.player_y - 1) < (int16_t)o->y) {
         o->state = 0;
-        if ((int16_t)o->p10 < (int16_t)o->p16)
-            o->p10 = (uint16_t)(o->p10 + 1u);
-        if ((int16_t)o->p10 > 1 && (int16_t)o->p10 < 4)
+        if ((int16_t)o->anim_frame < (int16_t)o->anim_last)
+            o->anim_frame = (uint16_t)(o->anim_frame + 1u);
+        if ((int16_t)o->anim_frame > 1 && (int16_t)o->anim_frame < 4)
             play_sound(0x1f);
         player_interact(o, (int16_t)o->x, (int16_t)o->y);
         return;
     }
     o->state = 1;
-    o->p10 = 1;
+    o->anim_frame = 1;
 }
 
 /* 0x1F9A:0x47B9 (kind 0x0B): walker with two animation phases. */
@@ -232,16 +232,16 @@ void h_47b9(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         o->vx = (int16_t)(-o->vx);
         anim_select_shape(o);
     }
-    o->p1a = (uint16_t)(o->p1a + 1u);
-    if ((int16_t)o->p1a < (int16_t)(o->p18 + 0xa)) {
-        o->p16 = 9;
+    o->subtype = (uint16_t)(o->subtype + 1u);
+    if ((int16_t)o->subtype < (int16_t)(o->phase + 0xa)) {
+        o->anim_last = 9;
         o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
-    } else if ((int16_t)o->p1a < (int16_t)(o->p18 + 0x19)) {
+    } else if ((int16_t)o->subtype < (int16_t)(o->phase + 0x19)) {
         o->shape = 0x0e;
-        o->p16 = 7;
+        o->anim_last = 7;
     } else {
-        o->p1a = 0;
-        o->p10 = 1;
+        o->subtype = 0;
+        o->anim_frame = 1;
     }
     player_interact(o, (int16_t)o->x, (int16_t)o->y);
 }
@@ -289,28 +289,28 @@ void h_4145(ObjectEntry *o, int idx, int16_t x, int16_t y) {
                 if (cell_blocked_4145((o->x - 4) / 16, (o->y + 8) / 16)) {
                     o->vx = 0; o->vy = 0;
                 } else {
-                    o->shape = 0x25; o->p10 = 1; o->vx = -1; o->vy = 0;
+                    o->shape = 0x25; o->anim_frame = 1; o->vx = -1; o->vy = 0;
                 }
                 break;
             case 1:
                 if (cell_blocked_4145((o->x + 0x14) / 16, (o->y + 8) / 16)) {
                     o->vx = 0; o->vy = 0;
                 } else {
-                    o->shape = 0x21; o->p10 = 1; o->vx = 1; o->vy = 0;
+                    o->shape = 0x21; o->anim_frame = 1; o->vx = 1; o->vy = 0;
                 }
                 break;
             case 2:
                 if (cell_blocked_4145((o->x + 8) / 16, (o->y - 4) / 16)) {
                     o->vx = 0; o->vy = 0;
                 } else {
-                    o->shape = 0x29; o->p10 = 1; o->vx = 0; o->vy = -1;
+                    o->shape = 0x29; o->anim_frame = 1; o->vx = 0; o->vy = -1;
                 }
                 break;
             default:
                 if (cell_blocked_4145((o->x + 8) / 16, (o->y + 0x14) / 16)) {
                     o->vx = 0; o->vy = 0;
                 } else {
-                    o->shape = 0x2d; o->p10 = 1; o->vx = 0; o->vy = 1;
+                    o->shape = 0x2d; o->anim_frame = 1; o->vx = 0; o->vy = 1;
                 }
                 break;
         }
@@ -324,9 +324,9 @@ void h_4145(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 void h_48fe(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     anim_next(o);
-    o->p1a = (uint16_t)(o->p1a + 1u);
-    if ((int16_t)o->p1a > 0x1e) {
-        o->p1a = 0;
+    o->subtype = (uint16_t)(o->subtype + 1u);
+    if ((int16_t)o->subtype > 0x1e) {
+        o->subtype = 0;
         if (cc_rng_next(100) > 0x32) {
             o->vx = (int16_t)(-o->vx);
             anim_select_shape(o);
@@ -360,7 +360,7 @@ void h_6458(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             n->x = (int16_t)(o->x - 8);
         rem = (int16_t)(o->y % 16);
         n->y = (int16_t)(((int16_t)(o->y + rem) / 16) << 4);
-        o->p18 = 1;
+        o->phase = 1;
     }
     anim_next(o);
     if (cell_byte_cur((x + 8) / 16, (y + 5) / 16, 0x11) ||
@@ -376,12 +376,12 @@ void h_4fd4(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     ObjectEntry *cm2 = (idx >= 2) ? &g_state.obj[idx - 2] : o;
     int16_t dir;
 
-    if (o->p1a == 0) {
-        if ((int16_t)o->p18 <= (int16_t)g_state.g_260) goto p1a_handling;
+    if (o->subtype == 0) {
+        if ((int16_t)o->phase <= (int16_t)g_state.g_260) goto p1a_handling;
         if ((int16_t)(o->x % 16) != 0) goto p1a_handling;
-        o->p18 = 0;
-        o->p1a = 1;
-        o->p10 = 1;
+        o->phase = 0;
+        o->subtype = 1;
+        o->anim_frame = 1;
         o->shape = 0x2d;
         cm2->state = 0;
         cm2->ready = 0;
@@ -391,22 +391,22 @@ void h_4fd4(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     }
 
 p1a_handling:
-    if ((int16_t)o->p1a > 0x24) {
-        o->p1a = 0;
+    if ((int16_t)o->subtype > 0x24) {
+        o->subtype = 0;
         cm2->ready = 1;
         anim_select_shape(o);
         goto p1a_check;
     }
-    if ((int16_t)o->p1a <= 0) goto p1a_check;
-    o->p1a = (uint16_t)(o->p1a + 1u);
-    if ((int16_t)o->p1a % 3 != 0) goto p1a_check;
+    if ((int16_t)o->subtype <= 0) goto p1a_check;
+    o->subtype = (uint16_t)(o->subtype + 1u);
+    if ((int16_t)o->subtype % 3 != 0) goto p1a_check;
     anim_next(cm2);
 
 p1a_check:
-    if (o->p1a != 0) goto interact_only;
+    if (o->subtype != 0) goto interact_only;
 
-    o->p18 = (uint16_t)(o->p18 + 1u);
-    if ((int16_t)o->p18 % 2 == 0) anim_next(o);
+    o->phase = (uint16_t)(o->phase + 1u);
+    if ((int16_t)o->phase % 2 == 0) anim_next(o);
 
     if (cell_test_200fe(x, y)) {
         o->vx = (int16_t)(-o->vx);

@@ -57,7 +57,7 @@ void step_objects(void) {
             o->kind == 0x37 || o->kind == 0x31) {
             if (!o->ready) {
                 o->ready = 1;
-                g_state.obj[(s + OBJ_MAX - 1) % OBJ_MAX].p18 = 0;
+                g_state.obj[(s + OBJ_MAX - 1) % OBJ_MAX].phase = 0;
             }
             continue;
         }
@@ -65,7 +65,7 @@ void step_objects(void) {
         if (o->kind == 4) {
             if (!o->ready) {
                 o->ready = 1;
-                o->p18 = 0;
+                o->phase = 0;
             }
             continue;
         }
@@ -73,11 +73,11 @@ void step_objects(void) {
         if (o->kind == 7) {
             if (o->state == 0) {
                 int32_t ax;
-                o->p18 = 0;
+                o->phase = 0;
                 o->state = 3;
-                o->p12 = (uint16_t)(o->p12 - 4);
-                o->p14 = (uint16_t)(o->p14 - 4);
-                o->p16 = (uint16_t)(o->p16 + 4);
+                o->anim_shape_a = (uint16_t)(o->anim_shape_a - 4);
+                o->anim_shape_b = (uint16_t)(o->anim_shape_b - 4);
+                o->anim_last = (uint16_t)(o->anim_last + 4);
                 o->vx = 1;
                 anim_select_shape(o);
                 ax = o->vx; if (ax < 0) ax = -ax;
@@ -224,8 +224,8 @@ void cc_fire(void) {
     if (g_state.power_shot) {
         play_sound(0x0F);
         a->speed = 8;
-        a->p16 = 4;
-        a->p1a = 2;
+        a->anim_last = 4;
+        a->subtype = 2;
         if (a->vx == 1) {
             a->x = (int16_t)(g_state.player_x + 8);
             a->shape = 0x1D;
@@ -238,8 +238,8 @@ void cc_fire(void) {
     } else {
         play_sound(0x0E);
         a->speed = 4;
-        a->p16 = 6;
-        a->p1a = 1;
+        a->anim_last = 6;
+        a->subtype = 1;
         if (a->vx == 1) {
             a->x = (int16_t)(g_state.player_x + 8);
             a->shape = 0x25;
@@ -261,10 +261,10 @@ void cc_fire(void) {
     g_state.anim_suppress = 1;
     g_state.obj[2].ready = 0;
     a->state = 0;
-    a->p18 = 0;
+    a->phase = 0;
     a->handler = 0x2850;
     a->handler_seg = 0x1F9A;
-    a->tile = 6;
+    a->block = 6;
     g_state.impulse = g_state.fire_impulse;
 }
 
@@ -355,7 +355,7 @@ void cc_status_timers(void) {
     if ((int16_t)g_state.g_a0ea > -1) {
         g_state.g_a0ea = (uint16_t)(g_state.g_a0ea + 1u);
         if ((int16_t)g_state.g_a0ea > 0x13) g_state.g_a0ea = 0xFFFF;
-        if ((g_state.g_a0ea % 7) == 0) g_state.obj[1].p02 = 1;
+        if ((g_state.g_a0ea % 7) == 0) g_state.obj[1].hit_flag = 1;
     }
 }
 

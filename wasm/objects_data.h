@@ -8,12 +8,13 @@
 #include <stdint.h>
 
 typedef struct __attribute__((packed)) {
-    uint16_t state, p02, p04;
+    uint16_t state, hit_flag, hit_points;
     int16_t  x, y, x_prev, y_prev;
-    uint16_t tile;
-    uint16_t p10, p12, p14, p16, p18, p1a, shape;
+    uint16_t block;
+    uint16_t anim_frame, anim_shape_a, anim_shape_b;
+    uint16_t anim_last, phase, subtype, shape;
     int16_t  vx, vy;
-    uint16_t speed, p24, kind;
+    uint16_t speed, unused24, kind;
     uint8_t  ready;
     uint16_t handler, handler_seg;
 } ObjectEntry;

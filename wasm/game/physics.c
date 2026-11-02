@@ -4,15 +4,15 @@
 
 /* ---------------------------------------------------------------- helpers */
 
-/* 0x1FCB0 anim_next(index): p10++; if (p10 > p16) p10 = 1; */
+/* 0x1FCB0 anim_next(index): anim_frame++; if (anim_frame > anim_last) anim_frame = 1; */
 void anim_next(ObjectEntry *o) {
-    o->p10 = (uint16_t)(o->p10 + 1);
-    if (o->p10 > o->p16) o->p10 = 1;
+    o->anim_frame = (uint16_t)(o->anim_frame + 1);
+    if (o->anim_frame > o->anim_last) o->anim_frame = 1;
 }
 
-/* 0x1FCF7 anim_select_shape(index): p1e == 1 ? p14 : p12 -> shape. */
+/* 0x1FCF7 anim_select_shape(index): p1e == 1 ? anim_shape_b : anim_shape_a -> shape. */
 void anim_select_shape(ObjectEntry *o) {
-    o->shape = (o->vx == 1) ? o->p14 : o->p12;
+    o->shape = (o->vx == 1) ? o->anim_shape_b : o->anim_shape_a;
 }
 
 /* 0x1FC73 mark_redraw(x, y): the original queues a cell redraw and calls the
@@ -164,10 +164,10 @@ int cell_special_px(int16_t x, int16_t y) {
 /* 0x1F9A:0x310 anim_next(1): advance the player object animation frame. */
 void player_anim_next(void) {
     g_state.anim_timer = (uint16_t)(g_state.anim_timer + 1u);
-    if (g_state.anim_timer > g_state.obj[1].p16) g_state.anim_timer = 1;
+    if (g_state.anim_timer > g_state.obj[1].anim_last) g_state.anim_timer = 1;
 }
 
-/* 0x1F9A:0x357 anim_select_shape(1): p1e==1 ? p14 : p12 -> shape. */
+/* 0x1F9A:0x357 anim_select_shape(1): p1e==1 ? anim_shape_b : anim_shape_a -> shape. */
 void player_select_shape(void) {
     g_state.shape_player = (g_state.move_dir == 1) ? g_state.shape_a : g_state.shape_b;
 }
@@ -179,10 +179,10 @@ void sync_player_object(void) {
     p->y = g_state.player_y;
     p->shape = g_state.shape_player;
     p->vx = (int16_t)g_state.move_dir;
-    p->tile = g_state.player_block;
-    p->p10 = g_state.anim_timer;
-    p->p12 = g_state.shape_b;
-    p->p14 = g_state.shape_a;
+    p->block = g_state.player_block;
+    p->anim_frame = g_state.anim_timer;
+    p->anim_shape_a = g_state.shape_b;
+    p->anim_shape_b = g_state.shape_a;
 }
 
 /* 0x6BE: walk acceleration phase -> speed 2 for phases 1-2, 4 afterwards. */

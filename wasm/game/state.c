@@ -28,8 +28,8 @@ void *memcpy_(void *d, const void *s, unsigned n) {
 _Static_assert(sizeof(ObjectEntry) == 0x2D, "ObjectEntry record layout changed");
 _Static_assert(CC_OFFSETOF(ObjectEntry, state)       == 0x00, "object field moved");
 _Static_assert(CC_OFFSETOF(ObjectEntry, x)           == 0x06, "object field moved");
-_Static_assert(CC_OFFSETOF(ObjectEntry, tile)        == 0x0E, "object field moved");
-_Static_assert(CC_OFFSETOF(ObjectEntry, p10)         == 0x10, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, block)       == 0x0E, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, anim_frame)  == 0x10, "object field moved");
 _Static_assert(CC_OFFSETOF(ObjectEntry, shape)       == 0x1C, "object field moved");
 _Static_assert(CC_OFFSETOF(ObjectEntry, vx)          == 0x1E, "object field moved");
 _Static_assert(CC_OFFSETOF(ObjectEntry, kind)        == 0x26, "object field moved");

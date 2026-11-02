@@ -30,18 +30,18 @@ void h_2850(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 /* 0x1F9A:0x2877 (kind 3): transformed-object dissolve animation. */
 void h_2877(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx; (void)x; (void)y;
-    o->p18 = (uint16_t)(o->p18 + 1u);
-    if (o->tile == 0x0D) {
-        if (o->p18 > 0x10) o->shape = 0x19;
-        if (o->p18 > 0x14) {
-            o->p18 = 0;
+    o->phase = (uint16_t)(o->phase + 1u);
+    if (o->block == 0x0D) {
+        if (o->phase > 0x10) o->shape = 0x19;
+        if (o->phase > 0x14) {
+            o->phase = 0;
             o->ready = 1;
             o->shape = 0x11;
         }
     } else {
-        if (o->p18 > 8) {
+        if (o->phase > 8) {
             o->ready = 1;
-            o->p18 = 0;
+            o->phase = 0;
         }
     }
     if (o->x > 2 && o->x < 0x26C)
@@ -50,7 +50,7 @@ void h_2877(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x6FF6 (kind 32): moving hazard/platform.
- * Flips p1e at the x bounds; advances x on even p18 frames. */
+ * Flips p1e at the x bounds; advances x on even phase frames. */
 void h_6ff6(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)x; (void)y;
     g_state.g_512a = (uint16_t)idx;
@@ -60,16 +60,16 @@ void h_6ff6(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         o->x = (int16_t)(o->x + (int32_t)o->vx * 2);
     }
 
-    if (o->p18 < 0x7d00u) o->p18 = (uint16_t)(o->p18 + 1);
-    else o->p18 = 0;
+    if (o->phase < 0x7d00u) o->phase = (uint16_t)(o->phase + 1);
+    else o->phase = 0;
 
-    if ((o->p18 & 1u) == 0u) {
+    if ((o->phase & 1u) == 0u) {
         o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
     }
 }
 
 /* 0x1F9A:0x70E4 (kind 33): partner mover.  It swaps its record with the
- * object last touched by 0x6FF6 at p18==3 and adjusts the partner shape. */
+ * object last touched by 0x6FF6 at phase==3 and adjusts the partner shape. */
 void h_70e4(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)x; (void)y;
     int16_t dx;
@@ -82,21 +82,21 @@ void h_70e4(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     if (dx < 0) dx = (int16_t)-dx;
 
     if (dx > 0x23) {
-        skip_flip = (o->p18 != 0 && o->x > 0x10 && o->x < 0x270);
+        skip_flip = (o->phase != 0 && o->x > 0x10 && o->x < 0x270);
     } else {
         skip_flip = (o->x > 0x10 && o->x < 0x270);
     }
     if (!skip_flip) {
-        o->p18 = 1;
+        o->phase = 1;
         o->vx = (int16_t)(-o->vx);
     }
 
-    if (o->p18 != 0) {
-        o->p18 = (uint16_t)(o->p18 + 1);
-        if (o->p18 > 5) o->p18 = 0;
+    if (o->phase != 0) {
+        o->phase = (uint16_t)(o->phase + 1);
+        if (o->phase > 5) o->phase = 0;
         o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
 
-        if (o->p18 == 3) {
+        if (o->phase == 3) {
             int other = (int)g_state.g_512a;
             ObjectEntry tmp = *o;
             *o = g_state.obj[other];
@@ -121,9 +121,9 @@ void h_70e4(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 /* 0x1F9A:0x3F13 (kind 60): door/entrance animation. */
 void h_3f13(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx; (void)x; (void)y;
-    o->p18 = (uint16_t)(o->p18 + 1);
-    if (o->p18 > 0x7d00) o->p18 = 0;
-    if (o->p18 % 2 == 0) anim_next(o);
+    o->phase = (uint16_t)(o->phase + 1);
+    if (o->phase > 0x7d00) o->phase = 0;
+    if (o->phase % 2 == 0) anim_next(o);
 }
 
 /* 0x1F9A:0x3D23 (kind 34): two-record door/lever animation. */
@@ -131,25 +131,25 @@ void h_3d23(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)x; (void)y;
     ObjectEntry *n = (idx + 1 < OBJ_MAX) ? &g_state.obj[idx + 1] : o;
 
-    o->p18 = (uint16_t)(o->p18 + 1);
-    if (o->p18 > 0x12c) {
+    o->phase = (uint16_t)(o->phase + 1);
+    if (o->phase > 0x12c) {
         o->shape = 0x19;
         n->shape = 0x15;
-        o->p10 = 0;
-        n->p10 = 0;
-        o->p18 = 0;
+        o->anim_frame = 0;
+        n->anim_frame = 0;
+        o->phase = 0;
     }
 
-    if (o->p18 % 3 == 0 && o->p18 < 0x51) {
+    if (o->phase % 3 == 0 && o->phase < 0x51) {
         anim_next(o);
         anim_next(n);
     }
 
-    if (o->p18 > 0x50) {
+    if (o->phase > 0x50) {
         o->shape = 0x32;
         n->shape = 0x32;
-        o->p10 = 1;
-        n->p10 = 1;
+        o->anim_frame = 1;
+        n->anim_frame = 1;
         mark_redraw(o->x, o->y);
         mark_redraw(n->x, n->y);
     }
@@ -170,7 +170,7 @@ void h_6afa(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             g_state.jump_phase > 0xA) {
             g_state.player_y = (int32_t)o->y - 0x10;
             g_state.g_513d = 1;
-            o->p1a = 1;
+            o->subtype = 1;
             g_state.g_511a = (uint16_t)idx;
             goto move;
         }
@@ -180,14 +180,14 @@ void h_6afa(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         if ((uint16_t)idx != g_state.g_511a) goto move;
     }
     g_state.g_513d = 0;
-    if (o->p1a == 0) goto move;
-    o->p1a = 0;
+    if (o->subtype == 0) goto move;
+    o->subtype = 0;
     g_state.g_5126 = 0;
     g_state.g_5118 = 0;
 
 move:
     o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
-    if (o->p1a != 1) return;
+    if (o->subtype != 1) return;
     if (o->vx == 1) {
         g_state.g_5118 = o->speed;
         if (player_clear((int16_t)g_state.g_5118, 0)) {
@@ -225,20 +225,20 @@ void h_6d31(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         g_state.player_x + 8 < o->x + 0x14 &&
         g_state.gravity_scale == 1) {
         g_state.g_5142 = 1;
-        o->p1a = 1;
+        o->subtype = 1;
         g_state.g_511c = (uint16_t)idx;
         goto move;
     }
 
     if (!g_state.g_5142 || (uint16_t)idx == g_state.g_511c) {
         g_state.g_5142 = 0;
-        o->p1a = 0;
+        o->subtype = 0;
         g_state.g_5128 = 0;
     }
 
 move:
     o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
-    if (o->p1a != 1 || g_state.gravity_scale != 1) return;
+    if (o->subtype != 1 || g_state.gravity_scale != 1) return;
     if (o->vy == 1) {
         g_state.g_5128 = o->speed;
         if (player_clear(0, (int16_t)g_state.g_5128)) {
@@ -255,8 +255,8 @@ move:
 /* 0x1F9A:0x831 (0x201D1): short-lived pickup/effect object. */
 void h_831(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx; (void)x; (void)y;
-    if (o->p18 > 0x10) o->ready = 1;
-    o->p18 = (uint16_t)(o->p18 + 1);
+    if (o->phase > 0x10) o->ready = 1;
+    o->phase = (uint16_t)(o->phase + 1);
     if ((int16_t)o->y > 0x12)
         o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
 }
@@ -332,15 +332,15 @@ void spawn_template_2002d(int mode) {
     t->vy = -1;
     if (mode == 1) {
         t->shape = 0x11;
-        t->p16 = 8;
-        t->tile = 0x0D;
+        t->anim_last = 8;
+        t->block = 0x0D;
     } else {
         t->shape = 0x19;
-        t->p16 = 9;
-        t->tile = 7;
+        t->anim_last = 9;
+        t->block = 7;
     }
-    t->p10 = 1;
-    t->p18 = 0;
+    t->anim_frame = 1;
+    t->phase = 0;
     t->kind = 3;
     t->ready = 0;
     t->state = 0;
@@ -353,24 +353,24 @@ void spawn_object_47d(const SpawnArgs *a) {
     int16_t py = (int16_t)(a->ycell << 4);
     if (a->slot < 0 || a->slot >= OBJ_MAX) return;
     o = &g_state.obj[a->slot];
-    o->shape = (a->vx == 1) ? a->p14 : a->p12;
+    o->shape = (a->vx == 1) ? a->anim_shape_b : a->anim_shape_a;
     if (!g_state.g_a10a) base_cell_stamp(a->xcell, a->ycell);
-    o->tile = a->tile;
-    o->p14 = a->p14;
-    o->p12 = a->p12;
+    o->block = a->block;
+    o->anim_shape_b = a->anim_shape_b;
+    o->anim_shape_a = a->anim_shape_a;
     o->x = px;
     o->y = py;
     o->x_prev = px;
     o->y_prev = py;
     o->vx = (int16_t)a->vx;
     o->vy = (int16_t)a->vy;
-    o->p10 = 1;
-    o->p16 = a->p16;
+    o->anim_frame = 1;
+    o->anim_last = a->anim_last;
     o->speed = a->speed;
-    o->p18 = a->p18;
-    o->p1a = 0;
-    o->p02 = 0;
-    o->p04 = 1;
+    o->phase = a->phase;
+    o->subtype = 0;
+    o->hit_flag = 0;
+    o->hit_points = 1;
     o->kind = a->kind;
     o->ready = 0;
     o->state = 0;
@@ -386,18 +386,18 @@ void spawn_effect(int16_t shape, int16_t xcell, int16_t ycell) {
     s = ++g_state.obj_cursor;
     o = &g_state.obj[s];
     *o = (ObjectEntry){0};
-    o->p04 = 0x7D00;
+    o->hit_points = 0x7D00;
     o->x = (int16_t)(xcell * 16);
     o->y = (int16_t)(ycell * 16);
     o->x_prev = o->x;
     o->y_prev = o->y;
-    o->tile = 0x12;
-    o->p10 = 1;
-    o->p12 = (uint16_t)shape;
-    o->p14 = (uint16_t)shape;
-    o->p16 = 1;
-    o->p18 = 0;
-    o->p1a = 0;
+    o->block = 0x12;
+    o->anim_frame = 1;
+    o->anim_shape_a = (uint16_t)shape;
+    o->anim_shape_b = (uint16_t)shape;
+    o->anim_last = 1;
+    o->phase = 0;
+    o->subtype = 0;
     o->shape = (uint16_t)shape;
     o->vx = 0;
     o->vy = -1;
