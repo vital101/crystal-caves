@@ -376,43 +376,44 @@ void cc_jump_vertical(void) {
     if (!g_state.jump_flag) cc_vertical();
 }
 
-/* 0xE011 + 0xE2FD: horizontal movement, camera-x, platform carry, camera-y. */
-void cc_horizontal(void) {
-    const int16_t right = (g_state.input_right || g_state.blocked_r) ? 1 : 0;
-    const int16_t left = (g_state.input_left || g_state.blocked_l) ? 1 : 0;
-
-    if ((int16_t)g_state.impulse > 0) {
-        if (g_state.move_dir == 1) {
-            int16_t off = wadd(wneg(g_state.impulse), g_state.scroll_x_accum);
-            if (player_clear(off, 0)) {
-                if (g_state.cam_x > 0 && wadd(g_state.cam_x, 0x96) > g_state.player_x) {
-                    int16_t nx = wsub(g_state.cam_x,
-                                      wadd(g_state.impulse, g_state.scroll_x_accum));
-                    g_state.cam_x = (nx < 0) ? 0 : nx;
-                }
-                g_state.player_x = wsub(g_state.player_x, g_state.impulse);
-            } else {
-                g_state.impulse = ((int16_t)g_state.impulse > 1)
-                             ? (uint16_t)((int16_t)g_state.impulse / 2) : 0;
+/* 0xE011 impulse slide (knockback): move player/camera by the decaying
+ * impulse, halving it when the way is blocked.  Returns 1 when consumed. */
+static int impulse_move(void) {
+    if ((int16_t)g_state.impulse <= 0)
+        return 0;
+    if (g_state.move_dir == 1) {
+        int16_t off = wadd(wneg(g_state.impulse), g_state.scroll_x_accum);
+        if (player_clear(off, 0)) {
+            if (g_state.cam_x > 0 && wadd(g_state.cam_x, 0x96) > g_state.player_x) {
+                int16_t nx = wsub(g_state.cam_x,
+                                  wadd(g_state.impulse, g_state.scroll_x_accum));
+                g_state.cam_x = (nx < 0) ? 0 : nx;
             }
+            g_state.player_x = wsub(g_state.player_x, g_state.impulse);
         } else {
-            int16_t off = wsub(g_state.impulse, g_state.scroll_x_accum);
-            if (player_clear(off, 0)) {
-                if (g_state.cam_x < 0x140 && wadd(g_state.cam_x, 0xAA) < g_state.player_x) {
-                    int16_t nx = wadd(g_state.cam_x,
-                                      wsub(g_state.impulse, g_state.scroll_x_accum));
-                    g_state.cam_x = (nx > 0x140) ? 0x140 : nx;
-                }
-                g_state.player_x = wadd(g_state.player_x, g_state.impulse);
-            } else {
-                g_state.impulse = ((int16_t)g_state.impulse > 1)
-                             ? (uint16_t)((int16_t)g_state.impulse / 2) : 0;
-            }
+            g_state.impulse = ((int16_t)g_state.impulse > 1)
+                         ? (uint16_t)((int16_t)g_state.impulse / 2) : 0;
         }
-        if ((int16_t)g_state.impulse > 0) g_state.impulse--;
-        goto idle_carry;
+    } else {
+        int16_t off = wsub(g_state.impulse, g_state.scroll_x_accum);
+        if (player_clear(off, 0)) {
+            if (g_state.cam_x < 0x140 && wadd(g_state.cam_x, 0xAA) < g_state.player_x) {
+                int16_t nx = wadd(g_state.cam_x,
+                                  wsub(g_state.impulse, g_state.scroll_x_accum));
+                g_state.cam_x = (nx > 0x140) ? 0x140 : nx;
+            }
+            g_state.player_x = wadd(g_state.player_x, g_state.impulse);
+        } else {
+            g_state.impulse = ((int16_t)g_state.impulse > 1)
+                         ? (uint16_t)((int16_t)g_state.impulse / 2) : 0;
+        }
     }
+    if ((int16_t)g_state.impulse > 0) g_state.impulse--;
+    return 1;
+}
 
+/* 0xE2FD walking: facing, walk animation and camera-x for one frame. */
+static void walk_move(int right, int left) {
     if (right) {
         g_state.move_dir = 1;
         if (!g_state.jump_flag && !g_state.airborne) g_state.shape_player = g_state.shape_a;
@@ -451,44 +452,62 @@ void cc_horizontal(void) {
 
     if (!left && !g_state.blocked_l && !right && !g_state.blocked_r)
         g_state.anim_timer = 1;
+}
 
-idle_carry:
-    if (g_state.carry_x_delta != 0) {
-        if ((int16_t)g_state.carry_x_delta < 0) {
-            if (player_clear((int16_t)g_state.carry_x_delta, 0)) {
-                if (g_state.cam_x > 0 && wadd(g_state.cam_x, 0x96) > g_state.player_x) {
-                    int16_t nx = wadd(g_state.cam_x, (int16_t)g_state.carry_x_delta);
-                    g_state.cam_x = (nx < 0) ? 0 : nx;
-                    g_state.carry_x_delta = 0;
-                }
+/* Platform carry along x: shift the world under the player, or let the
+ * camera follow so the delta can retire. */
+static void platform_carry_x(void) {
+    if (g_state.carry_x_delta == 0)
+        return;
+    if ((int16_t)g_state.carry_x_delta < 0) {
+        if (player_clear((int16_t)g_state.carry_x_delta, 0)) {
+            if (g_state.cam_x > 0 && wadd(g_state.cam_x, 0x96) > g_state.player_x) {
+                int16_t nx = wadd(g_state.cam_x, (int16_t)g_state.carry_x_delta);
+                g_state.cam_x = (nx < 0) ? 0 : nx;
+                g_state.carry_x_delta = 0;
             }
-        } else {
-            if (player_clear((int16_t)g_state.carry_x_delta, 0)) {
-                if (g_state.cam_x < 0x140 && wadd(g_state.cam_x, 0xAA) < g_state.player_x) {
-                    int16_t nx = wadd(g_state.cam_x, (int16_t)g_state.carry_x_delta);
-                    g_state.cam_x = (nx > 0x140) ? 0x140 : nx;
-                    g_state.carry_x_delta = 0;
-                }
+        }
+    } else {
+        if (player_clear((int16_t)g_state.carry_x_delta, 0)) {
+            if (g_state.cam_x < 0x140 && wadd(g_state.cam_x, 0xAA) < g_state.player_x) {
+                int16_t nx = wadd(g_state.cam_x, (int16_t)g_state.carry_x_delta);
+                g_state.cam_x = (nx > 0x140) ? 0x140 : nx;
+                g_state.carry_x_delta = 0;
             }
         }
     }
+}
 
-    if (g_state.carry_y_delta != 0) {
-        if ((int16_t)g_state.carry_y_delta < 0) {
-            if (player_clear(0, (int16_t)g_state.carry_y_delta)) {
-                if (g_state.cam_y > 0x10 && wadd(g_state.cam_y, 0x50) > g_state.player_y) {
-                    int16_t ny = wadd(g_state.cam_y, (int16_t)g_state.carry_y_delta);
-                    g_state.cam_y = (ny < 0x10) ? 0x10 : ny;
-                }
-            }
-        } else {
-            if (wadd(g_state.cam_y, 0x78) < g_state.player_y) {
-                if (g_state.cam_y < 0xC8) g_state.cam_y = wadd(g_state.cam_y,
-                                                     (int16_t)g_state.carry_y_delta);
-                else g_state.cam_y = 0xC8;
+/* Platform carry along y: camera-y follows the platform within its band. */
+static void platform_carry_y(void) {
+    if (g_state.carry_y_delta == 0)
+        return;
+    if ((int16_t)g_state.carry_y_delta < 0) {
+        if (player_clear(0, (int16_t)g_state.carry_y_delta)) {
+            if (g_state.cam_y > 0x10 && wadd(g_state.cam_y, 0x50) > g_state.player_y) {
+                int16_t ny = wadd(g_state.cam_y, (int16_t)g_state.carry_y_delta);
+                g_state.cam_y = (ny < 0x10) ? 0x10 : ny;
             }
         }
+    } else {
+        if (wadd(g_state.cam_y, 0x78) < g_state.player_y) {
+            if (g_state.cam_y < 0xC8) g_state.cam_y = wadd(g_state.cam_y,
+                                                 (int16_t)g_state.carry_y_delta);
+            else g_state.cam_y = 0xC8;
+        }
     }
+}
+
+/* 0xE011 + 0xE2FD: horizontal movement, camera-x, platform carry, camera-y. */
+void cc_horizontal(void) {
+    const int16_t right = (g_state.input_right || g_state.blocked_r) ? 1 : 0;
+    const int16_t left = (g_state.input_left || g_state.blocked_l) ? 1 : 0;
+
+    if (!impulse_move())
+        walk_move(right, left);
+
+    platform_carry_x();
+    platform_carry_y();
 
     /* Mirror the physics position into the player object record so the
      * renderer draws the player at the correct place. */
