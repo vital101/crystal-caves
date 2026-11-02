@@ -1,6 +1,9 @@
 # Crystal Caves C/WASM Refactoring Plan
 
-Status: proposed. No source changes have been made yet.
+Status: Phase 0 (safety net) is implemented; Phases 1–5 are proposed.  See
+[`../notes/refactor_baseline.md`](../notes/refactor_baseline.md) for the
+captured baseline and [`../wasm/ARCHITECTURE.md`](../wasm/ARCHITECTURE.md) for
+the architecture skeleton.
 
 This directory contains the refactoring plan split by phase:
 
@@ -130,8 +133,10 @@ milestone.
 | Rendering | `make test-render-all test-view test-caves test-browser` |
 | Milestone boundary | `make test-all && make perf` |
 
-The `make test-digest` target does not exist yet; Phase 0 adds it and adds it
-to `test-all`.
+`make test-digest` is part of `make test-all`.  Its
+`notes/refactor_digests.json` golden master must never be updated by a
+structural refactor; see "Digest update procedure" in
+[`../wasm/ARCHITECTURE.md`](../wasm/ARCHITECTURE.md).
 
 ## Risk register
 

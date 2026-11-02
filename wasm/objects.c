@@ -222,11 +222,51 @@ typedef struct {
     uint16_t checkpoint_50c9;    /* [0x50c9] */
 } cc_state_t;
 
-/* The save payload is a raw struct image.  Any field change must bump the
- * save format version and add a migration (see cc_state_save below). */
+/* ---------------------------------------------------------------- layout
+ *
+ * The save payload is a raw struct image (see cc_state_save below), and the
+ * object image is addressed with fixed original-binary byte offsets.  Any
+ * accidental field move/reorder therefore corrupts saves or gameplay without
+ * a compiler error.  These asserts turn that into a build failure.
+ *
+ * Rules: rename fields freely, but never reorder or resize them.  A genuine
+ * layout change must bump the save format version and add a migration.
+ */
+#define CC_OFFSETOF(type, field) __builtin_offsetof(type, field)
+
+/* Original object record: 60 slots, stride 0x2D, packed. */
+_Static_assert(sizeof(ObjectEntry) == 0x2D, "ObjectEntry record layout changed");
+_Static_assert(CC_OFFSETOF(ObjectEntry, state)       == 0x00, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, x)           == 0x06, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, tile)        == 0x0E, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, p10)         == 0x10, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, shape)       == 0x1C, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, vx)          == 0x1E, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, kind)        == 0x26, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, ready)       == 0x28, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, handler)     == 0x29, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, handler_seg) == 0x2B, "object field moved");
+
+/* Save payload sections.  Offsets are byte offsets inside cc_state_t. */
 _Static_assert(sizeof(cc_state_t) == 23010,
                "cc_state_t changed; bump the save format version");
 _Static_assert(sizeof(cc_state_t) <= 0xFFFF, "save payload too large");
+_Static_assert(CC_OFFSETOF(cc_state_t, obj)              == 0,     "state section moved");
+_Static_assert(CC_OFFSETOF(cc_state_t, obj_cursor)       == 2700,  "state section moved");
+_Static_assert(CC_OFFSETOF(cc_state_t, cells)            == 2702,  "state section moved");
+_Static_assert(CC_OFFSETOF(cc_state_t, player_x)         == 22704, "state section moved");
+_Static_assert(CC_OFFSETOF(cc_state_t, cam_x)            == 22708, "state section moved");
+_Static_assert(CC_OFFSETOF(cc_state_t, input_left)       == 22718, "state section moved");
+_Static_assert(CC_OFFSETOF(cc_state_t, cur_level)        == 22762, "state section moved");
+_Static_assert(CC_OFFSETOF(cc_state_t, g_a0cc)           == 22776, "state section moved");
+_Static_assert(CC_OFFSETOF(cc_state_t, cave_flags)       == 22832, "state section moved");
+_Static_assert(CC_OFFSETOF(cc_state_t, level_block)      == 22849, "state section moved");
+_Static_assert(CC_OFFSETOF(cc_state_t, checkpoint_block) == 22882, "state section moved");
+_Static_assert(CC_OFFSETOF(cc_state_t, g_5124)           == 22928, "state section moved");
+_Static_assert(CC_OFFSETOF(cc_state_t, score_lo)         == 22938, "state section moved");
+_Static_assert(CC_OFFSETOF(cc_state_t, rng_lo)           == 22942, "state section moved");
+_Static_assert(CC_OFFSETOF(cc_state_t, checkpoint_50a0)  == 23000, "state section moved");
+_Static_assert(sizeof(((cc_state_t *)0)->cells) == 20000, "cell grid changed");
 
 static cc_state_t g_state = { 0 };
 static const unsigned char *g_cells_asset = 0;

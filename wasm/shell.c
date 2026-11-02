@@ -580,7 +580,6 @@ void cc_shell_set_config(int sound, int joystick, int video) {
 
 /* ---- rendering ---------------------------------------------------------- */
 
-static void draw_lines_centered(const char *const *lines, int count);
 static void draw_lines_centered_frame(const char *const *lines, int count, int frame);
 
 static void draw_hiscore_screen(void) {
@@ -666,10 +665,6 @@ static void draw_lines_centered_frame(const char *const *lines, int count,
     cc_global_set(0x512e, cx);
     cc_global_set(0x5130, cy);
     cc_global_set(0x2b5c, scroll);
-}
-
-static void draw_lines_centered(const char *const *lines, int count) {
-    draw_lines_centered_frame(lines, count, 0);
 }
 
 /* Plain pixel-positioned prompt; the trailing '^' marks the cursor cell. */
@@ -894,12 +889,6 @@ static void start_instructions(int return_state) {
     set_pages(INSTRUCTION_BLOCKS,
               (int)(sizeof(INSTRUCTION_BLOCKS) / sizeof(int)),
               return_state, 0, -1);
-}
-
-static void start_finale_story(void) {
-    g_pending_score = cc_score();
-    set_story_pages(g_finale_pages, g_finale_page_count,
-                    CC_SHELL_ENDING, 2, 1);
 }
 
 /* The original "Game saved." and "You can only restore..." windows say

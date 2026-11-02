@@ -41,6 +41,9 @@ jobs:
       - name: Regression suite (committed fixtures)
         run: make -C wasm test-all LLVM="$LLVM"
 
+      - name: Source-size guardrail (warning-only in Phase 0)
+        run: make -C wasm lint
+
       - name: wasm size and frame budget
         run: |
           summary="${GITHUB_STEP_SUMMARY:-/dev/null}"

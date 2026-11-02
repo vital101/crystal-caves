@@ -1,5 +1,11 @@
 # Phase 0 — Safety net
 
+Status: **implemented**.  The captured baseline lives in
+[`notes/refactor_baseline.md`](../notes/refactor_baseline.md); the golden
+master is [`notes/refactor_digests.json`](../notes/refactor_digests.json)
+(`make test-digest`), and the architecture skeleton is
+[`wasm/ARCHITECTURE.md`](../wasm/ARCHITECTURE.md).
+
 ## Goal
 
 Establish a trustworthy baseline and automated checks **before any source

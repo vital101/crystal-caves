@@ -21,7 +21,7 @@ EXPORTS = cc_alloc cc_set_assets cc_set_palette cc_render_level cc_render_view c
 	  cc_shell_config_dirty cc_shell_config_clear_dirty \
 	  cc_shell_hiscore_count cc_shell_hiscore_name cc_shell_hiscore_score cc_shell_hiscore_set cc_shell_hiscore_add cc_shell_hiscore_qualifies cc_shell_finale_done cc_shell_message cc_shell_warp \
 	  cc_state_size cc_state_save cc_state_load cc_state_load_ex cc_state_last_error \
-	  cc_objects_init cc_level_exit cc_load_arg cc_objects_step cc_objects_step_full cc_player_draw_sound cc_objects_step_physics cc_objects_step_objects cc_test_cell_event cc_test_contact cc_test_call_handler cc_test_fill_source cc_unknown_handler_hits cc_test_spawn_2002d cc_test_spawn_47d cc_obj_count cc_obj_get cc_obj_set cc_obj_state cc_obj_x cc_obj_y \
+	  cc_objects_init cc_level_exit cc_load_arg cc_warp_level cc_objects_step cc_objects_step_full cc_player_draw_sound cc_objects_step_physics cc_objects_step_objects cc_test_cell_event cc_test_contact cc_test_call_handler cc_test_fill_source cc_unknown_handler_hits cc_test_spawn_2002d cc_test_spawn_47d cc_obj_count cc_obj_get cc_obj_set cc_obj_state cc_obj_x cc_obj_y \
 	  cc_obj_kind cc_obj_shape cc_obj_tile cc_obj_p10 cc_obj_draw_shape cc_obj_p12 cc_obj_p14 cc_obj_p16 cc_obj_p18 cc_obj_p1a cc_obj_ready cc_obj_vx cc_obj_vy cc_obj_speed cc_obj_p24 cc_obj_cursor cc_obj_set_cursor cc_obj_handler cc_cur_level \
 	  cc_input_set cc_set_player cc_player_x cc_player_y cc_cam_x cc_cam_y cc_move_dir cc_collide_player \
 	  cc_draw_object cc_draw_object_view cc_sound_set_callback cc_sound_log_clear cc_sound_log_count cc_sound_log_total cc_sound_log_at \
@@ -38,6 +38,8 @@ $(OUT): render.c render.h objects.c objects.h objects_data.h cells_data.h startu
 	@test -x "$(LLVM)/clang" || { echo "clang not found at $(LLVM)/clang"; \
 	  echo "Install Homebrew LLVM (brew install llvm) or pass LLVM=/path/to/bin"; exit 1; }
 	$(LLVM)/clang --target=wasm32 -Oz -nostdlib -ffreestanding -fno-builtin \
+	  -Werror=implicit-function-declaration -Werror=incompatible-pointer-types \
+	  -Werror=return-type \
 	  -Wl,--no-entry -Wl,--no-gc-sections -Wl,--stack-first -Wl,-z,stack-size=65536 \
 	  -Wl,--export-memory -Wl,--initial-memory=16777216 -Wl,-z,stack-size=65536 \
 	  $(foreach s,$(EXPORTS),-Wl,--export=$(s)) -o $(OUT) render.c objects.c text.c shell.c sound.c
@@ -101,6 +103,8 @@ startup:
 # Emscripten path (produces app.js + app.wasm)
 emcc: assets
 	$(EMCC) render.c objects.c text.c shell.c sound.c -O2 -o app.js -s WASM=1 \
+	  -Werror=implicit-function-declaration -Werror=incompatible-pointer-types \
+	  -Werror=return-type \
 	  -s EXPORTED_FUNCTIONS='[$(foreach s,$(EXPORTS),_$(s)),_malloc,_free]' \
 	  -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap","HEAPU8"]' \
 	  -s ALLOW_MEMORY_GROWTH=1
@@ -204,6 +208,23 @@ test-oracle-shell-flow: clang
 	$(PYTHON) ../tools/shell_exactness.py --flow
 	node test_shell_flow.js
 
+# Characterization golden master (Phase 0): full-state SHA-256 digests over
+# scripted gameplay, transitions, shell flow and save round-trips.
+test-digest: clang
+	node test_refactor_digest.js
+
+# Intentional behavior change: rewrite notes/refactor_digests.json.
+test-digest-update: clang
+	node test_refactor_digest.js --update
+
+# Source-size limits (Phase 0).  Warning-only until Phase 1/2 bring the files
+# under the limits; `lint-strict` is the flip-the-switch variant for CI.
+lint:
+	$(PYTHON) ../tools/check_source_limits.py
+
+lint-strict:
+	$(PYTHON) ../tools/check_source_limits.py --strict
+
 # Frame-budget / wasm-size measurement (same work as game.html per frame).
 perf: clang
 	node measure_perf.js
@@ -279,10 +300,10 @@ test-oracle-objects: clang
 	$(PYTHON) ../tools/emulate_game.py 3 120 --json > oracle_level3.json
 	node test_oracle_objects.js oracle_level3.json
 
-test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-shell-flow test-cursor test-persist test-exactness test-sound
+test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat test-handlers test-loader test-caves test-cells test-digest test-hud test-messages test-text test-menus test-shell test-shell-flow test-cursor test-persist test-exactness test-sound
 # NOTE: test-keymap is already run by test-exactness; keep it as its own target.
 
 clean:
 	rm -f $(OUT) app.js app.wasm out_wasm_level*.png oracle_level*.json
 
-.PHONY: clang emcc assets favicon social-card data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-oracle-menus test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update perf test-all clean
+.PHONY: clang emcc assets favicon social-card data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-oracle-menus test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update test-digest test-digest-update lint lint-strict perf test-all clean

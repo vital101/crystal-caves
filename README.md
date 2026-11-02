@@ -158,16 +158,20 @@ Run from `wasm/`:
 
 ```sh
 make test-all           # full committed-fixture regression suite
+make test-digest        # golden-master state/view/sound digests
 make test-browser       # headless Chromium smoke test (Playwright)
 make perf               # wasm size + frame-budget measurement
+make lint               # source-size guardrail (warning-only in Phase 0)
 ```
 
 `make test-all` needs no virtualenv and no Unicorn: every fixture is committed
 under `notes/`.  It covers rendering, physics, combat, handlers, transitions,
 cells, HUD/text/messages, the ordering/foreign/BBS/about/video/quit screens,
 shell, save/restore, high scores, key mapping, sound, the exact title/credits
-scroll (`test-shell-flow`) and the input cursor animation (`test-cursor`).
-`notes/regression.md` maps each subsystem to its target, fixture and harness.
+scroll (`test-shell-flow`), the input cursor animation (`test-cursor`) and the
+refactor digest (`test-digest`).  `notes/regression.md` maps each subsystem to
+its target, fixture and harness; `wasm/ARCHITECTURE.md` documents the module
+boundaries and the digest-update procedure.
 
 The browser smoke test walks title → intro → hub, drives real keyboard input,
 saves and restores through `localStorage`, reloads for config/high-score
@@ -209,7 +213,8 @@ Actions (Forgejo reads `.github/workflows` directly). The workflow has no
 Authorized Integrations, while the jobs only need the default read token:
 
 - **build + deterministic suite** — apt `clang`/`lld`, `make clang`,
-  `make test-all`, then wasm size and frame budget in the job summary;
+  `make test-all`, `make lint` (warning-only until the Phase 1/2 split), then
+  wasm size and frame budget in the job summary;
 - **headless browser smoke** — `npm ci`, Playwright Chromium,
   `make test-browser`;
 - **oracle regeneration** — manual `workflow_dispatch` job with
@@ -225,6 +230,7 @@ Authorized Integrations, while the jobs only need the default read token:
 | `out/portable/` | Build inputs: levels, GFX, cells, screens, fonts, sound |
 | `out/oracle_L*.png` | Committed static render references (19 levels) |
 | `extracted/` | Unpacked original EXE and assets |
+| `refactor/` | Phased C/WASM refactoring plan |
 | `Dockerfile` | Multi-stage wasm build + nginx runtime image |
 | `deploy/nginx.conf` | Static host config (MIME, gzip, cache) |
 

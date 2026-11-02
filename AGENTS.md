@@ -9,6 +9,10 @@ There is no root Makefile; the build lives in `wasm/`.
 | `make clang` | Build freestanding wasm via Homebrew LLVM (default) |
 | `make emcc` | Emscripten build (needs `emcc` on PATH; secondary, not in CI) |
 | `make test-all` | Data checks + all-19 render + gameplay/loader/text/shell regression |
+| `make test-digest` | Golden-master SHA-256 digests (state/view/sound) over scripted runs |
+| `make test-digest-update` | Rewrite `notes/refactor_digests.json` after an intentional change |
+| `make lint` | Source-size/function-length report (warning-only in Phase 0) |
+| `make lint-strict` | Same report, exit 1 on violations (post-split CI mode) |
 | `make test-render-all` | Pixel-diff every level against `out/oracle_L*.png` |
 | `make test-data` | Run `../tools/check_oracle.py` (structural oracle assertions) |
 | `make test-view` | 320x200 viewport crop regression |
@@ -176,6 +180,16 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   57.1 ms budget), and the build uses `-Oz` (~152 KB vs ~180 KB at `-O2`).
   `notes/regression.md` maps every subsystem to its fixture and target; the
   root `README.md` documents build/run/test.
+- Refactor Phase 0 is implemented: `notes/refactor_baseline.md` records the
+  pre-refactor commit, wasm size, perf timings and 184 public exports;
+  `wasm/test_refactor_digest.js` + `notes/refactor_digests.json` provide 929
+  deterministic SHA-256 snapshots (static render, 480-frame gameplay runs,
+  hub/cave transitions, warps, shell flow, save round-trip);
+  `cc_state_t`/`ObjectEntry` layout asserts are in `objects.c`;
+  `tools/check_source_limits.py` + `make lint` report the current size and
+  function-length violations (warning-only until the Phase 1/2 split), and
+  `wasm/ARCHITECTURE.md` is the architecture skeleton.  See
+  `refactor/phase-0-safety-net.md` for the exit criteria.
 - Phase 6 sound is implemented: all 36 Crystal Caves Sound effects are
   trace-captured from the real `0x1FBBF`/`0x0A3F` driver, rendered by
   `wasm/sound_synth.js`, and played through a single WebAudio channel.
@@ -251,6 +265,11 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - `wasm/persist.js` — browser localStorage config/high-score/slot adapter
 - `wasm/test_persist.js` — Phase 7 persistence regression
 - `notes/sound_fixtures.json` — committed 36-ID sound-driver trace (`make test-sound`)
+- `notes/refactor_baseline.md` — Phase 0 size/perf/test/export baseline
+- `notes/refactor_digests.json` — Phase 0 golden-master SHA-256 digests (`make test-digest`)
+- `wasm/test_refactor_digest.js` — Phase 0 characterization harness
+- `tools/check_source_limits.py` — Phase 0 file/function size guardrail (`make lint`)
+- `wasm/ARCHITECTURE.md` — module/layer/ownership architecture skeleton
 - `notes/sound_synth_fixtures.json` — Python-reference JS synth hashes
 - `notes/sound_shell_fixtures.json` — recovered shell sound call sites
 - `notes/sound.md` — Phase 6 driver/format/browser notes
