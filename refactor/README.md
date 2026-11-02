@@ -1,7 +1,7 @@
 # Crystal Caves C/WASM Refactoring Plan
 
-Status: Phases 0 (safety net), 1 (gameplay split) and 2 (shell/text/render
-split) are implemented; Phases 3–5 are proposed.  See
+Status: Phases 0 (safety net), 1 (gameplay split), 2 (shell/text/render
+split) and 3 (readability) are implemented; Phases 4–5 are proposed.  See
 [`../notes/refactor_baseline.md`](../notes/refactor_baseline.md) for the
 captured baseline, [`../notes/refactor_map.md`](../notes/refactor_map.md) for
 the implemented module map and [`../wasm/ARCHITECTURE.md`](../wasm/ARCHITECTURE.md)
@@ -36,10 +36,8 @@ Verification at the Phase 1 milestone:
 
 Known follow-ups (deferred to later phases by design): the umbrella header is
 still shared by every gameplay module (Phase 4 replaces it with per-module
-headers), and the pre-existing long functions (`cell_event()`, `slash_state1()`,
-`cc_global_get/set()`, `apply_startup_state()`, `apply_level_overlay()`,
-`cc_horizontal()`, plus the moved `cc_shell_key()` and `cc_shell_render()`)
-still exceed the 120-line guideline (Phase 3).
+headers); the Phase 3 splits resolved the long functions, and Phase 4 should
+review the remaining umbrella/ownership boundaries.
 
 Phase 2 is implemented the same way: `wasm/shell.c`, `wasm/text.c` and
 `wasm/render.c` moved to their directories in path-only commits, then split
@@ -59,6 +57,35 @@ Verification at the Phase 2 milestone:
   164,026-byte `render.wasm`; `make test-browser` passes.
 - Exit criteria: `shell/shell.c` 25 lines, `text/text.c` 20, `render/render.c`
   144; largest file in the three areas is `shell/input.c` at 411 lines.
+
+Phase 3 (readability) is implemented.  One seam per commit, each guarded by
+`make test-digest` (the 929 goldens never changed):
+
+- Named constants: cell-record fields `CELL_W0..W9` / `CELL_FLAG_*`
+  (`game/cell_fields.h`), `SND_*` effect ids (`sound_ids.h`).
+- Descriptive handler names for every dispatch-table entry, resolved through
+  the single `g_handlers[]` table in `game/handlers_table.c`.
+- `cc_state_t` renames of the understandable fields; the remaining `g_a0XX`
+  latch/companion names carry comments (public exports like `cc_g_a0c4` stay).
+- `cell_event()` split into a rule table plus small rule helpers;
+  `slash_state1()` into per-kind arm/kill functions; `cc_horizontal()` into
+  impulse/walk/carry helpers; `apply_startup_state()` into state sections;
+  `apply_level_overlay()` along the overlay format sections; `cc_shell_key()`
+  into per-state handlers; `cc_shell_render()` into per-screen helpers.
+- `cc_global_get/set()` replaced by one `g_global_fields[]` data table
+  (DS offset → field, byte-vs-word width derived from the field, sign flag);
+  this exposed and fixed two latent read mismatches: `0x5132` gravity_scale
+  reads sign-extended and `0xA0BE` next_level reads zero-extended, matching
+  the original getters.
+
+Verification at the Phase 3 milestone:
+
+- `make lint` reports zero function-length failures; CI now runs
+  `make lint-strict`.
+- `make test-all` passes with zero FAIL lines; `make test-digest` (929) and
+  `make test-render-digest` (155) match their committed goldens.
+- `make perf` reports ~0.88 ms per level frame (57.1 ms budget) and a
+  161,656-byte `render.wasm`; `make test-browser` passes.
 
 ## Why this plan exists
 

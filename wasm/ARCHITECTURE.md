@@ -66,9 +66,9 @@ must not call gameplay.
 
 | Today | Target |
 |---|---|
-| `wasm/game/*.c` (implemented; `wasm/objects.c` removed) | `game/*.c` split per the diagram; semantic regrouping continues in Phase 3 |
-| `wasm/game/handlers_*.c` handler functions `h_1fb9`, `h_2241`, … | `game/handlers/{platforms,actors,interaction,combat,misc}.c` with descriptive names |
-| `wasm/shell/*.c` (implemented; `shell.c` split into `state/input/render/hiscore/config/persist/scroll` + `shell_internal.h` umbrella) | same modules; state-machine redesign in Phase 3 |
+| `wasm/game/*.c` (implemented; `wasm/objects.c` removed) | `game/*.c` split per the diagram; Phase 3 added `cell_fields`, `handlers_table` and the oversized-function splits |
+| `wasm/game/handlers_*.c` with descriptive `h_*` names (Phase 3) | same files; one dispatch table in `game/handlers_table.c` maps every original offset to its named function |
+| `wasm/shell/*.c` (implemented; `shell.c` split into `state/input/render/hiscore/config/persist/scroll` + `shell_internal.h` umbrella) | same modules; `cc_shell_key`/`cc_shell_render` split per state/screen in Phase 3 |
 | `wasm/text/*.c` (implemented; `font/window/hud` with per-module headers) | same modules |
 | `wasm/render/*.c` (implemented; `render/runtime/blit/screens` with `render_internal.h`) | same modules; `cc_alloc`/`memset`/`memcpy` live in `render/runtime.c` |
 
@@ -153,21 +153,23 @@ address must remain discoverable from the new name.
 
 ## Handler taxonomy
 
-Placeholder until Phase 3 assigns descriptive names.  The authoritative current
-inventory is [`notes/handlers.md`](../notes/handlers.md); this table is the
-refactor map that replaces it.  Phase 1 kept the original `h_XXXX` names and
-grouped the handlers by line range into `wasm/game/handlers_*.c`.
+Phase 3 assigned the descriptive names.  The single authoritative dispatch
+table is `g_handlers[]` in `wasm/game/handlers_table.c`: one row per original
+handler offset with the named C function and its original automatic label
+(`handler_name()` resolves through it, and `cc_obj_handler()` exposes the
+offset for tests).  The per-file sections of that table are the offset → name
+map; the prose inventory remains
+[`notes/handlers.md`](../notes/handlers.md).
 
-| Offset | Current name | Descriptive name | Target file | Notes |
+| Offset | Function | Original label | File | Notes |
 |---|---|---|---|---|
-| `0x1FB9` | `h_1fb9` | player slot (no-op) | `handlers/misc.c` | `retf 6` |
-| `0x2241` | `h_2241` | … | … | … |
-| `0x251D` | `h_251d` | slash update | `handlers/combat.c` | called by `0x2850` gate |
-| `0x2850` | `h_2850` | slash ready gate | `handlers/combat.c` | |
-| `0x2877` | `h_2877` | transformed-object dissolve | `handlers/interaction.c` | |
-| … | … | … | … | all 46 entries |
+| `0x1FB9` | `h_player_noop` | `h_1fb9` | `handlers_platforms.c` | `retf 6` |
+| `0x2850` | `h_attack_gate` | `h_2850` | `handlers_platforms.c` | slash ready gate, calls the `0x251D` update |
+| `0x2877` | `h_dissolve` | `h_2877` | `handlers_platforms.c` | transformed-object dissolve |
+| `0x3F13` | `h_door` | `h_3f13` | `handlers_platforms.c` | hub door (kind 60) |
+| … | … | … | … | all 49 entries in `g_handlers[]` |
 
-Rules for this table:
+Rules for that table:
 
 - One row per handler-table entry; the offset column is the dispatch key.
 - A handler that is temporarily unclassifiable goes to `handlers/misc.c`.
@@ -179,8 +181,9 @@ Rules for this table:
 1. Find the original entry in `notes/handlers.md` (offset + segment).
 2. Trace its call sites and state fields with `tools/disasm.py`; record the
    original address in the function comment.
-3. Add the prototype to `handlers/handler.h`, implement it in the most
-   specific taxonomy file, and register the offset in `handlers/table.c`.
+3. Add the prototype to `wasm/game/game_internal.h`, implement it in the most
+   specific `handlers_*.c` file, and register the offset in the `g_handlers[]`
+   table in `game/handlers_table.c`.
 4. If it owns new state, add the fields to `cc_state_t` **at the end** and
    update the layout asserts, or reuse an existing original global.  Never
    reorder existing fields.

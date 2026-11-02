@@ -42,7 +42,7 @@ jobs:
         run: make -C wasm test-all LLVM="$LLVM"
 
       - name: Source-size guardrail (warning-only in Phase 0)
-        run: make -C wasm lint
+        run: make -C wasm lint-strict
 
       - name: wasm size and frame budget
         run: |

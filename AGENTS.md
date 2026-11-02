@@ -26,8 +26,8 @@ different thing.  See the README section *Develop in Docker (any platform)*.
 | `make test-digest-update` | Rewrite `notes/refactor_digests.json` after an intentional change |
 | `make test-render-digest` | Phase 2 render/text/scroll digests (`notes/refactor_render_digests.json`) |
 | `make render-digest-update` | Rewrite those Phase 2 digests after an intentional change |
-| `make lint` | Source-size/function-length report (warning-only in Phase 0) |
-| `make lint-strict` | Same report, exit 1 on violations (post-split CI mode) |
+| `make lint` | Source-size/function-length report (0 failures since Phase 3) |
+| `make lint-strict` | Same report, exit 1 on violations (what CI runs) |
 | `make test-render-all` | Pixel-diff every level against `out/oracle_L*.png` |
 | `make test-data` | Run `../tools/check_oracle.py` (structural oracle assertions) |
 | `make test-view` | 320x200 viewport crop regression |
@@ -242,6 +242,17 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   (A/B-baselined against the pre-split build) behind `make test-render-digest`
   / `render-digest-update`.  Largest remaining shell/text/render file is
   `shell/input.c` (411 lines); long functions stay Phase 3 targets.
+- Refactor Phase 3 (readability) is implemented: sound-effect IDs
+  (`wasm/sound_ids.h`), cell-record field names (`wasm/game/cell_fields.h`),
+  all handlers descriptively named behind one `g_handlers[]` table in
+  `wasm/game/handlers_table.c`, decoded `cc_state_t` field renames (DS offsets
+  kept as comments), a rule-table `cell_event()`, a data-table
+  `cc_global_get/set()` (`g_global_fields[]` in `wasm/game/api_globals.c`,
+  fixing latent `0x5132` signed and `0xA0BE` unsigned read mismatches), and
+  splits of every oversized function (`cc_horizontal`, `slash_state1`,
+  `apply_startup_state`, `apply_level_overlay`, `cc_shell_key`,
+  `cc_shell_render`).  `make lint` reports zero function-length failures and
+  CI runs `lint-strict`; the 929 digest goldens are unchanged from Phase 0.
 - Phase 6 sound is implemented: all 36 Crystal Caves Sound effects are
   trace-captured from the real `0x1FBBF`/`0x0A3F` driver, rendered by
   `wasm/sound_synth.js`, and played through a single WebAudio channel.

@@ -34,9 +34,10 @@ time of the split; match by function name after future edits.
   `refactor/split_objects.py`.  Phase 4 replaces it with per-module headers.
 - Handler dispatch remains a single `handler_for()` table in
   `wasm/game/handlers_table.c`; all 46 handlers are reachable.
-- Pre-existing long functions moved unchanged; they are Phase 3 targets:
-  `cell_event()`, `slash_state1()`, `cc_global_get/set()`,
-  `apply_startup_state()`, `apply_level_overlay()`, `cc_horizontal()`.
+- Pre-existing long functions moved unchanged in Phase 1 (`cell_event()`,
+  `slash_state1()`, `cc_global_get/set()`, `apply_startup_state()`,
+  `apply_level_overlay()`, `cc_horizontal()`); they were split in Phase 3,
+  see the Phase 3 map below.
 - The mechanical split grouped functions by contiguous line ranges, so some
   ownership boundaries differ from the target diagram in `refactor/README.md`
   (for example, cell accessors sit in `state.c`, collision helpers in
@@ -114,3 +115,24 @@ the `game_internal.h` externs and duplicate prototype are gone.
   generated from the pre-split HEAD build and match the split builds.
 - `make test-all`, `make test-browser` and `make perf` pass at each
   milestone; ~1.0 ms per level frame, 164,026-byte `render.wasm`.
+
+# Phase 3: readability (implemented)
+
+One seam per commit, each guarded by `make test-digest` (the 929 goldens
+never changed) plus the subsystem suite for the touched area.
+
+| Seam | Commit(s) | What moved |
+|---|---|---|
+| Sound effect IDs | `81639ac` | `wasm/sound_ids.h` enumerates the 36 `SND_*` ids; 77 raw literals in `play_sound()`/`cc_sound_play()` replaced |
+| Cell-record fields | `7259fcc` | `wasm/game/cell_fields.h`: `CELL_W0..W9` word indices and `CELL_FLAG_*` bytes; every raw offset argument of the cell helpers (gameplay and renderer) replaced |
+| Handler naming + dispatch | `05b378b` | every `h_XXXX` renamed descriptively; one `HandlerEntry g_handlers[]` table in `game/handlers_table.c` (offset → fn → original label); `handler_for()`/`handler_name()`/coverage all resolve through it; `notes/handlers.md` regenerated |
+| `cc_state_t` renames | `183d778` | understandable names for the decoded fields (DS offsets kept as comments); layout asserts untouched; genuinely-unknown latches keep `g_a0XX`-style names with comments |
+| `cell_event()` rules | `5ca609a` | magic-value `if`/`goto` chain → static rule table (`cell_rule_t`) + small per-rule helpers |
+| Globals table | `e85b2d7` | `cc_global_get`/`cc_global_set` switch arms → `GlobalField g_global_fields[]` (DS offset, field, sign, width auto-derived from the field); player/attack DS aliases and the cave-flag range stay explicit rows/arms; fixed latent `0x5132` (signed) and `0xA0BE` (unsigned) read mismatches |
+| Oversized functions | `2b3b2d1`…`6251846` | `cc_horizontal` → impulse/walk/carry helpers; `slash_state1` → per-kind arm/kill functions; `apply_startup_state` → state sections; `apply_level_overlay` → overlay-section functions (`OvCellTag`/`OvObjTag`); `cc_shell_key` → per-state handlers; `cc_shell_render` → `render_key_redefine`/`render_key_confirm`/`render_dos_screen` |
+| Browser test hook | `a43234a` | `game.html` test-hook `stateHash` saves into a dedicated scratch buffer so it cannot clobber the buffer `CCPersist.saveSlot` uses |
+
+After Phase 3 `make lint` reports zero function-length failures (CI runs
+`lint-strict`); `cell_event.c` (583) and `physics.c` (517) remain over the
+500-line *warning* threshold but under the 600-line hard cap — shrinking
+them further is Phase 4 territory.
