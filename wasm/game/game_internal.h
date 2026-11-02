@@ -7,7 +7,7 @@
 #define GAME_INTERNAL_H
 
 #include "objects.h"
-#include "objects_data.h"
+#include "object.h"
 #include "cells_data.h"
 #include "cell_fields.h"
 #include "score.h"
@@ -16,7 +16,6 @@
 #include "sound.h"
 #include "sound_ids.h"
 
-#define OBJ_MAX 60
 #define SCREEN_W 320
 #define SCREEN_H 200
 #define CC_OFFSETOF(type, field) __builtin_offsetof(type, field)

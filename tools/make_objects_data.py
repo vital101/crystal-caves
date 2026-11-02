@@ -10,6 +10,11 @@ Coordinate fields (x, y, x_prev, y_prev, vx, vy) are signed 16-bit: the
 original uses word registers that go negative (e.g. spawn x=-41), so they must
 NOT be masked to uint16_t.
 
+Emitted shape (Phase 4): the header carries generated data arrays only and
+pulls the hand-written ObjectEntry type from wasm/game/object.h.  The single
+translation unit that includes this header is game/level.c (the level
+loader); everything else sees only the type.
+
 Output: work/wasm/objects_data.h
 """
 import hashlib
@@ -105,22 +110,10 @@ def main():
         "#ifndef OBJECTS_DATA_H",
         "#define OBJECTS_DATA_H",
         "",
-        "#include <stdint.h>",
-        "",
-        "typedef struct __attribute__((packed)) {",
-        "    uint16_t state, hit_flag, hit_points;",
-        "    int16_t  x, y, x_prev, y_prev;",       # signed: positions may be negative
-        "    uint16_t block;",                     # shape's block index (DS 0x12)
-        "    uint16_t anim_frame, anim_shape_a, anim_shape_b;",
-        "    uint16_t anim_last, phase, subtype, shape;",
-        "    int16_t  vx, vy;",                     # signed velocity
-        "    uint16_t speed, unused24, kind;",
-        "    uint8_t  ready;",
-        "    uint16_t handler, handler_seg;",       # handler_seg is always 0x1F9A
-        "} ObjectEntry;",
-        "",
-        "#define OBJ_MAX 60",
-        "#define OBJ_LEVELS 19",
+        "/* Generated data arrays only.  The ObjectEntry type, OBJ_MAX and",
+        " * OBJ_LEVELS are hand-written in game/object.h; include ownership of",
+        " * this header belongs to game/level.c. */",
+        '#include "game/object.h"',
         "",
     ]
     for lv in LEVELS:

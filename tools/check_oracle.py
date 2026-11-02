@@ -16,6 +16,7 @@ NOTE = os.path.join(ROOT, "notes")
 OBJ_JSON = os.path.join(NOTE, "oracle_objects.json")
 CAT_JSON = os.path.join(NOTE, "oracle_catalog.json")
 DATA_H = os.path.join(ROOT, "wasm", "objects_data.h")
+TYPE_H = os.path.join(ROOT, "wasm", "game", "object.h")
 
 # Known spawn-count anchors from the binary (map-spawned only; prologue
 # slots 2 and 3 are internal and excluded).
@@ -105,21 +106,30 @@ def check_handlers():
 
 
 def check_signed_coords():
-    """Generated header must use int16_t for x/y/vx/vy and contain negatives."""
-    h = open(DATA_H).read()
-    if "int16_t  x, y, x_prev, y_prev;" not in h:
-        fail("objects_data.h: x/y are not int16_t")
-    if "int16_t  vx, vy;" not in h:
-        fail("objects_data.h: vx/vy are not int16_t")
+    """Phase 4 shape: the ObjectEntry type is hand-written in game/object.h
+    with int16_t for x/y/vx/vy; the generated objects_data.h carries data
+    arrays only and includes that type header."""
+    t = open(TYPE_H).read()
+    if "int16_t  x, y, x_prev, y_prev;" not in t:
+        fail("game/object.h: x/y are not int16_t")
+    if "int16_t  vx, vy;" not in t:
+        fail("game/object.h: vx/vy are not int16_t")
     # Phase 3: the helper words carry readable names, not raw p-offset names.
-    if "state, hit_flag, hit_points;" not in h or "phase, subtype, shape;" not in h:
-        fail("objects_data.h: ObjectEntry fields must use the Phase 3 names")
+    if "state, hit_flag, hit_points;" not in t or "phase, subtype, shape;" not in t:
+        fail("game/object.h: ObjectEntry fields must use the Phase 3 names")
+    if "#define OBJ_MAX 60" not in t or "#define OBJ_LEVELS 19" not in t:
+        fail("game/object.h: OBJ_MAX/OBJ_LEVELS must live in the type header")
+    h = open(DATA_H).read()
+    if 'include "game/object.h"' not in h:
+        fail("objects_data.h: must include game/object.h, not redefine the type")
+    if "typedef struct" in h or "#define OBJ_MAX" in h:
+        fail("objects_data.h: must contain generated data only")
     if "g_obj_level0[OBJ_MAX] = {" not in h:
         fail("objects_data.h: missing level arrays")
     # Find a negative coordinate literal somewhere (must not be all unsigned).
     if not re.search(r"[-]?\d+, [-]?\d+, [-]?\d+, [-]?\d+, ", h):
         fail("objects_data.h: no negative coordinate literals found (unsigned mask bug?)")
-    print("ok  objects_data.h signed fields present")
+    print("ok  ObjectEntry type in game/object.h, signed fields present")
 
 
 def check_tables():

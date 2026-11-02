@@ -27,11 +27,24 @@ void *memcpy_(void *d, const void *s, unsigned n) {
 /* Original object record: 60 slots, stride 0x2D, packed. */
 _Static_assert(sizeof(ObjectEntry) == 0x2D, "ObjectEntry record layout changed");
 _Static_assert(CC_OFFSETOF(ObjectEntry, state)       == 0x00, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, hit_flag)    == 0x02, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, hit_points)  == 0x04, "object field moved");
 _Static_assert(CC_OFFSETOF(ObjectEntry, x)           == 0x06, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, y)           == 0x08, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, x_prev)      == 0x0A, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, y_prev)      == 0x0C, "object field moved");
 _Static_assert(CC_OFFSETOF(ObjectEntry, block)       == 0x0E, "object field moved");
 _Static_assert(CC_OFFSETOF(ObjectEntry, anim_frame)  == 0x10, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, anim_shape_a) == 0x12, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, anim_shape_b) == 0x14, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, anim_last)   == 0x16, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, phase)       == 0x18, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, subtype)     == 0x1A, "object field moved");
 _Static_assert(CC_OFFSETOF(ObjectEntry, shape)       == 0x1C, "object field moved");
 _Static_assert(CC_OFFSETOF(ObjectEntry, vx)          == 0x1E, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, vy)          == 0x20, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, speed)       == 0x22, "object field moved");
+_Static_assert(CC_OFFSETOF(ObjectEntry, unused24)    == 0x24, "object field moved");
 _Static_assert(CC_OFFSETOF(ObjectEntry, kind)        == 0x26, "object field moved");
 _Static_assert(CC_OFFSETOF(ObjectEntry, ready)       == 0x28, "object field moved");
 _Static_assert(CC_OFFSETOF(ObjectEntry, handler)     == 0x29, "object field moved");

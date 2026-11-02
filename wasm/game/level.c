@@ -1,6 +1,10 @@
 /* Crystal Caves gameplay module - split from wasm/objects.c. */
 #include "game_internal.h"
 
+/* Generated per-level object images/tables: this loader is the single
+ * translation unit that includes the generated data header (Phase 4). */
+#include "objects_data.h"
+
 /* Apply the exact 0xC3E new-game defaults captured in startup_data.h. */
 
 static void startup_player_state(void) {
