@@ -2,7 +2,8 @@
 #include "game_internal.h"
 
 /* Apply the exact 0xC3E new-game defaults captured in startup_data.h. */
-void apply_startup_state(void) {
+
+static void startup_player_state(void) {
     g_state.blocked_l = g_startup.f_a0f1;
     g_state.blocked_r = g_startup.f_a0f2;
     g_state.interaction_lock = g_startup.f_a0f6;
@@ -40,7 +41,9 @@ void apply_startup_state(void) {
     g_state.riding_vertical = g_startup.f_5142;
     g_state.ammo = g_startup.f_509c;
     g_state.health = g_startup.f_509e;
+}
 
+static void startup_progress_state(void) {
     g_state.score_lo = g_startup.f_50a5;
     g_state.score_hi = g_startup.f_50a7;
     g_state.rng_lo = g_startup.f_2a6;
@@ -76,6 +79,9 @@ void apply_startup_state(void) {
     g_state.switch_latch = g_startup.f_a0f9;
     g_state.lever_state = g_startup.f_a0f3;
     g_state.all_caves_complete = g_startup.f_a0fb;
+}
+
+static void startup_switch_state(void) {
     g_state.story_transition = g_startup.f_a126;
     g_state.switch_repeat = g_startup.f_a0e8;
     g_state.spawn_cell_x = g_startup.f_a0d0;
@@ -113,7 +119,9 @@ void apply_startup_state(void) {
     g_state.restart_latch = 0;
     g_state.g_512c = 0;
     cc_sound_log_clear();
+}
 
+static void startup_clear_transient_state(void) {
     g_state.g_512a = 0;
     g_state.g_513a = 0;
     g_state.platform_slot_h = 0;
@@ -127,6 +135,13 @@ void apply_startup_state(void) {
     g_state.input_down = 0;
     g_state.input_fire = 0;
     g_state.input_joystick_fire = 0;
+}
+
+void apply_startup_state(void) {
+    startup_player_state();
+    startup_progress_state();
+    startup_switch_state();
+    startup_clear_transient_state();
 }
 
 /* Apply the loader's per-level player/camera/spawn state. */
@@ -258,6 +273,89 @@ void ov_obj_byte(int slot, int off, unsigned char value) {
     raw[off] = value;
 }
 
+typedef struct OvCellTag { uint16_t bit; uint8_t tag; uint16_t payload; } OvCellTag;
+typedef struct OvObjTag  { uint8_t slot, off, tag; uint16_t payload; } OvObjTag;
+
+/* Overlay v2 decoration and hub-door recipes: RNG-selected values written
+ * straight into the cells (the hub's two background recipes plus doors). */
+static void ov_decor_and_doors(const unsigned char *draw_p,
+                               uint16_t draw_n_raw) {
+    const unsigned char *decor_p = draw_p + (unsigned)draw_n_raw * 4;
+    uint16_t decor_n = ov_rd16(decor_p);
+    uint16_t i;
+    decor_p += 2;
+    for (i = 0; i < decor_n; i++, decor_p += 6) {
+        uint16_t bit = ov_rd16(decor_p);
+        uint8_t kind = decor_p[2];
+        uint8_t baseval = decor_p[3];
+        uint8_t range = decor_p[4];
+        uint8_t special = decor_p[5];
+        uint16_t r = (uint16_t)cc_rng_next(range);
+        unsigned char value;
+        if (kind == 0) {
+            if (r == 2) r = (uint16_t)cc_rng_next(range);
+            value = (unsigned char)(baseval + r);
+        } else {
+            value = (r == 4) ? special : (unsigned char)(baseval + r);
+        }
+        g_state.cells[(bit / 20) / 40][(bit / 20) % 40][bit % 20] = value;
+    }
+    {
+        uint16_t door_n = ov_rd16(decor_p);
+        decor_p += 2;
+        for (i = 0; i < door_n; i++, decor_p += 3) {
+            uint16_t bit = ov_rd16(decor_p);
+            uint8_t index = decor_p[2];
+            unsigned cell = bit / 20;
+            unsigned open = cc_global_get(0x50A8 + index) != 0;
+            /* Hub door cells store the door number in w0 and use shape
+             * 0x0D when the cave flag is set, 0x10 when it is clear. */
+            g_state.cells[cell / 40][cell % 40][bit % 20] = open ? index : 0;
+            g_state.cells[cell / 40][cell % 40][6] = open ? 0x0D : 0x10;
+        }
+    }
+}
+
+/* Cell bytes whose value comes from a draw roll or a live global. */
+static void ov_apply_cell_tags(const OvCellTag *ct, uint16_t ct_n,
+                               const uint16_t *draws, uint16_t draw_n) {
+    uint16_t i;
+    for (i = 0; i < ct_n; i++) {
+        unsigned cell = ct[i].bit / 20, boff = ct[i].bit % 20;
+        unsigned char value;
+        if (ct[i].tag == 2) {
+            value = (unsigned char)cc_global_get(ct[i].payload);
+        } else if (ct[i].tag == 1) {
+            uint16_t di = ct[i].payload;
+            value = (unsigned char)(di < draw_n ? draws[di] : 0);
+        } else {
+            continue;
+        }
+        g_state.cells[cell / 40][cell % 40][boff] = value;
+    }
+}
+
+/* Object bytes whose value comes from a draw roll (high/low half by offset
+ * parity) or a live global. */
+static void ov_apply_obj_tags(const OvObjTag *ot, uint16_t ot_n,
+                              const uint16_t *draws, uint16_t draw_n) {
+    uint16_t i;
+    for (i = 0; i < ot_n; i++) {
+        unsigned char value;
+        if (ot[i].tag == 2) {
+            value = (unsigned char)cc_global_get(ot[i].payload);
+        } else if (ot[i].tag == 1) {
+            uint16_t di = ot[i].payload;
+            uint16_t v = di < draw_n ? draws[di] : 0;
+            value = (ot[i].off & 1) ? (unsigned char)(v >> 8)
+                                    : (unsigned char)v;
+        } else {
+            continue;
+        }
+        ov_obj_byte(ot[i].slot, ot[i].off, value);
+    }
+}
+
 void apply_level_overlay(int level) {
     const unsigned char *base = g_level_overlay;
     const unsigned char *p, *bits, *values;
@@ -265,8 +363,8 @@ void apply_level_overlay(int level) {
     uint16_t cell_tag_n, obj_lit_n, obj_tag_n, glob_n, draw_n, draw_n_raw;
     uint16_t draws[1024];
     uint16_t vi = 0, i, version;
-    struct { uint16_t bit; uint8_t tag; uint16_t payload; } ct[256];
-    struct { uint8_t slot, off, tag; uint16_t payload; } ot[256];
+    OvCellTag ct[256];
+    OvObjTag ot[256];
     uint16_t ct_n = 0, ot_n = 0;
 
     if (!base || level < 0 || level >= OBJ_LEVELS) return;
@@ -323,73 +421,15 @@ void apply_level_overlay(int level) {
     draw_p = p;
     draw_n = draw_n_raw;
     if (draw_n > 1024) draw_n = 1024;
-    if (version >= 2) {
-        const unsigned char *decor_p = draw_p + (unsigned)draw_n_raw * 4;
-        uint16_t decor_n = ov_rd16(decor_p);
-        decor_p += 2;
-        for (i = 0; i < decor_n; i++, decor_p += 6) {
-            uint16_t bit = ov_rd16(decor_p);
-            uint8_t kind = decor_p[2];
-            uint8_t baseval = decor_p[3];
-            uint8_t range = decor_p[4];
-            uint8_t special = decor_p[5];
-            uint16_t r = (uint16_t)cc_rng_next(range);
-            unsigned char value;
-            if (kind == 0) {
-                if (r == 2) r = (uint16_t)cc_rng_next(range);
-                value = (unsigned char)(baseval + r);
-            } else {
-                value = (r == 4) ? special : (unsigned char)(baseval + r);
-            }
-            g_state.cells[(bit / 20) / 40][(bit / 20) % 40][bit % 20] = value;
-        }
-        {
-            uint16_t door_n = ov_rd16(decor_p);
-            decor_p += 2;
-            for (i = 0; i < door_n; i++, decor_p += 3) {
-                uint16_t bit = ov_rd16(decor_p);
-                uint8_t index = decor_p[2];
-                unsigned cell = bit / 20;
-                unsigned open = cc_global_get(0x50A8 + index) != 0;
-                /* Hub door cells store the door number in w0 and use shape
-                 * 0x0D when the cave flag is set, 0x10 when it is clear. */
-                g_state.cells[cell / 40][cell % 40][bit % 20] = open ? index : 0;
-                g_state.cells[cell / 40][cell % 40][6] = open ? 0x0D : 0x10;
-            }
-        }
-    }
+    if (version >= 2)
+        ov_decor_and_doors(draw_p, draw_n_raw);
     for (i = 0; i < draw_n; i++) {
         uint16_t n = ov_rd16(draw_p + i * 4);
         uint16_t add = ov_rd16(draw_p + i * 4 + 2);
         draws[i] = (uint16_t)(cc_rng_next(n) + add);
     }
-    for (i = 0; i < ct_n; i++) {
-        unsigned cell = ct[i].bit / 20, boff = ct[i].bit % 20;
-        unsigned char value;
-        if (ct[i].tag == 2) {
-            value = (unsigned char)cc_global_get(ct[i].payload);
-        } else if (ct[i].tag == 1) {
-            uint16_t di = ct[i].payload;
-            value = (unsigned char)(di < draw_n ? draws[di] : 0);
-        } else {
-            continue;
-        }
-        g_state.cells[cell / 40][cell % 40][boff] = value;
-    }
-    for (i = 0; i < ot_n; i++) {
-        unsigned char value;
-        if (ot[i].tag == 2) {
-            value = (unsigned char)cc_global_get(ot[i].payload);
-        } else if (ot[i].tag == 1) {
-            uint16_t di = ot[i].payload;
-            uint16_t v = di < draw_n ? draws[di] : 0;
-            value = (ot[i].off & 1) ? (unsigned char)(v >> 8)
-                                    : (unsigned char)v;
-        } else {
-            continue;
-        }
-        ov_obj_byte(ot[i].slot, ot[i].off, value);
-    }
+    ov_apply_cell_tags(ct, ct_n, draws, draw_n);
+    ov_apply_obj_tags(ot, ot_n, draws, draw_n);
 }
 
 void load_level(int level, int new_game, int fresh_image, int sound_start) {
