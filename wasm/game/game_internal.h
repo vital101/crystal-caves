@@ -10,6 +10,7 @@
 #include "objects_data.h"
 #include "cells_data.h"
 #include "cell_fields.h"
+#include "score.h"
 #include "startup_data.h"
 #include "shell.h"
 #include "sound.h"
