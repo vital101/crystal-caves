@@ -113,7 +113,8 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - **TP RNG** is at `0x2BB5:0x980`, state `DS:0x2A6/0x2A8`. The high word uses
   the original byte-wise add/shift sequence, not a plain 32-bit multiply.
 - **Cell addressing**: `0x508C + (col+1)*500 + (row+1)*20`; slash/dug-block
-  paths use the original +1 border indices (see `cell_border_*` in `objects.c`).
+  paths use the original +1 border indices (see `cell_border_*` in
+  `wasm/game/handlers_interaction.c`).
 - **Cell events**: handler is `0x0FC5:0xBB26` (linear `0x1B776`).  Layer
   mapping is `(w4,w2)`, `(w5,w3)`, `(w6,w7)`; crystal cells are `w6=0xD`,
   `w7=1..4`.  Counters: `0x509E` health, `0x509C` ammo, `0x50A2` collected,
@@ -185,11 +186,19 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   `wasm/test_refactor_digest.js` + `notes/refactor_digests.json` provide 929
   deterministic SHA-256 snapshots (static render, 480-frame gameplay runs,
   hub/cave transitions, warps, shell flow, save round-trip);
-  `cc_state_t`/`ObjectEntry` layout asserts are in `objects.c`;
+  `cc_state_t`/`ObjectEntry` layout asserts are in `wasm/game/state.c`;
   `tools/check_source_limits.py` + `make lint` report the current size and
   function-length violations (warning-only until the Phase 1/2 split), and
-  `wasm/ARCHITECTURE.md` is the architecture skeleton.  See
+  `wasm/ARCHITECTURE.md` is the architecture document.  See
   `refactor/phase-0-safety-net.md` for the exit criteria.
+- Refactor Phase 1 (gameplay split) is implemented: `wasm/objects.c` is split
+  into `wasm/game/*.c` modules with a shared `game_internal.h` umbrella header
+  and removed from the tree.  The split is mechanical: the 929 digest
+  snapshots are unchanged, `make test-all` passes, and `make perf` reports
+  ~1.15 ms per level frame and a 163,796-byte `render.wasm`.  See
+  `notes/refactor_map.md` for the implemented module/function map.  Semantic
+  regrouping and per-module headers remain Phase 3/4 work; pre-existing long
+  functions are Phase 3 targets.
 - Phase 6 sound is implemented: all 36 Crystal Caves Sound effects are
   trace-captured from the real `0x1FBBF`/`0x0A3F` driver, rendered by
   `wasm/sound_synth.js`, and played through a single WebAudio channel.

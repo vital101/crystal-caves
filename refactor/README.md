@@ -1,9 +1,11 @@
 # Crystal Caves C/WASM Refactoring Plan
 
-Status: Phase 0 (safety net) is implemented; Phases 1–5 are proposed.  See
+Status: Phase 0 (safety net) and Phase 1 (gameplay split) are implemented;
+Phases 2–5 are proposed.  See
 [`../notes/refactor_baseline.md`](../notes/refactor_baseline.md) for the
-captured baseline and [`../wasm/ARCHITECTURE.md`](../wasm/ARCHITECTURE.md) for
-the architecture skeleton.
+captured baseline, [`../notes/refactor_map.md`](../notes/refactor_map.md) for
+the implemented module map and [`../wasm/ARCHITECTURE.md`](../wasm/ARCHITECTURE.md)
+for the architecture document.
 
 This directory contains the refactoring plan split by phase:
 
@@ -15,6 +17,29 @@ This directory contains the refactoring plan split by phase:
 | 3 | [phase-3-readability.md](phase-3-readability.md) | Rename, extract and table-drive the unreadable code |
 | 4 | [phase-4-structural-cleanups.md](phase-4-structural-cleanups.md) | Header hygiene, build system, optional hardening |
 | 5 | [phase-5-js-docs.md](phase-5-js-docs.md) | Browser JS, test helpers and final documentation |
+
+## Progress
+
+Phase 1 is implemented as a mechanical split of `wasm/objects.c` into
+`wasm/game/*.c` modules with a shared `game_internal.h` umbrella header.  The
+split preserves the `cc_state_t` layout, the public wasm export names and the
+original-address comments.  `wasm/objects.c` is removed; all 46 handlers remain
+reachable through `handler_for()` in `game/handlers_table.c`.
+
+Verification at the Phase 1 milestone:
+
+- `make clang` builds cleanly from scratch without the monolith.
+- `make test-all` and `make test-digest` pass (929 digest snapshots).
+- `make perf` reports 1.15 ms per level frame against the 57.1 ms budget and a
+  163,796-byte `render.wasm` against the 524,288-byte cap.
+- No public wasm export name changed.
+
+Known follow-ups (deferred to later phases by design): the umbrella header is
+still shared by every gameplay module (Phase 4 replaces it with per-module
+headers), and the pre-existing long functions (`cell_event()`, `slash_state1()`,
+`cc_global_get/set()`, `apply_startup_state()`, `apply_level_overlay()`,
+`cc_horizontal()`) still exceed the 120-line guideline (Phase 3).  `shell.c`
+(1,233 lines) is Phase 2 work.
 
 ## Why this plan exists
 

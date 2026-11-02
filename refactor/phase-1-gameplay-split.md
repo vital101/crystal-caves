@@ -6,6 +6,21 @@ Mechanically split `wasm/objects.c` (5,330 lines) into cohesive modules. **No
 renaming, no logic changes, no behavior fixes.** Move code, expose what must be
 shared, add declarations, compile, test.
 
+## Status
+
+**Implemented.**  `wasm/objects.c` has been split into the `wasm/game/*.c`
+modules below and removed from the tree.  The split was mechanical: no logic,
+renaming or behavior changes.  The golden-master digest (929 snapshots) is
+unchanged.  See [`../notes/refactor_map.md`](../notes/refactor_map.md) for the
+implemented file/function map and [`../wasm/ARCHITECTURE.md`](../wasm/ARCHITECTURE.md)
+for ownership.
+
+Deviations from the incremental commit order below: the split was performed in
+one mechanical pass using `refactor/split_objects.py`, which reads the original
+file and emits the modules plus the umbrella header.  The umbrella header is
+still in place; replacing it with per-module headers is deferred to Phase 4
+(header hygiene) as allowed by section 1.6.
+
 ## 1.1 Move the file first
 
 Do a path-only commit so history follows the main file:

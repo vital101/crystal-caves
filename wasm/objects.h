@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 
-#include "objects_data.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif

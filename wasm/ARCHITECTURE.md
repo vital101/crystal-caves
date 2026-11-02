@@ -1,9 +1,12 @@
 # Crystal Caves C/WASM architecture
 
-Status: **Phase 0 skeleton**.  The ownership boundaries below are the target
-shape from [`refactor/README.md`](../refactor/README.md); the current code still
-lives in the original single-file layout.  This document grows with each phase
-and is completed in Phase 5.
+Status: **Phase 1 implemented**.  The gameplay core has been mechanically split
+into `wasm/game/*.c` modules with a shared `game_internal.h` umbrella header;
+`wasm/objects.c` is removed.  The ownership boundaries below are the target
+shape and are partially matched by the mechanical split (line-range based).
+Shell/text/render splits are Phase 2.  See
+[`../notes/refactor_map.md`](../notes/refactor_map.md) for the implemented
+module map.  This document grows with each phase and is completed in Phase 5.
 
 Read this together with:
 
@@ -63,8 +66,8 @@ must not call gameplay.
 
 | Today | Target |
 |---|---|
-| `wasm/objects.c` (5,3xx lines) | `game/*.c` split per the diagram, `game/handlers/*.c` |
-| `wasm/objects.c` handler functions `h_1fb9`, `h_2241`, … | `game/handlers/{platforms,actors,interaction,combat,misc}.c` with descriptive names |
+| `wasm/game/*.c` (implemented; `wasm/objects.c` removed) | `game/*.c` split per the diagram; semantic regrouping continues in Phase 3 |
+| `wasm/game/handlers_*.c` handler functions `h_1fb9`, `h_2241`, … | `game/handlers/{platforms,actors,interaction,combat,misc}.c` with descriptive names |
 | `wasm/shell.c` (1,2xx lines) | `shell/{state,input,render,hiscore,config,persist,scroll}.c` |
 | `wasm/text.c` | `text/{font,window,hud}.c` |
 | `wasm/render.c` | `render/{runtime,blit,screens,render}.c` |
@@ -115,7 +118,7 @@ offset 12  raw cc_state_t image
 Rules:
 
 1. `sizeof(cc_state_t) == 23010`; `sizeof(ObjectEntry) == 0x2D`.  Compile-time
-   asserts in `objects.c` (to move to `game/state.c`) enforce both, plus the
+   asserts in `game/state.c` enforce both, plus the
    byte offsets of every major section (objects, cells, player/camera, input,
    counters, cave flags, checkpoint block).
 2. Never reorder or resize fields.  Renaming is fine; update the comments and
@@ -151,9 +154,10 @@ address must remain discoverable from the new name.
 
 ## Handler taxonomy
 
-Placeholder until Phase 1/3 assigns descriptive names.  The authoritative
-current inventory is [`notes/handlers.md`](../notes/handlers.md); this table is
-the refactor map that replaces it.
+Placeholder until Phase 3 assigns descriptive names.  The authoritative current
+inventory is [`notes/handlers.md`](../notes/handlers.md); this table is the
+refactor map that replaces it.  Phase 1 kept the original `h_XXXX` names and
+grouped the handlers by line range into `wasm/game/handlers_*.c`.
 
 | Offset | Current name | Descriptive name | Target file | Notes |
 |---|---|---|---|---|

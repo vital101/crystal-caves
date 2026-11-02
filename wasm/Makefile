@@ -32,17 +32,23 @@ EXPORTS = cc_alloc cc_set_assets cc_set_palette cc_render_level cc_render_view c
 	  cc_score cc_score_lo cc_score_hi cc_cooldown cc_g_2da cc_g_a0c4 cc_g_a0ff cc_collectibles_total cc_collectibles_left \
 	  cc_lives cc_health cc_ammo cc_crystals_collected cc_crystals_remaining cc_level_arg cc_exit_unlocked cc_exit_active cc_door_active cc_cave_flag cc_level_complete cc_handler_coverage_num cc_phys_get cc_phys_set
 
+GAME_SRC = game/state.c game/physics.c game/handlers_platforms.c game/combat.c \
+	   game/handlers_interaction.c game/cell_event.c game/handlers_actors_a.c \
+	   game/handlers_actors_b.c game/update.c game/update_death.c game/level.c \
+	   game/api_accessors.c game/api_globals.c game/rng.c game/handlers_table.c \
+	   game/save_state.c
+
 clang: assets $(OUT)
 
-$(OUT): render.c render.h objects.c objects.h objects_data.h cells_data.h startup_data.h text.c text.h shell.c shell.h shell_text_data.h shell_exact_data.h sound.c sound.h sound_data.h
+$(OUT): render.c render.h $(GAME_SRC) game/game_internal.h objects.h objects_data.h cells_data.h startup_data.h text.c text.h shell.c shell.h shell_text_data.h shell_exact_data.h sound.c sound.h sound_data.h
 	@test -x "$(LLVM)/clang" || { echo "clang not found at $(LLVM)/clang"; \
 	  echo "Install Homebrew LLVM (brew install llvm) or pass LLVM=/path/to/bin"; exit 1; }
-	$(LLVM)/clang --target=wasm32 -Oz -nostdlib -ffreestanding -fno-builtin \
+	$(LLVM)/clang --target=wasm32 -Oz -nostdlib -ffreestanding -fno-builtin -I. \
 	  -Werror=implicit-function-declaration -Werror=incompatible-pointer-types \
 	  -Werror=return-type \
 	  -Wl,--no-entry -Wl,--no-gc-sections -Wl,--stack-first -Wl,-z,stack-size=65536 \
 	  -Wl,--export-memory -Wl,--initial-memory=16777216 -Wl,-z,stack-size=65536 \
-	  $(foreach s,$(EXPORTS),-Wl,--export=$(s)) -o $(OUT) render.c objects.c text.c shell.c sound.c
+	  $(foreach s,$(EXPORTS),-Wl,--export=$(s)) -o $(OUT) render.c $(GAME_SRC) text.c shell.c sound.c
 
 assets: assets/gfx.bin assets/levels.bin assets/palette.json assets/cells.bin assets/level_overlay.bin assets/screens.bin assets/mni_f1.bin assets/mni_f2.bin assets/mni_spl.bin assets/sound.json
 
@@ -102,7 +108,7 @@ startup:
 
 # Emscripten path (produces app.js + app.wasm)
 emcc: assets
-	$(EMCC) render.c objects.c text.c shell.c sound.c -O2 -o app.js -s WASM=1 \
+	$(EMCC) render.c $(GAME_SRC) text.c shell.c sound.c -O2 -I. -o app.js -s WASM=1 \
 	  -Werror=implicit-function-declaration -Werror=incompatible-pointer-types \
 	  -Werror=return-type \
 	  -s EXPORTED_FUNCTIONS='[$(foreach s,$(EXPORTS),_$(s)),_malloc,_free]' \
