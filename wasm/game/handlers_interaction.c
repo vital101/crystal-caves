@@ -21,13 +21,13 @@ void h_ambient_anim_b(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 /* 0x1F9A:0x4A82 (kind 44): interaction helper with state toggles. */
 void h_state_toggle(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
-    uint8_t old_513c = g_state.g_513c;
-    uint8_t old_5140 = (uint8_t)g_state.g_5140;
-    g_state.g_513c = 1;
-    g_state.g_5140 = 0;
+    uint8_t old_513c = g_state.interaction_enabled;
+    uint8_t old_5140 = (uint8_t)g_state.interaction_suppressed;
+    g_state.interaction_enabled = 1;
+    g_state.interaction_suppressed = 0;
     player_interact(o, x, y);
-    g_state.g_513c = old_513c;
-    g_state.g_5140 = old_5140;
+    g_state.interaction_enabled = old_513c;
+    g_state.interaction_suppressed = old_5140;
 }
 
 /* 0x1F9A:0x1FC2 (kind 8): proximity-triggered companion spawner/mover. */
@@ -122,13 +122,13 @@ void push_player(int16_t amount, int16_t dir) {
         if (!cell_test_200fe((int16_t)(g_state.player_x - 3), g_state.player_y)) {
             g_state.player_x = (int16_t)(g_state.player_x - amount);
             g_state.obj[1].x = g_state.player_x;
-            g_state.g_5126 = (uint16_t)amount;
-            g_state.g_5118 = (uint16_t)amount;
+            g_state.scroll_x_accum = (uint16_t)amount;
+            g_state.carry_x_delta = (uint16_t)amount;
         }
     } else {
         if (!cell_test_200fe((int16_t)(g_state.player_x + 3), g_state.player_y)) {
-            g_state.g_5126 = (uint16_t)(-(int16_t)amount);
-            g_state.g_5118 = (uint16_t)(-(int16_t)amount);
+            g_state.scroll_x_accum = (uint16_t)(-(int16_t)amount);
+            g_state.carry_x_delta = (uint16_t)(-(int16_t)amount);
             g_state.player_x = (int16_t)(g_state.player_x + amount);
             g_state.obj[1].x = g_state.player_x;
         }

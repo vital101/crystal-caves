@@ -3,13 +3,13 @@
 
 /* 0x1F9A:0xA36 (0x203D6): apply a hit; loses one life/crystal unit. */
 void damage_life(void) {
-    if ((int16_t)g_state.g_509e > 1) {
-        g_state.g_a0ea = 0;
-        g_state.g_509e--;
+    if ((int16_t)g_state.health > 1) {
+        g_state.invuln_timer = 0;
+        g_state.health--;
         g_state.obj[1].hit_flag = 1;
-    } else if (g_state.g_5124 == 0) {
-        g_state.g_5124 = 1;
-        g_state.g_509e--;
+    } else if (g_state.death_state == 0) {
+        g_state.death_state = 1;
+        g_state.health--;
     }
 }
 
@@ -57,10 +57,10 @@ void slash_gate(ObjectEntry *o, int16_t x, int16_t y) {
     if (!rect_overlap(a->y, a->y + 15, y, y + 15)) return;
     if (a->ready != 0) return;
 
-    if (g_state.g_5140 == 0 && g_state.g_513c != 0 && o->kind == 0x24) {
+    if (g_state.interaction_suppressed == 0 && g_state.interaction_enabled != 0 && o->kind == 0x24) {
         o->anim_frame = 1;
         o->anim_last = 1;
-        g_state.g_5124 = 2;
+        g_state.death_state = 2;
     }
 
     o->hit_points = (uint16_t)(o->hit_points - 1u);
@@ -382,37 +382,37 @@ void player_interact(ObjectEntry *o, int16_t x, int16_t y) {
         !rect_overlap(g_state.player_y, g_state.player_y + 15, y, y + 15))
         goto slash_gate;
 
-    if (g_state.g_513c == 0) {
+    if (g_state.interaction_enabled == 0) {
         transform_object(o);
         goto slash_gate;
     }
-    if (g_state.g_5140 != 0) goto slash_gate;
-    if (g_state.g_5124 != 0) goto slash_gate;
-    if (g_state.g_a0ea != 0xFFFF) goto slash_gate;
-    if (g_state.g_a0f6 != 0) goto slash_gate;
+    if (g_state.interaction_suppressed != 0) goto slash_gate;
+    if (g_state.death_state != 0) goto slash_gate;
+    if (g_state.invuln_timer != 0xFFFF) goto slash_gate;
+    if (g_state.interaction_lock != 0) goto slash_gate;
 
     damage_life();
     kind = o->kind;
     switch (kind) {
         case 0x10: case 0x0E:
-            g_state.g_a0ea = 0xFFFF;
-            g_state.g_5124 = 1;
+            g_state.invuln_timer = 0xFFFF;
+            g_state.death_state = 1;
             g_state.obj[1].hit_flag = 0;
             break;
         case 0x24:
-            g_state.g_5124 = 0;
-            g_state.g_a0ea = 0xFFFF;
-            g_state.g_509e++;
+            g_state.death_state = 0;
+            g_state.invuln_timer = 0xFFFF;
+            g_state.health++;
             g_state.obj[1].hit_flag = 0;
             break;
         case 0x16:
-            if (g_state.g_5124 == 1)
-                g_state.g_5124 = (g_state.gravity_scale == 1) ? 3 : 1;
+            if (g_state.death_state == 1)
+                g_state.death_state = (g_state.gravity_scale == 1) ? 3 : 1;
             break;
         case 0x2C:
-            g_state.g_5124 = 0;
-            g_state.g_a0ea = 0xFFFF;
-            g_state.g_509e++;
+            g_state.death_state = 0;
+            g_state.invuln_timer = 0xFFFF;
+            g_state.health++;
             g_state.obj[1].hit_flag = 0;
             o->ready = 1;
             spawn_effect(0x18, (int16_t)(x / 16), (int16_t)(y / 16));
@@ -422,7 +422,7 @@ void player_interact(ObjectEntry *o, int16_t x, int16_t y) {
         default:
             break;
     }
-    if ((int16_t)g_state.g_5124 > 0) play_sound(SND_HURT);
+    if ((int16_t)g_state.death_state > 0) play_sound(SND_HURT);
 
 slash_gate:
     slash_gate(o, x, y);

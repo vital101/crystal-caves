@@ -204,15 +204,15 @@ void cc_vertical(void) {
     g_state.airborne = 1;
 
     move = 0;
-    if (g_state.g_5142 && (int16_t)g_state.jump_phase < 0xB) move = 1;
-    if (g_state.g_513d && (int16_t)g_state.jump_phase < 0xB) move = 1;
-    if (!g_state.g_513d && !g_state.g_5142 && (int16_t)g_state.jump_phase > 0) move = 1;
+    if (g_state.riding_vertical && (int16_t)g_state.jump_phase < 0xB) move = 1;
+    if (g_state.riding_horizontal && (int16_t)g_state.jump_phase < 0xB) move = 1;
+    if (!g_state.riding_horizontal && !g_state.riding_vertical && (int16_t)g_state.jump_phase > 0) move = 1;
     if (move) {
         delta = wmul(g_vert_speed[g_state.jump_phase], g_state.gravity_scale);
         g_state.player_y = wadd(g_state.player_y, delta);
     }
 
-    if (g_state.g_5142 || g_state.g_513d) g_state.airborne = 0;
+    if (g_state.riding_vertical || g_state.riding_horizontal) g_state.airborne = 0;
 
     if (g_state.gravity_scale == 1) {
         int blocked = cell_solid_px((int16_t)(g_state.player_x + 3),
@@ -221,7 +221,7 @@ void cc_vertical(void) {
             blocked = cell_solid_px((int16_t)(g_state.player_x + 0xC),
                                     (int16_t)(g_state.player_y + 0x10));
         if (blocked) {
-            if (!g_state.g_5142 && !g_state.g_513d)
+            if (!g_state.riding_vertical && !g_state.riding_horizontal)
                 g_state.player_y = (int16_t)(((int)g_state.player_y / 16) * 16);
             g_state.airborne = 0;
         }
@@ -296,8 +296,8 @@ void cc_vertical(void) {
     /* 0xDFF6: airborne disables platform attachment latches. */
     if (g_state.airborne) {
         g_state.anim_timer = 1;
-        g_state.g_513d = 0;
-        g_state.g_5142 = 0;
+        g_state.riding_horizontal = 0;
+        g_state.riding_vertical = 0;
     }
 }
 
@@ -312,8 +312,8 @@ void cc_jump_vertical(void) {
             g_state.jump_flag = 1;
             g_state.c6 = 0;
             g_state.jump_phase = 0;
-            g_state.g_513d = 0;
-            g_state.g_5142 = 0;
+            g_state.riding_horizontal = 0;
+            g_state.riding_vertical = 0;
             play_sound(SND_JUMP);
         } else {
             if (!g_state.g_a0b8) {
@@ -383,11 +383,11 @@ void cc_horizontal(void) {
 
     if ((int16_t)g_state.impulse > 0) {
         if (g_state.move_dir == 1) {
-            int16_t off = wadd(wneg(g_state.impulse), g_state.g_5126);
+            int16_t off = wadd(wneg(g_state.impulse), g_state.scroll_x_accum);
             if (player_clear(off, 0)) {
                 if (g_state.cam_x > 0 && wadd(g_state.cam_x, 0x96) > g_state.player_x) {
                     int16_t nx = wsub(g_state.cam_x,
-                                      wadd(g_state.impulse, g_state.g_5126));
+                                      wadd(g_state.impulse, g_state.scroll_x_accum));
                     g_state.cam_x = (nx < 0) ? 0 : nx;
                 }
                 g_state.player_x = wsub(g_state.player_x, g_state.impulse);
@@ -396,11 +396,11 @@ void cc_horizontal(void) {
                              ? (uint16_t)((int16_t)g_state.impulse / 2) : 0;
             }
         } else {
-            int16_t off = wsub(g_state.impulse, g_state.g_5126);
+            int16_t off = wsub(g_state.impulse, g_state.scroll_x_accum);
             if (player_clear(off, 0)) {
                 if (g_state.cam_x < 0x140 && wadd(g_state.cam_x, 0xAA) < g_state.player_x) {
                     int16_t nx = wadd(g_state.cam_x,
-                                      wsub(g_state.impulse, g_state.g_5126));
+                                      wsub(g_state.impulse, g_state.scroll_x_accum));
                     g_state.cam_x = (nx > 0x140) ? 0x140 : nx;
                 }
                 g_state.player_x = wadd(g_state.player_x, g_state.impulse);
@@ -418,11 +418,11 @@ void cc_horizontal(void) {
         if (!g_state.jump_flag && !g_state.airborne) g_state.shape_player = g_state.shape_a;
         update_walk_speed();
         {
-            int16_t off = wsub(g_state.walk_speed, g_state.g_5126);
+            int16_t off = wsub(g_state.walk_speed, g_state.scroll_x_accum);
             if (player_clear(off, 0)) {
                 if (g_state.cam_x < 0x140 && wadd(g_state.cam_x, 0xAA) < g_state.player_x) {
                     int16_t nx = wadd(g_state.cam_x, wsub(g_state.walk_speed,
-                                                     g_state.g_5126));
+                                                     g_state.scroll_x_accum));
                     g_state.cam_x = (nx > 0x140) ? 0x140 : nx;
                 }
                 g_state.player_x = wadd(g_state.player_x, g_state.walk_speed);
@@ -436,11 +436,11 @@ void cc_horizontal(void) {
         if (!g_state.jump_flag && !g_state.airborne) g_state.shape_player = g_state.shape_b;
         update_walk_speed();
         {
-            int16_t off = wadd(wneg(g_state.walk_speed), g_state.g_5126);
+            int16_t off = wadd(wneg(g_state.walk_speed), g_state.scroll_x_accum);
             if (player_clear(off, 0)) {
                 if (g_state.cam_x > 0 && wadd(g_state.cam_x, 0x96) > g_state.player_x) {
                     int16_t nx = wsub(g_state.cam_x,
-                                      wadd(g_state.walk_speed, g_state.g_5126));
+                                      wadd(g_state.walk_speed, g_state.scroll_x_accum));
                     g_state.cam_x = (nx < 0) ? 0 : nx;
                 }
                 g_state.player_x = wsub(g_state.player_x, g_state.walk_speed);
@@ -453,38 +453,38 @@ void cc_horizontal(void) {
         g_state.anim_timer = 1;
 
 idle_carry:
-    if (g_state.g_5118 != 0) {
-        if ((int16_t)g_state.g_5118 < 0) {
-            if (player_clear((int16_t)g_state.g_5118, 0)) {
+    if (g_state.carry_x_delta != 0) {
+        if ((int16_t)g_state.carry_x_delta < 0) {
+            if (player_clear((int16_t)g_state.carry_x_delta, 0)) {
                 if (g_state.cam_x > 0 && wadd(g_state.cam_x, 0x96) > g_state.player_x) {
-                    int16_t nx = wadd(g_state.cam_x, (int16_t)g_state.g_5118);
+                    int16_t nx = wadd(g_state.cam_x, (int16_t)g_state.carry_x_delta);
                     g_state.cam_x = (nx < 0) ? 0 : nx;
-                    g_state.g_5118 = 0;
+                    g_state.carry_x_delta = 0;
                 }
             }
         } else {
-            if (player_clear((int16_t)g_state.g_5118, 0)) {
+            if (player_clear((int16_t)g_state.carry_x_delta, 0)) {
                 if (g_state.cam_x < 0x140 && wadd(g_state.cam_x, 0xAA) < g_state.player_x) {
-                    int16_t nx = wadd(g_state.cam_x, (int16_t)g_state.g_5118);
+                    int16_t nx = wadd(g_state.cam_x, (int16_t)g_state.carry_x_delta);
                     g_state.cam_x = (nx > 0x140) ? 0x140 : nx;
-                    g_state.g_5118 = 0;
+                    g_state.carry_x_delta = 0;
                 }
             }
         }
     }
 
-    if (g_state.g_5128 != 0) {
-        if ((int16_t)g_state.g_5128 < 0) {
-            if (player_clear(0, (int16_t)g_state.g_5128)) {
+    if (g_state.carry_y_delta != 0) {
+        if ((int16_t)g_state.carry_y_delta < 0) {
+            if (player_clear(0, (int16_t)g_state.carry_y_delta)) {
                 if (g_state.cam_y > 0x10 && wadd(g_state.cam_y, 0x50) > g_state.player_y) {
-                    int16_t ny = wadd(g_state.cam_y, (int16_t)g_state.g_5128);
+                    int16_t ny = wadd(g_state.cam_y, (int16_t)g_state.carry_y_delta);
                     g_state.cam_y = (ny < 0x10) ? 0x10 : ny;
                 }
             }
         } else {
             if (wadd(g_state.cam_y, 0x78) < g_state.player_y) {
                 if (g_state.cam_y < 0xC8) g_state.cam_y = wadd(g_state.cam_y,
-                                                     (int16_t)g_state.g_5128);
+                                                     (int16_t)g_state.carry_y_delta);
                 else g_state.cam_y = 0xC8;
             }
         }

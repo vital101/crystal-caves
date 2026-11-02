@@ -6,8 +6,8 @@
  * 0x0FC5:0xBB26 (linear 0x1B776): per-cell event handler.  The original is
  * called by 0xE5D3 for several player-relative points each frame.  All cell
  * fields are words except the solid/exit flags at +0x11/+0x13. */
-void helper_a110_clear(void) { g_state.g_a110 = 0; }
-void helper_a59d(void) { g_state.g_a110 = 0; g_state.g_3395 = 0; }
+void helper_a110_clear(void) { g_state.restart_latch = 0; }
+void helper_a59d(void) { g_state.restart_latch = 0; g_state.g_3395 = 0; }
 void helper_toggle_gravity(void) {
     if (g_state.gravity_scale == -1) {
         g_state.gravity_scale = 1;
@@ -69,7 +69,7 @@ void cell_event(int16_t x, int16_t y) {
     if (w7 != 0) {
         if (w7 == 0x31 && w6 == 6) {
             play_sound(SND_PICKUP);
-            g_state.g_509c = (uint16_t)(g_state.g_509c + 5);
+            g_state.ammo = (uint16_t)(g_state.ammo + 5);
             cell_word_put(col, row, CELL_W7, 0);
             mark_redraw(x, y);
             goto phase2;
@@ -81,11 +81,11 @@ void cell_event(int16_t x, int16_t y) {
                 helper_a110_clear();
                 cc_shell_notify_power_shot();
             }
-            g_state.power_shot = 1;
+            g_state.power_shot_active = 1;
             cell_word_put(col, row, CELL_W7, 0);
             mark_redraw(x, y);
-            g_state.power_timer = g_state.g_a0c2;
-            g_state.g_a0c6 = 0;
+            g_state.power_timer = g_state.power_shot_timer_preset;
+            g_state.power_subtimer = 0;
             goto phase2;
         }
         if (w7 == 0x26 && w6 == 0x0C) {
@@ -100,18 +100,18 @@ void cell_event(int16_t x, int16_t y) {
                 g_state.g_a102 = 0;
             }
             g_state.g_a100 = 1;
-            if (!g_state.g_513c && !g_state.g_5140) g_state.g_513c = 1;
-            g_state.power_timer = g_state.g_a0c8;
-            g_state.g_a0c6 = 0;
+            if (!g_state.interaction_enabled && !g_state.interaction_suppressed) g_state.interaction_enabled = 1;
+            g_state.power_timer = g_state.gravity_timer_preset;
+            g_state.power_subtimer = 0;
             goto phase2;
         }
         if (w6 == 0x0D && (w7 == 1 || w7 == 2 || w7 == 3 || w7 == 4)) {
-            g_state.g_a0cc = (uint16_t)(g_state.g_a0cc - 1);
-            play_sound(g_state.g_a0cc == 0 ? SND_FANFARE : SND_CRYSTAL);
+            g_state.crystals_remaining = (uint16_t)(g_state.crystals_remaining - 1);
+            play_sound(g_state.crystals_remaining == 0 ? SND_FANFARE : SND_CRYSTAL);
             score_add(0x32, 0);
             cell_word_put(col, row, CELL_W7, 0);
             mark_redraw(x, y);
-            g_state.g_50a2 = (uint16_t)(g_state.g_50a2 + 1);
+            g_state.crystals_collected = (uint16_t)(g_state.crystals_collected + 1);
             goto phase2;
         }
         if (w7 == 0x0B && w6 == 1) {
@@ -141,7 +141,7 @@ void cell_event(int16_t x, int16_t y) {
             play_sound(SND_PICKUP);
             cell_word_put(col, row, CELL_W7, 0);
             mark_redraw(x, y);
-            g_state.g_a0f9 = 1;
+            g_state.switch_latch = 1;
             goto phase2;
         }
         if (w7 >= 9 && w7 <= 0x0D && w6 == 9) {
@@ -167,11 +167,11 @@ void cell_event(int16_t x, int16_t y) {
             goto phase2;
         }
         if (w7 == 0x2D && w6 == 0x0D) {
-            if (g_state.g_513c) {
+            if (g_state.interaction_enabled) {
                 g_state.g_a10d = 1;
-                g_state.g_513c = 0;
-                g_state.power_timer = g_state.g_a0ca;
-                g_state.g_a0c6 = 0;
+                g_state.interaction_enabled = 0;
+                g_state.power_timer = g_state.red_mushroom_timer_preset;
+                g_state.power_subtimer = 0;
             }
             play_sound(SND_MUSHROOM);
             cell_word_put(col, row, CELL_W7, 0);
@@ -185,23 +185,23 @@ void cell_event(int16_t x, int16_t y) {
             cell_word_put(col, row, CELL_W7, 0);
             mark_redraw(x, y);
             if (g_state.g_a105) g_state.g_a105 = 0;
-            if (g_state.g_513c && !g_state.g_5140) {
-                g_state.g_5124 = 1;
+            if (g_state.interaction_enabled && !g_state.interaction_suppressed) {
+                g_state.death_state = 1;
                 cc_shell_notify_poison();
             }
             goto phase2;
         }
         if (w7 >= 0x25 && w7 <= 0x27 && w6 == 1) {
-            g_state.g_a10a = 1;
+            g_state.suppress_base_stamp = 1;
             spawn_effect(0x1C, (int16_t)col, (int16_t)row);
-            g_state.g_a10a = 0;
+            g_state.suppress_base_stamp = 0;
             play_sound(SND_PICKUP);
             score_add(0x1388, 0);
             cell_word_put(col, row, CELL_W7, 0);
-            g_state.g_a0d0 = 0xFFFF;
-            g_state.g_a0d2 = 0xFFFF;
-            g_state.g_a10b = 0;
-            g_state.g_a0ce = 0;
+            g_state.spawn_cell_x = 0xFFFF;
+            g_state.spawn_cell_y = 0xFFFF;
+            g_state.collectible_spawn_active = 0;
+            g_state.collectible_spawn_timer = 0;
             mark_redraw(x, y);
             goto phase2;
         }
@@ -209,8 +209,8 @@ void cell_event(int16_t x, int16_t y) {
             play_sound(SND_STUN);
             g_state.a0f8 = 1;
             cell_word_put(col, row, CELL_W7, 0);
-            g_state.power_timer = g_state.g_a0e4;
-            g_state.g_a0c6 = 0;
+            g_state.power_timer = g_state.stun_timer_preset;
+            g_state.power_subtimer = 0;
             if (g_state.g_a101) {
                 helper_a110_clear();
                 cc_shell_notify_stunned();
@@ -222,15 +222,15 @@ void cell_event(int16_t x, int16_t y) {
 phase2:
     if (w3 == 0) goto hazard;
     if ((w3 == 0x11 || w3 == 0x0D) && w5 == 0x0C) {
-        if (g_state.g_a0f5) {
-            if (!g_state.g_a0f6) {
+        if (g_state.exit_unlocked) {
+            if (!g_state.interaction_lock) {
                 play_sound(SND_EXIT_LOCKED);
-                if (g_state.g_509e == 3) {
+                if (g_state.health == 3) {
                     helper_a59d();
                     cc_shell_notify_perfect_health();
                     score_add(0xC350, 0);
                 }
-                g_state.g_a0f6 = 1;
+                g_state.interaction_lock = 1;
                 g_state.exit_step = 0;
             }
         } else if (g_state.g_a106) {
@@ -241,7 +241,7 @@ phase2:
         goto hazard;
     }
     if (w3 == 0x32 && w5 == 0x0D) {
-        if (g_state.g_a0f9) {
+        if (g_state.switch_latch) {
             int shape;
             cell_word_put(col, row, CELL_W3, (uint16_t)(w3 - 2));
             play_sound(SND_PRIZE_CELL);
@@ -267,10 +267,10 @@ phase2:
         }
         if (g_state.input_joystick_fire && g_state.g_a0f4) {
             g_state.g_a0f4 = 0;
-            g_state.g_a0e8 = (uint16_t)(g_state.g_a0e8 + 1);
-            if (g_state.g_a0e8 % 3 == 0) {
+            g_state.switch_repeat = (uint16_t)(g_state.switch_repeat + 1);
+            if (g_state.switch_repeat % 3 == 0) {
                 cell_word_put(col, row, CELL_W3, (uint16_t)(w3 + 1));
-                g_state.g_a0e8 = 0;
+                g_state.switch_repeat = 0;
                 g_state.input_fire = 1;
             }
         }
@@ -278,7 +278,7 @@ phase2:
             play_sound(SND_SWITCH_TOGGLE);
             g_state.input_fire = 0;
             cell_word_put(col, row, CELL_W3, (uint16_t)(w3 + 1));
-            switch_pair(g_state.g_a0d4, g_state.g_a0d6, 0x2D, 0x2E);
+            switch_pair(g_state.switch_a_col, g_state.switch_a_row, 0x2D, 0x2E);
         }
         goto hazard;
     }
@@ -290,10 +290,10 @@ phase2:
         }
         if (g_state.input_joystick_fire && g_state.g_a0f4) {
             g_state.g_a0f4 = 0;
-            g_state.g_a0e8 = (uint16_t)(g_state.g_a0e8 + 1);
-            if (g_state.g_a0e8 % 3 == 0) {
+            g_state.switch_repeat = (uint16_t)(g_state.switch_repeat + 1);
+            if (g_state.switch_repeat % 3 == 0) {
                 cell_word_put(col, row, CELL_W3, (uint16_t)(w3 + 1));
-                g_state.g_a0e8 = 0;
+                g_state.switch_repeat = 0;
                 g_state.input_fire = 1;
             }
         }
@@ -301,7 +301,7 @@ phase2:
             play_sound(SND_SWITCH_TOGGLE);
             g_state.input_fire = 0;
             cell_word_put(col, row, CELL_W3, (uint16_t)(w3 + 1));
-            switch_pair(g_state.g_a0d8, g_state.g_a0da, 0x31, 0x32);
+            switch_pair(g_state.switch_b_col, g_state.switch_b_row, 0x31, 0x32);
         }
         goto hazard;
     }
@@ -313,10 +313,10 @@ phase2:
         }
         if (g_state.input_joystick_fire && g_state.g_a0f4) {
             g_state.g_a0f4 = 0;
-            g_state.g_a0e8 = (uint16_t)(g_state.g_a0e8 + 1);
-            if (g_state.g_a0e8 % 3 == 0) {
+            g_state.switch_repeat = (uint16_t)(g_state.switch_repeat + 1);
+            if (g_state.switch_repeat % 3 == 0) {
                 cell_word_put(col, row, CELL_W3, (uint16_t)(w3 + 1));
-                g_state.g_a0e8 = 0;
+                g_state.switch_repeat = 0;
                 g_state.input_fire = 1;
             }
         }
@@ -324,7 +324,7 @@ phase2:
             play_sound(SND_SWITCH_TOGGLE);
             g_state.input_fire = 0;
             cell_word_put(col, row, CELL_W3, (uint16_t)(w3 + 1));
-            switch_pair(g_state.g_a0dc, g_state.g_a0de, 0x2F, 0x30);
+            switch_pair(g_state.switch_c_col, g_state.switch_c_row, 0x2F, 0x30);
         }
         goto hazard;
     }
@@ -332,14 +332,14 @@ phase2:
         if (g_state.g_a108) { helper_a110_clear(); g_state.g_a108 = 0; }
         if (g_state.input_joystick_fire && g_state.g_a0f4) {
             g_state.g_a0f4 = 0;
-            g_state.g_a0e8 = (uint16_t)(g_state.g_a0e8 + 1);
-            if (g_state.g_a0e8 % 3 == 0) { g_state.g_a0e8 = 0; g_state.input_fire = 1; }
+            g_state.switch_repeat = (uint16_t)(g_state.switch_repeat + 1);
+            if (g_state.switch_repeat % 3 == 0) { g_state.switch_repeat = 0; g_state.input_fire = 1; }
         }
         if (g_state.input_fire) {
             play_sound(SND_DOOR);
             g_state.input_fire = 0;
             cell_word_put(col, row, CELL_W3, (uint16_t)(w3 - 1));
-            g_state.g_a0f3 = 0;
+            g_state.lever_state = 0;
         }
         goto hazard;
     }
@@ -347,14 +347,14 @@ phase2:
         if (g_state.g_a108) { helper_a110_clear(); g_state.g_a108 = 0; }
         if (g_state.input_joystick_fire && g_state.g_a0f4) {
             g_state.g_a0f4 = 0;
-            g_state.g_a0e8 = (uint16_t)(g_state.g_a0e8 + 1);
-            if (g_state.g_a0e8 % 3 == 0) { g_state.g_a0e8 = 0; g_state.input_fire = 1; }
+            g_state.switch_repeat = (uint16_t)(g_state.switch_repeat + 1);
+            if (g_state.switch_repeat % 3 == 0) { g_state.switch_repeat = 0; g_state.input_fire = 1; }
         }
         if (g_state.input_fire) {
             play_sound(SND_DOOR);
             g_state.input_fire = 0;
             cell_word_put(col, row, CELL_W3, (uint16_t)(w3 + 1));
-            g_state.g_a0f3 = 1;
+            g_state.lever_state = 1;
         }
         goto hazard;
     }
@@ -362,10 +362,10 @@ phase2:
         if (g_state.g_a108) { helper_a110_clear(); g_state.g_a108 = 0; }
         if (g_state.input_joystick_fire && g_state.g_a0f4) {
             g_state.g_a0f4 = 0;
-            g_state.g_a0e8 = (uint16_t)(g_state.g_a0e8 + 1);
-            if (g_state.g_a0e8 % 3 == 0) {
+            g_state.switch_repeat = (uint16_t)(g_state.switch_repeat + 1);
+            if (g_state.switch_repeat % 3 == 0) {
                 cell_word_put(col, row, CELL_W3, (uint16_t)(w3 + 1));
-                g_state.g_a0e8 = 0;
+                g_state.switch_repeat = 0;
                 g_state.input_fire = 1;
             }
         }
@@ -381,10 +381,10 @@ phase2:
         if (g_state.g_a108) { helper_a110_clear(); g_state.g_a108 = 0; }
         if (g_state.input_joystick_fire && g_state.g_a0f4) {
             g_state.g_a0f4 = 0;
-            g_state.g_a0e8 = (uint16_t)(g_state.g_a0e8 + 1);
-            if (g_state.g_a0e8 % 3 == 0) {
+            g_state.switch_repeat = (uint16_t)(g_state.switch_repeat + 1);
+            if (g_state.switch_repeat % 3 == 0) {
                 cell_word_put(col, row, CELL_W3, (uint16_t)(w3 - 1));
-                g_state.g_a0e8 = 0;
+                g_state.switch_repeat = 0;
                 g_state.input_fire = 1;
             }
         }
@@ -401,7 +401,7 @@ phase2:
             g_state.exit_col = (int16_t)col;
             g_state.exit_row = (int16_t)row;
             g_state.exit_step = 0;
-            g_state.g_a0f7 = 1;
+            g_state.hub_door_active = 1;
             g_state.g_2f6 = 0xBEEF; /* DEBUG */
             play_sound(SND_EXIT_FOUND);
             memcpy_(g_state.checkpoint_block, g_state.level_block, 0x21);
@@ -411,17 +411,17 @@ phase2:
 
 hazard:
     if (cell_byte_cur(col, row, CELL_FLAG_EXIT) == 0) return;
-    if (!g_state.g_513c) return;
-    if (g_state.g_5140) return;
+    if (!g_state.interaction_enabled) return;
+    if (g_state.interaction_suppressed) return;
     if ((w7 == 0x31 || w7 == 0x32 || w7 == 0x1B || w7 == 0x1C) &&
         w6 == 0x0A) {
-        g_state.g_5124 = 1;
+        g_state.death_state = 1;
         play_sound(SND_HURT);
         return;
     }
-    if (g_state.g_5124 == 0) {
-        if ((int16_t)g_state.g_a0ea == -1) damage_life();
-        if ((int16_t)g_state.g_5124 > 0) play_sound(SND_HURT);
+    if (g_state.death_state == 0) {
+        if ((int16_t)g_state.invuln_timer == -1) damage_life();
+        if ((int16_t)g_state.death_state > 0) play_sound(SND_HURT);
     }
 }
 
@@ -430,11 +430,11 @@ void hazard_cell(int16_t x, int16_t y) {
     int col = (int)x / 16;
     int row = (int)y / 16;
     if (cell_word_cur(col, row, CELL_W0) != (int)0xFF9F) return;
-    if (!g_state.g_513c) return;
-    if (g_state.g_5140) return;
-    if ((int16_t)g_state.g_a0ea != -1) return;
+    if (!g_state.interaction_enabled) return;
+    if (g_state.interaction_suppressed) return;
+    if ((int16_t)g_state.invuln_timer != -1) return;
     damage_life();
-    if ((int16_t)g_state.g_5124 > 0) play_sound(SND_HURT);
+    if ((int16_t)g_state.death_state > 0) play_sound(SND_HURT);
 }
 
 /* 0xE5D3: player map-cell contact, hazard cells and collectible pickup. */
@@ -493,7 +493,7 @@ after_hazards:
 
     g_state.g_a0fc = 0;
     g_state.g_a0b8 = 1;
-    g_state.g_a10a = 1;
+    g_state.suppress_base_stamp = 1;
 
     if (w0 == (int)0xFF9E) {
         int shape = w3;
@@ -529,7 +529,7 @@ after_hazards:
         a.slot = (int)g_state.obj_cursor;
         spawn_object_47d(&a);
     }
-    g_state.g_a10a = 0;
+    g_state.suppress_base_stamp = 0;
     cell_word_put(col, row, CELL_W3, 0x32);
     g_state.anim_timer = 1;
     g_state.shape_player = (g_state.move_dir == 1) ? 0x19 : 0x1A;

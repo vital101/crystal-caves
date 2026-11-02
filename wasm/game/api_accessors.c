@@ -128,22 +128,22 @@ uint16_t cc_score_hi(void)    { return g_state.score_hi; }
 uint16_t cc_cooldown(void)    { return g_state.cooldown; }
 uint16_t cc_g_2da(void)       { return g_state.fire_impulse; }
 uint16_t cc_g_a0c4(void)      { return g_state.power_timer; }
-uint8_t  cc_g_a0ff(void)      { return g_state.power_shot; }
+uint8_t  cc_g_a0ff(void)      { return g_state.power_shot_active; }
 uint16_t cc_collectibles_total(void)  {
-    return (uint16_t)(g_state.g_50a2 + g_state.g_a0cc);
+    return (uint16_t)(g_state.crystals_collected + g_state.crystals_remaining);
 }
-uint16_t cc_collectibles_left(void)   { return g_state.g_a0cc; }
-uint16_t cc_lives(void)             { return g_state.g_509e; }
-uint16_t cc_health(void)            { return g_state.g_509e; }
-uint16_t cc_ammo(void)              { return g_state.g_509c; }
-uint16_t cc_crystals_collected(void) { return g_state.g_50a2; }
-uint16_t cc_crystals_remaining(void) { return g_state.g_a0cc; }
+uint16_t cc_collectibles_left(void)   { return g_state.crystals_remaining; }
+uint16_t cc_lives(void)             { return g_state.health; }
+uint16_t cc_health(void)            { return g_state.health; }
+uint16_t cc_ammo(void)              { return g_state.ammo; }
+uint16_t cc_crystals_collected(void) { return g_state.crystals_collected; }
+uint16_t cc_crystals_remaining(void) { return g_state.crystals_remaining; }
 int16_t  cc_level_arg(void)          { return g_state.next_level; }
-uint8_t  cc_exit_unlocked(void)      { return g_state.g_a0f5; }
-uint8_t  cc_exit_active(void)        { return g_state.g_a0f6; }
-uint8_t  cc_door_active(void)        { return g_state.g_a0f7; }
+uint8_t  cc_exit_unlocked(void)      { return g_state.exit_unlocked; }
+uint8_t  cc_exit_active(void)        { return g_state.interaction_lock; }
+uint8_t  cc_door_active(void)        { return g_state.hub_door_active; }
 int      cc_cave_flag(int idx)       { return cave_flag_get(idx); }
-int      cc_level_complete(void)     { return g_state.g_a0fb; }
+int      cc_level_complete(void)     { return g_state.all_caves_complete; }
 
 /* ---------------------------------------------------------------- physics debug
  * Field order must stay in sync with enum cc_phys_field / tools fixtures. */
@@ -166,21 +166,21 @@ int32_t cc_phys_get(int f) {
         case CC_PHYS_SHAPE_B: return g_state.shape_b;
         case CC_PHYS_PLAYER_BLOCK: return g_state.player_block;
         case CC_PHYS_ANIM_TIMER: return g_state.anim_timer;
-        case CC_PHYS_CARRY_X: return g_state.g_5118;
-        case CC_PHYS_SCROLL_X: return g_state.g_5126;
-        case CC_PHYS_CARRY_Y: return g_state.g_5128;
-        case CC_PHYS_RIDE_H: return g_state.g_513d;
-        case CC_PHYS_RIDE_V: return g_state.g_5142;
+        case CC_PHYS_CARRY_X: return g_state.carry_x_delta;
+        case CC_PHYS_SCROLL_X: return g_state.scroll_x_accum;
+        case CC_PHYS_CARRY_Y: return g_state.carry_y_delta;
+        case CC_PHYS_RIDE_H: return g_state.riding_horizontal;
+        case CC_PHYS_RIDE_V: return g_state.riding_vertical;
         case CC_PHYS_BLOCKED_L: return g_state.blocked_l;
         case CC_PHYS_BLOCKED_R: return g_state.blocked_r;
         case CC_PHYS_GRAVITY: return g_state.gravity_scale;
         case CC_PHYS_C8: return g_state.c8;
         case CC_PHYS_C6: return g_state.c6;
-        case CC_PHYS_LIVES: return g_state.g_509e;
-        case CC_PHYS_AMMO: return g_state.g_509c;
-        case CC_PHYS_INVULN: return g_state.g_a0ea;
+        case CC_PHYS_LIVES: return g_state.health;
+        case CC_PHYS_AMMO: return g_state.ammo;
+        case CC_PHYS_INVULN: return g_state.invuln_timer;
         case CC_PHYS_HIT_LOCK: return g_state.obj[2].ready;
-        case CC_PHYS_EXIT_STATE: return g_state.g_5124;
+        case CC_PHYS_EXIT_STATE: return g_state.death_state;
         default: return 0;
     }
 }
@@ -204,21 +204,21 @@ void cc_phys_set(int f, int32_t v) {
         case CC_PHYS_SHAPE_B: g_state.shape_b = (uint16_t)v; break;
         case CC_PHYS_PLAYER_BLOCK: g_state.player_block = (uint16_t)v; break;
         case CC_PHYS_ANIM_TIMER: g_state.anim_timer = (uint16_t)v; break;
-        case CC_PHYS_CARRY_X: g_state.g_5118 = (uint16_t)v; break;
-        case CC_PHYS_SCROLL_X: g_state.g_5126 = (uint16_t)v; break;
-        case CC_PHYS_CARRY_Y: g_state.g_5128 = (uint16_t)v; break;
-        case CC_PHYS_RIDE_H: g_state.g_513d = (uint8_t)v; break;
-        case CC_PHYS_RIDE_V: g_state.g_5142 = (uint8_t)v; break;
+        case CC_PHYS_CARRY_X: g_state.carry_x_delta = (uint16_t)v; break;
+        case CC_PHYS_SCROLL_X: g_state.scroll_x_accum = (uint16_t)v; break;
+        case CC_PHYS_CARRY_Y: g_state.carry_y_delta = (uint16_t)v; break;
+        case CC_PHYS_RIDE_H: g_state.riding_horizontal = (uint8_t)v; break;
+        case CC_PHYS_RIDE_V: g_state.riding_vertical = (uint8_t)v; break;
         case CC_PHYS_BLOCKED_L: g_state.blocked_l = (uint8_t)v; break;
         case CC_PHYS_BLOCKED_R: g_state.blocked_r = (uint8_t)v; break;
         case CC_PHYS_GRAVITY: g_state.gravity_scale = (int16_t)v; break;
         case CC_PHYS_C8: g_state.c8 = (uint16_t)v; break;
         case CC_PHYS_C6: g_state.c6 = (uint16_t)v; break;
-        case CC_PHYS_LIVES: g_state.g_509e = (uint16_t)v; break;
-        case CC_PHYS_AMMO: g_state.g_509c = (uint16_t)v; break;
-        case CC_PHYS_INVULN: g_state.g_a0ea = (uint16_t)v; break;
+        case CC_PHYS_LIVES: g_state.health = (uint16_t)v; break;
+        case CC_PHYS_AMMO: g_state.ammo = (uint16_t)v; break;
+        case CC_PHYS_INVULN: g_state.invuln_timer = (uint16_t)v; break;
         case CC_PHYS_HIT_LOCK: g_state.obj[2].ready = (uint8_t)v; break;
-        case CC_PHYS_EXIT_STATE: g_state.g_5124 = (uint16_t)v; break;
+        case CC_PHYS_EXIT_STATE: g_state.death_state = (uint16_t)v; break;
         default: break;
     }
 }

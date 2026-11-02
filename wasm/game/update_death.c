@@ -34,11 +34,11 @@ void cc_objects_step(void) {
 
 /* 0xCF46: restore the restart checkpoint. */
 void restore_checkpoint(void) {
-    g_state.g_509c = g_state.checkpoint_50be;
+    g_state.ammo = g_state.checkpoint_50be;
     g_state.score_lo = g_state.checkpoint_50c7;
     g_state.score_hi = g_state.checkpoint_50c9;
-    g_state.g_50a2 = g_state.checkpoint_50c4;
-    g_state.g_509e = 3;
+    g_state.crystals_collected = g_state.checkpoint_50c4;
+    g_state.health = 3;
 }
 
 /* 0xD15C: reload the current level through the loader-equivalent path. */
@@ -52,13 +52,13 @@ void reload_current_level(void) {
 void fade_latch(void) {
     g_state.checkpoint_50a0 = (uint16_t)(g_state.checkpoint_50a0 - 1u);
     if (g_state.checkpoint_50a0 == 0) {
-        g_state.g_3394 = 1;
-        g_state.g_a110 = 1;
+        g_state.restart_input_latch = 1;
+        g_state.restart_latch = 1;
     }
 }
 
 void restart_sequence(void) {
-    g_state.g_5124 = 0;
+    g_state.death_state = 0;
     reload_current_level();
     fade_latch();
     restore_checkpoint();
@@ -135,7 +135,7 @@ void death_state1(void) {
         restart_sequence();
         return;
     }
-    if ((g_state.g_2b5e > 0 && g_state.g_2b5e < 0x80 && g_state.obj[1].phase > 0) ||
+    if ((g_state.restart_timer > 0 && g_state.restart_timer < 0x80 && g_state.obj[1].phase > 0) ||
         g_state.input_fire || g_state.input_joystick_fire)
         restart_sequence();
 }
@@ -205,20 +205,20 @@ void death_state3(void) {
 
 /* Exact 0xF4E6 frame dispatch. */
 void cc_objects_step_full(void) {
-    if (g_state.g_a0f6) {
+    if (g_state.interaction_lock) {
         exit_to_hub_frame();
-    } else if (g_state.g_a0f7) {
+    } else if (g_state.hub_door_active) {
         door_entry_frame();
-    } else if (g_state.g_a0fb) {
+    } else if (g_state.all_caves_complete) {
         /* 0xD710: story/finale transition. */
         cc_shell_finale_done();
-        g_state.g_a0fb = 0;
-        g_state.g_a110 = 1;
-    } else if (g_state.g_a126) {
+        g_state.all_caves_complete = 0;
+        g_state.restart_latch = 1;
+    } else if (g_state.story_transition) {
         /* 0xD6D4: story screen input; outside Phase 3. */
-    } else if (g_state.g_5124) {
-        if (g_state.g_5124 == 1) death_state1();
-        else if (g_state.g_5124 == 2) death_state2();
+    } else if (g_state.death_state) {
+        if (g_state.death_state == 1) death_state1();
+        else if (g_state.death_state == 2) death_state2();
         else death_state3();
     } else {
         cc_objects_step_physics();
@@ -239,7 +239,7 @@ void cc_objects_step_full(void) {
 void cc_player_draw_sound(void) {
     ObjectEntry *p = &g_state.obj[1];
     if (p->state == 0 || p->state == 2) return;
-    if (g_state.g_a0ea >= 4) return;
+    if (g_state.invuln_timer >= 4) return;
     play_sound(SND_PLAYER_DRAW);
 }
 

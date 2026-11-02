@@ -45,9 +45,9 @@ typedef struct {
      * ([0x5118]/[0x5126]/[0x5128]). */
     int16_t cam_x;
     int16_t cam_y;
-    uint16_t g_5118;             /* [0x5118] horizontal carry delta */
-    uint16_t g_5128;             /* [0x5128] vertical carry delta */
-    uint16_t g_5126;             /* [0x5126] horizontal scroll accumulator */
+    uint16_t carry_x_delta;             /* [0x5118] horizontal carry delta */
+    uint16_t carry_y_delta;             /* [0x5128] vertical carry delta */
+    uint16_t scroll_x_accum;             /* [0x5126] horizontal scroll accumulator */
 
     /* Input flags ([0x338E]/[0x338F]/[0x338B]/[0x3390]); 0x338A is joystick. */
     uint8_t input_left;
@@ -94,65 +94,65 @@ typedef struct {
     int16_t next_level;          /* [0xA0BE] current/pending loader argument */
 
     /* Phase 3: cells, crystals, exits and hub doors. */
-    uint16_t g_a0cc;             /* [0xA0CC] crystals remaining in this cave */
-    uint16_t g_50a2;             /* [0x50A2] crystals collected */
-    uint8_t  g_a0f5;             /* [0xA0F5] exit unlocked (all crystals) */
-    uint8_t  g_a0f7;             /* [0xA0F7] hub-door entry sequence */
-    uint8_t  g_a0f9;             /* [0xA0F9] switch/door latch */
-    uint8_t  g_a0f3;             /* [0xA0F3] lever/door state */
-    uint8_t  g_a0fb;             /* [0xA0FB] all caves complete/finale */
-    uint8_t  g_a126;             /* [0xA126] story/menu transition */
-    uint8_t  g_a10b;             /* [0xA10B] collectible spawn active */
-    uint8_t  g_a10a;             /* [0xA10A] spawn base-cell suppress */
-    uint16_t g_a0e8;             /* [0xA0E8] switch repeat counter */
-    uint16_t g_a0d0;             /* [0xA0D0] spawned-cell px */
-    uint16_t g_a0d2;             /* [0xA0D2] spawned-cell py */
-    uint16_t g_a0d4;             /* [0xA0D4] switch A cell (raw col+1) */
-    uint16_t g_a0d6;             /* [0xA0D6] switch A cell (raw row+1) */
-    uint16_t g_a0d8;             /* [0xA0D8] switch B cell (raw col+1) */
-    uint16_t g_a0da;             /* [0xA0DA] switch B cell (raw row+1) */
-    uint16_t g_a0dc;             /* [0xA0DC] switch C cell (raw col+1) */
-    uint16_t g_a0de;             /* [0xA0DE] switch C cell (raw row+1) */
-    uint16_t g_a0ce;             /* [0xA0CE] collectible spawn timer */
-    uint16_t g_a0c2;             /* [0xA0C2] power-shot timer preset */
-    uint16_t g_a0c8;             /* [0xA0C8] power-shot timer preset */
-    uint16_t g_a0ca;             /* [0xA0CA] power-shot timer preset */
-    uint16_t g_a0e4;             /* [0xA0E4] power-shot timer preset */
-    uint16_t g_a0c6;             /* [0xA0C6] power-shot sub-timer */
-    uint8_t  g_a100;             /* [0xA100] timer event latch */
-    uint8_t  g_a101;             /* [0xA101] switch animation latch */
-    uint8_t  g_a102;             /* [0xA102] switch animation latch */
-    uint8_t  g_a104;             /* [0xA104] power-up animation latch */
-    uint8_t  g_a105;             /* [0xA105] switch animation latch */
-    uint8_t  g_a106;             /* [0xA106] exit-open latch */
-    uint8_t  g_a107;             /* [0xA107] exit-open latch */
-    uint8_t  g_a108;             /* [0xA108] lever animation latch */
-    uint8_t  g_a109;             /* [0xA109] switch animation latch */
-    uint8_t  g_a10d;             /* [0xA10D] gravity switch latch */
-    uint8_t  g_a0f4;             /* [0xA0F4] joystick fire latch */
-    uint8_t  g_3392;             /* [0x3392] joystick latch */
-    uint8_t  g_3395;             /* [0x3395] story/exit key latch */
-    uint8_t  g_3396;             /* [0x3396] story/exit key latch */
-    uint8_t  cave_flags[17];     /* [0x50A8 + arg], 1 = available/uncompleted */
-    uint8_t  level_block[0x21];  /* [0x5098] checkpoint/level state block */
-    uint8_t  checkpoint_block[0x21]; /* [0x50BA] saved copy */
+    uint16_t crystals_remaining;        /* [0xA0CC] crystals remaining in this cave */
+    uint16_t crystals_collected;        /* [0x50A2] crystals collected */
+    uint8_t  exit_unlocked;             /* [0xA0F5] exit unlocked (all crystals) */
+    uint8_t  hub_door_active;           /* [0xA0F7] hub-door entry sequence */
+    uint8_t  switch_latch;              /* [0xA0F9] switch/door latch */
+    uint8_t  lever_state;               /* [0xA0F3] lever/door state */
+    uint8_t  all_caves_complete;        /* [0xA0FB] all caves complete/finale */
+    uint8_t  story_transition;          /* [0xA126] story/menu transition */
+    uint8_t  collectible_spawn_active;  /* [0xA10B] collectible spawn active */
+    uint8_t  suppress_base_stamp;       /* [0xA10A] spawn base-cell suppress */
+    uint16_t switch_repeat;             /* [0xA0E8] switch repeat counter */
+    uint16_t spawn_cell_x;              /* [0xA0D0] spawned-cell px */
+    uint16_t spawn_cell_y;              /* [0xA0D2] spawned-cell py */
+    uint16_t switch_a_col;              /* [0xA0D4] switch A cell (raw col+1) */
+    uint16_t switch_a_row;              /* [0xA0D6] switch A cell (raw row+1) */
+    uint16_t switch_b_col;              /* [0xA0D8] switch B cell (raw col+1) */
+    uint16_t switch_b_row;              /* [0xA0DA] switch B cell (raw row+1) */
+    uint16_t switch_c_col;              /* [0xA0DC] switch C cell (raw col+1) */
+    uint16_t switch_c_row;              /* [0xA0DE] switch C cell (raw row+1) */
+    uint16_t collectible_spawn_timer;   /* [0xA0CE] collectible spawn timer */
+    uint16_t power_shot_timer_preset;   /* [0xA0C2] power-shot timer preset */
+    uint16_t gravity_timer_preset;      /* [0xA0C8] gravity-flip timer preset */
+    uint16_t red_mushroom_timer_preset; /* [0xA0CA] red-mushroom timer preset */
+    uint16_t stun_timer_preset;         /* [0xA0E4] stun timer preset */
+    uint16_t power_subtimer;            /* [0xA0C6] power-shot sub-timer */
+    uint8_t  g_a100;                    /* [0xA100] timer event latch */
+    uint8_t  g_a101;                    /* [0xA101] switch animation latch */
+    uint8_t  g_a102;                    /* [0xA102] switch animation latch */
+    uint8_t  g_a104;                    /* [0xA104] power-up animation latch */
+    uint8_t  g_a105;                    /* [0xA105] switch animation latch */
+    uint8_t  g_a106;                    /* [0xA106] exit-open latch */
+    uint8_t  g_a107;                    /* [0xA107] exit-open latch */
+    uint8_t  g_a108;                    /* [0xA108] lever animation latch */
+    uint8_t  g_a109;                    /* [0xA109] switch animation latch */
+    uint8_t  g_a10d;                    /* [0xA10D] gravity switch latch */
+    uint8_t  g_a0f4;                    /* [0xA0F4] joystick fire latch */
+    uint8_t  g_3392;                    /* [0x3392] joystick latch */
+    uint8_t  g_3395;                    /* [0x3395] story/exit key latch */
+    uint8_t  g_3396;                    /* [0x3396] story/exit key latch */
+    uint8_t  cave_flags[17];            /* [0x50A8 + arg], 1 = available/uncompleted */
+    uint8_t  level_block[0x21];         /* [0x5098] checkpoint/level state block */
+    uint8_t  checkpoint_block[0x21];    /* [0x50BA] saved copy */
 
     /* Handler cross-reference ([0x512A]/[0x513A]) used by kind-33 objects. */
     uint16_t g_512a;
     uint16_t g_513a;
 
     /* [0x511a]/[0x511c] platform attachment slots. */
-    uint16_t g_511a;
-    uint16_t g_511c;
-    uint8_t  g_513c;             /* [0x513c] interaction enabled */
-    uint8_t  g_5140;             /* [0x5140] interaction suppression */
-    uint8_t  g_513d;             /* [0x513d] riding a horizontal platform */
-    uint8_t  g_5142;             /* [0x5142] riding a vertical platform */
-    uint16_t g_5124;             /* [0x5124] interaction/death state */
-    uint16_t g_a0ea;             /* [0xa0ea] hit/invulnerability state */
-    uint8_t  g_a0f6;             /* [0xa0f6] interaction lock */
-    uint16_t g_509e;             /* [0x509e] lives/crystal counter in border cell */
-    uint16_t g_509c;             /* [0x509c] HUD counter in border cell */
+    uint16_t platform_slot_h;
+    uint16_t platform_slot_v;
+    uint8_t  interaction_enabled;       /* [0x513c] interaction enabled */
+    uint8_t  interaction_suppressed;    /* [0x5140] interaction suppression */
+    uint8_t  riding_horizontal;         /* [0x513d] riding a horizontal platform */
+    uint8_t  riding_vertical;           /* [0x5142] riding a vertical platform */
+    uint16_t death_state;               /* [0x5124] interaction/death state */
+    uint16_t invuln_timer;              /* [0xa0ea] hit/invulnerability state */
+    uint8_t  interaction_lock;          /* [0xa0f6] interaction lock */
+    uint16_t health;                    /* [0x509e] life counter (HUD border cell) */
+    uint16_t ammo;                      /* [0x509c] ammo counter (HUD border cell) */
 
     /* Phase 2 exact combat/fire state. */
     uint16_t score_lo;           /* [0x50a5] */
@@ -176,11 +176,11 @@ typedef struct {
     uint8_t  g_30d;              /* [0x030d] disable cell cache stamp */
     uint16_t g_2f6;              /* [0x02f6] last cell cache stamp */
     uint16_t g_512c;             /* [0x512c] slash cell counter */
-    uint16_t g_2b5e;             /* [0x2b5e] restart timer */
-    int16_t  g_2b5c;             /* [0x2b5c] text-window vertical scroll */
-    uint8_t  g_3394;             /* [0x3394] restart input latch */
-    uint8_t  g_a110;             /* [0xa110] restart latch */
-    uint8_t  power_shot;         /* [0xa0ff] power-shot active */
+    uint16_t restart_timer;             /* [0x2b5e] restart timer */
+    int16_t  text_scroll;             /* [0x2b5c] text-window vertical scroll */
+    uint8_t  restart_input_latch;             /* [0x3394] restart input latch */
+    uint8_t  restart_latch;             /* [0xa110] restart latch */
+    uint8_t  power_shot_active;         /* [0xa0ff] power-shot active */
     uint16_t power_timer;        /* [0xa0c4] power-shot expiry */
     uint16_t checkpoint_50a0;    /* [0x50a0] restart checkpoint */
     uint16_t checkpoint_50be;    /* [0x50be] */

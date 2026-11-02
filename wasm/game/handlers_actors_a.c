@@ -117,24 +117,24 @@ void h_walk_two_phase(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 void h_player_shover(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     int16_t dir;
     dir = proximity_test(1, (int16_t)(g_state.g_50dc << 4), x, y);
-    g_state.g_5126 = 0;
+    g_state.scroll_x_accum = 0;
     if (dir != 0) {
         push_player(5, dir);
-        g_state.g_5118 = 5;
+        g_state.carry_x_delta = 5;
         goto common;
     }
     dir = proximity_test(1, (int16_t)(g_state.g_50de << 4), x, y);
     if (dir != 0) {
         if ((int16_t)o->vx == dir) {
             push_player(3, dir);
-            g_state.g_5118 = 3;
+            g_state.carry_x_delta = 3;
         }
         goto common;
     }
     dir = proximity_test(1, (int16_t)(g_state.g_50e0 << 4), x, y);
     if (dir != 0 && (int16_t)o->vx == dir) {
         push_player(1, dir);
-        g_state.g_5118 = 1;
+        g_state.carry_x_delta = 1;
     }
 common:
     player_interact(o, (int16_t)o->x, (int16_t)o->y);
@@ -212,8 +212,8 @@ void h_lever_anim(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 void h_player_shover_alt(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     int16_t dir;
-    g_state.g_5126 = 0;
-    g_state.g_5118 = 0;
+    g_state.scroll_x_accum = 0;
+    g_state.carry_x_delta = 0;
     dir = proximity_test(1, (int16_t)(g_state.g_50dc << 4), x, y);
     if (dir != 0) {
         push_player(5, dir);

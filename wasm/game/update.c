@@ -91,7 +91,7 @@ void step_objects(void) {
         }
 
         if (o->kind == 0x10) {
-            g_state.g_5126 = 0;
+            g_state.scroll_x_accum = 0;
         }
         if (o->kind == 0x16) {
             int k;
@@ -140,13 +140,13 @@ void door_entry_frame(void) {
     }
     if ((int16_t)g_state.exit_step != 3) return;
 
-    g_state.g_a0f7 = 0;
+    g_state.hub_door_active = 0;
     mark_redraw((int16_t)(g_state.exit_col * 16), (int16_t)(g_state.exit_row * 16));
     g_state.spawn_col_override = (uint16_t)(g_state.exit_col - (int16_t)g_state.move_dir);
     g_state.spawn_row_override = (uint16_t)g_state.exit_row;
     play_sound(SND_DOOR);
     g_state.jump_flag = 0;
-    g_state.g_a0f6 = 0;
+    g_state.interaction_lock = 0;
     c1 = g_state.exit_col + 1;
     r1 = g_state.exit_row + 1;
     {
@@ -187,15 +187,15 @@ void exit_to_hub_frame(void) {
 
     play_sound(SND_DOOR);
     g_state.jump_flag = 0;
-    g_state.g_a0f6 = 0;
+    g_state.interaction_lock = 0;
     cave_flag_set(g_state.next_level, 0);
     all = 1;
     for (i = 1; i <= 16; i++) if (g_state.cave_flags[i] != 0) { all = 0; break; }
-    g_state.g_a0fb = (uint8_t)all;
-    if (g_state.g_a0fb) {
-        g_state.g_a110 = 1;
+    g_state.all_caves_complete = (uint8_t)all;
+    if (g_state.all_caves_complete) {
+        g_state.restart_latch = 1;
         g_state.g_3396 = 0;
-        g_state.g_3394 = 1;
+        g_state.restart_input_latch = 1;
     }
     g_state.next_level = 0;
     /* 0xD4CC loads the hub without touching [0x2B72]/[0x2B74]: they still
@@ -208,7 +208,7 @@ void exit_to_hub_frame(void) {
 void cc_fire(void) {
     ObjectEntry *a = &g_state.obj[2];
 
-    if (g_state.g_509c <= 0 && g_state.power_shot == 0) {
+    if (g_state.ammo <= 0 && g_state.power_shot_active == 0) {
         play_sound(SND_SHOT_DRY);
         if (!g_state.input_left && !g_state.input_right) {
             g_state.shape_player = (g_state.move_dir == 1) ? 0x1B : 0x1C;
@@ -216,12 +216,12 @@ void cc_fire(void) {
         }
     }
 
-    if (g_state.g_509c <= 0 && g_state.power_shot == 0 && g_state.g_5140 == 0) return;
+    if (g_state.ammo <= 0 && g_state.power_shot_active == 0 && g_state.interaction_suppressed == 0) return;
     if (g_state.obj[2].ready == 0) return;
     if ((int16_t)g_state.cooldown <= 6) return;
 
     a->vx = (int16_t)g_state.move_dir;
-    if (g_state.power_shot) {
+    if (g_state.power_shot_active) {
         play_sound(SND_POWER_SHOT);
         a->speed = 8;
         a->anim_last = 4;
@@ -251,7 +251,7 @@ void cc_fire(void) {
         }
     }
     g_state.anim_timer = 1;
-    if (g_state.power_shot == 0 && g_state.g_5140 == 0) g_state.g_509c--;
+    if (g_state.power_shot_active == 0 && g_state.interaction_suppressed == 0) g_state.ammo--;
 
     a->y = g_state.player_y;
     a->x_prev = a->x;
@@ -273,13 +273,13 @@ void cc_fire_timers(void) {
     g_state.cooldown = (uint16_t)(g_state.cooldown + 1u);
     if ((int16_t)g_state.cooldown > 0x7D00) g_state.cooldown = 0x19;
 
-    g_state.g_a0ce = (uint16_t)(g_state.g_a0ce + 1u);
-    if ((int16_t)g_state.g_a0ce > 0x10E && g_state.g_a10b == 0) {
-        if (cc_rng_next(100) < 0x23) g_state.g_a10b = 1;
-        else g_state.g_a0ce = 0;
+    g_state.collectible_spawn_timer = (uint16_t)(g_state.collectible_spawn_timer + 1u);
+    if ((int16_t)g_state.collectible_spawn_timer > 0x10E && g_state.collectible_spawn_active == 0) {
+        if (cc_rng_next(100) < 0x23) g_state.collectible_spawn_active = 1;
+        else g_state.collectible_spawn_timer = 0;
     }
-    if (g_state.g_a10b != 0 && g_state.g_a126 == 0) {
-        if ((int16_t)g_state.g_a0d0 == -1) {
+    if (g_state.collectible_spawn_active != 0 && g_state.story_transition == 0) {
+        if ((int16_t)g_state.spawn_cell_x == -1) {
             int rx = (int)cc_rng_next(0x140);
             int ry = (int)cc_rng_next(0xC8);
             int c1 = (rx + g_state.cam_x) / 16 + 1;
@@ -289,39 +289,39 @@ void cc_fire_timers(void) {
                 int shape = (int)cc_rng_next(3) + 0x25;
                 cell_word_raw_put(c1, r1, CELL_W7, shape);
                 cell_word_raw_put(c1, r1, CELL_W6, 1);
-                g_state.g_a0d0 = (uint16_t)(c1 * 16 - 1);
-                g_state.g_a0d2 = (uint16_t)(r1 * 16 - 1);
-                mark_redraw((int16_t)g_state.g_a0d0, (int16_t)g_state.g_a0d2);
+                g_state.spawn_cell_x = (uint16_t)(c1 * 16 - 1);
+                g_state.spawn_cell_y = (uint16_t)(r1 * 16 - 1);
+                mark_redraw((int16_t)g_state.spawn_cell_x, (int16_t)g_state.spawn_cell_y);
                 play_sound(SND_NEW_ITEM);
             }
-        } else if ((int16_t)g_state.g_a0ce > 0x19E) {
-            int c1 = (int)g_state.g_a0d0 / 16 + 1;
-            int r1 = (int)g_state.g_a0d2 / 16 + 1;
-            g_state.g_a10b = 0;
-            g_state.g_a0ce = 0;
+        } else if ((int16_t)g_state.collectible_spawn_timer > 0x19E) {
+            int c1 = (int)g_state.spawn_cell_x / 16 + 1;
+            int r1 = (int)g_state.spawn_cell_y / 16 + 1;
+            g_state.collectible_spawn_active = 0;
+            g_state.collectible_spawn_timer = 0;
             cell_word_raw_put(c1, r1, CELL_W7, 0);
-            mark_redraw((int16_t)g_state.g_a0d0, (int16_t)g_state.g_a0d2);
-            g_state.g_a0d0 = 0xFFFF;
-            g_state.g_a0d2 = 0xFFFF;
+            mark_redraw((int16_t)g_state.spawn_cell_x, (int16_t)g_state.spawn_cell_y);
+            g_state.spawn_cell_x = 0xFFFF;
+            g_state.spawn_cell_y = 0xFFFF;
         }
     }
 
-    if ((int16_t)g_state.next_level > 0 && g_state.g_a0cc == 0 && g_state.g_a0f5 == 0) {
+    if ((int16_t)g_state.next_level > 0 && g_state.crystals_remaining == 0 && g_state.exit_unlocked == 0) {
         play_sound(SND_FANFARE);
         if (g_state.g_a107 && (int16_t)g_state.next_level > 0) {
             helper_a110_clear();
             g_state.g_a107 = 0;
         }
-        g_state.g_a0f5 = 1;
+        g_state.exit_unlocked = 1;
         cc_shell_notify_last_crystal();
         cell_put(g_state.exit_col, g_state.exit_row, CELL_FLAG_SOLID, 0);
         cell_put(g_state.exit_col, (int16_t)(g_state.exit_row + 1), CELL_FLAG_SOLID, 0);
         cell_put(g_state.exit_col, g_state.exit_row, CELL_FLAG_SOLID, 0);
     }
 
-    if (g_state.power_shot != 0 && (int16_t)g_state.power_timer <= -1 &&
+    if (g_state.power_shot_active != 0 && (int16_t)g_state.power_timer <= -1 &&
         g_state.obj[2].ready != 0)
-        g_state.power_shot = 0;
+        g_state.power_shot_active = 0;
 
     if (g_state.input_fire) cc_fire();
 }
@@ -352,10 +352,10 @@ void cc_status_timers(void) {
         if ((int16_t)g_state.g_a0b8 > 9) g_state.g_a0b8 = 0;
     }
 
-    if ((int16_t)g_state.g_a0ea > -1) {
-        g_state.g_a0ea = (uint16_t)(g_state.g_a0ea + 1u);
-        if ((int16_t)g_state.g_a0ea > 0x13) g_state.g_a0ea = 0xFFFF;
-        if ((g_state.g_a0ea % 7) == 0) g_state.obj[1].hit_flag = 1;
+    if ((int16_t)g_state.invuln_timer > -1) {
+        g_state.invuln_timer = (uint16_t)(g_state.invuln_timer + 1u);
+        if ((int16_t)g_state.invuln_timer > 0x13) g_state.invuln_timer = 0xFFFF;
+        if ((g_state.invuln_timer % 7) == 0) g_state.obj[1].hit_flag = 1;
     }
 }
 

@@ -48,11 +48,11 @@ _Static_assert(CC_OFFSETOF(cc_state_t, player_x)         == 22704, "state sectio
 _Static_assert(CC_OFFSETOF(cc_state_t, cam_x)            == 22708, "state section moved");
 _Static_assert(CC_OFFSETOF(cc_state_t, input_left)       == 22718, "state section moved");
 _Static_assert(CC_OFFSETOF(cc_state_t, cur_level)        == 22762, "state section moved");
-_Static_assert(CC_OFFSETOF(cc_state_t, g_a0cc)           == 22776, "state section moved");
+_Static_assert(CC_OFFSETOF(cc_state_t, crystals_remaining)           == 22776, "state section moved");
 _Static_assert(CC_OFFSETOF(cc_state_t, cave_flags)       == 22832, "state section moved");
 _Static_assert(CC_OFFSETOF(cc_state_t, level_block)      == 22849, "state section moved");
 _Static_assert(CC_OFFSETOF(cc_state_t, checkpoint_block) == 22882, "state section moved");
-_Static_assert(CC_OFFSETOF(cc_state_t, g_5124)           == 22928, "state section moved");
+_Static_assert(CC_OFFSETOF(cc_state_t, death_state)           == 22928, "state section moved");
 _Static_assert(CC_OFFSETOF(cc_state_t, score_lo)         == 22938, "state section moved");
 _Static_assert(CC_OFFSETOF(cc_state_t, rng_lo)           == 22942, "state section moved");
 _Static_assert(CC_OFFSETOF(cc_state_t, checkpoint_50a0)  == 23000, "state section moved");

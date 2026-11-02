@@ -64,7 +64,7 @@ int state_valid_(const cc_state_t *st) {
         return 0;
     if (st->exit_col < 0 || st->exit_col >= CELL_COLS) return 0;
     if (st->exit_row < 0 || st->exit_row >= CELL_ROWS) return 0;
-    if (st->g_5124 > 3) return 0;
+    if (st->death_state > 3) return 0;
     return 1;
 }
 

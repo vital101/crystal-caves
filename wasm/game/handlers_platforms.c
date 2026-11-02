@@ -169,34 +169,34 @@ void h_platform_h(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             g_state.gravity_scale == 1 &&
             g_state.jump_phase > 0xA) {
             g_state.player_y = (int32_t)o->y - 0x10;
-            g_state.g_513d = 1;
+            g_state.riding_horizontal = 1;
             o->subtype = 1;
-            g_state.g_511a = (uint16_t)idx;
+            g_state.platform_slot_h = (uint16_t)idx;
             goto move;
         }
     }
 
-    if (g_state.g_513d) {
-        if ((uint16_t)idx != g_state.g_511a) goto move;
+    if (g_state.riding_horizontal) {
+        if ((uint16_t)idx != g_state.platform_slot_h) goto move;
     }
-    g_state.g_513d = 0;
+    g_state.riding_horizontal = 0;
     if (o->subtype == 0) goto move;
     o->subtype = 0;
-    g_state.g_5126 = 0;
-    g_state.g_5118 = 0;
+    g_state.scroll_x_accum = 0;
+    g_state.carry_x_delta = 0;
 
 move:
     o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
     if (o->subtype != 1) return;
     if (o->vx == 1) {
-        g_state.g_5118 = o->speed;
-        if (player_clear((int16_t)g_state.g_5118, 0)) {
-            g_state.player_x += (int16_t)g_state.g_5118;
+        g_state.carry_x_delta = o->speed;
+        if (player_clear((int16_t)g_state.carry_x_delta, 0)) {
+            g_state.player_x += (int16_t)g_state.carry_x_delta;
         }
     } else {
-        g_state.g_5118 = (uint16_t)(-(int16_t)o->speed);
-        if (player_clear((int16_t)g_state.g_5118, 0)) {
-            g_state.player_x += (int16_t)g_state.g_5118;
+        g_state.carry_x_delta = (uint16_t)(-(int16_t)o->speed);
+        if (player_clear((int16_t)g_state.carry_x_delta, 0)) {
+            g_state.player_x += (int16_t)g_state.carry_x_delta;
         }
     }
 }
@@ -208,15 +208,15 @@ void h_platform_v(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     }
     anim_next(o);
 
-    if (!g_state.g_5142) {
+    if (!g_state.riding_vertical) {
         if (g_state.player_y + 0x10 > o->y - 5 &&
             g_state.player_y + 0x10 < o->y + 5 &&
             g_state.player_x + 8 > o->x - 4 &&
             g_state.player_x + 8 < o->x + 0x14 &&
             g_state.gravity_scale == 1) {
             g_state.player_y = (int32_t)o->y - 0x10;
-            g_state.g_5142 = 1;
-            g_state.g_511c = (uint16_t)idx;
+            g_state.riding_vertical = 1;
+            g_state.platform_slot_v = (uint16_t)idx;
         }
     }
 
@@ -224,30 +224,30 @@ void h_platform_v(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         g_state.player_x + 8 > o->x - 4 &&
         g_state.player_x + 8 < o->x + 0x14 &&
         g_state.gravity_scale == 1) {
-        g_state.g_5142 = 1;
+        g_state.riding_vertical = 1;
         o->subtype = 1;
-        g_state.g_511c = (uint16_t)idx;
+        g_state.platform_slot_v = (uint16_t)idx;
         goto move;
     }
 
-    if (!g_state.g_5142 || (uint16_t)idx == g_state.g_511c) {
-        g_state.g_5142 = 0;
+    if (!g_state.riding_vertical || (uint16_t)idx == g_state.platform_slot_v) {
+        g_state.riding_vertical = 0;
         o->subtype = 0;
-        g_state.g_5128 = 0;
+        g_state.carry_y_delta = 0;
     }
 
 move:
     o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
     if (o->subtype != 1 || g_state.gravity_scale != 1) return;
     if (o->vy == 1) {
-        g_state.g_5128 = o->speed;
-        if (player_clear(0, (int16_t)g_state.g_5128)) {
-            g_state.player_y += (int16_t)g_state.g_5128;
+        g_state.carry_y_delta = o->speed;
+        if (player_clear(0, (int16_t)g_state.carry_y_delta)) {
+            g_state.player_y += (int16_t)g_state.carry_y_delta;
         }
     } else {
-        g_state.g_5128 = (uint16_t)(-(int16_t)o->speed);
-        if (player_clear(0, (int16_t)g_state.g_5128)) {
-            g_state.player_y += (int16_t)g_state.g_5128;
+        g_state.carry_y_delta = (uint16_t)(-(int16_t)o->speed);
+        if (player_clear(0, (int16_t)g_state.carry_y_delta)) {
+            g_state.player_y += (int16_t)g_state.carry_y_delta;
         }
     }
 }
@@ -344,7 +344,7 @@ void spawn_object_47d(const SpawnArgs *a) {
     if (a->slot < 0 || a->slot >= OBJ_MAX) return;
     o = &g_state.obj[a->slot];
     o->shape = (a->vx == 1) ? a->anim_shape_b : a->anim_shape_a;
-    if (!g_state.g_a10a) base_cell_stamp(a->xcell, a->ycell);
+    if (!g_state.suppress_base_stamp) base_cell_stamp(a->xcell, a->ycell);
     o->block = a->block;
     o->anim_shape_b = a->anim_shape_b;
     o->anim_shape_a = a->anim_shape_a;
