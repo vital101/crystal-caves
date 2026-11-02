@@ -61,12 +61,6 @@ _Static_assert(sizeof(((cc_state_t *)0)->cells) == 20000, "cell grid changed");
 cc_state_t g_state = { 0 };
 const unsigned char *g_cells_asset = 0;
 
-/* Host-only sound attempt log/callback.  Deliberately outside cc_state_t so
- * the deterministic save payload never contains pointers or host state. */
-void (*g_sound_callback)(uint16_t id);
-uint16_t g_sound_log[256];
-uint16_t g_sound_log_count;
-uint32_t g_sound_log_total;
 /* 16-bit word arithmetic helpers: the 8086 wraps on every operation. */
 int16_t wadd(int16_t a, int16_t b) { return (int16_t)((uint16_t)a + (uint16_t)b); }
 int16_t wsub(int16_t a, int16_t b) { return (int16_t)((uint16_t)a - (uint16_t)b); }

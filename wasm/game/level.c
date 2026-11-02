@@ -452,16 +452,3 @@ void cc_warp_level(int level) {
 /* Transition using the original loader argument (0=hub, 1..16=caves). */
 void cc_level_exit(int arg) { load_arg(arg); }
 void cc_load_arg(int arg) { load_arg(arg); }
-
-void cc_sound_set_callback(void (*cb)(uint16_t id)) {
-    g_sound_callback = cb;
-}
-void cc_sound_log_clear(void) {
-    g_sound_log_count = 0;
-    g_sound_log_total = 0;
-}
-int cc_sound_log_count(void) { return g_sound_log_count; }
-int cc_sound_log_total(void) { return (int)g_sound_log_total; }
-uint16_t cc_sound_log_at(int i) {
-    return (i >= 0 && i < g_sound_log_count) ? g_sound_log[i] : 0;
-}

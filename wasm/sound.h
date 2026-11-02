@@ -24,8 +24,8 @@ void cc_sound_reset(void);              /* stop + clear pending events */
 void cc_sound_set_enabled(int on);      /* [0x513E] */
 int  cc_sound_enabled(void);
 
-/* Raw attempt logging + callback, implemented in objects.c.  Every call to
- * the original play_sound (gameplay or shell) is recorded here. */
+/* Raw attempt logging + callback.  Every call to the original play_sound
+ * (gameplay or shell) is recorded here, before the enable/priority logic. */
 void cc_sound_note(uint16_t id);
 
 /* Exact 0x1FBBF selection.  Returns 1 when the sound was accepted/started. */

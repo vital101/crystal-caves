@@ -200,10 +200,6 @@ typedef void (*handler_fn)(ObjectEntry *, int, int16_t, int16_t);
 /* Shared file-scope state.  Definitions live in the owning module. */
 extern cc_state_t g_state;
 extern const unsigned char *g_cells_asset;
-extern void (*g_sound_callback)(uint16_t id);
-extern uint16_t g_sound_log[256];
-extern uint16_t g_sound_log_count;
-extern uint32_t g_sound_log_total;
 extern uint32_t g_unknown_handler_hits;
 extern const unsigned char *g_level_overlay;
 extern cc_state_t g_load_tmp;
@@ -233,7 +229,6 @@ void mark_redraw(int16_t x, int16_t y);
 int visible_obj(int margin, int32_t x, int32_t y);
 int16_t proximity_test(int mode, int16_t radius, int16_t obj_x, int16_t obj_y);
 int16_t proximity_mode2(int16_t x, int16_t y, int16_t radius);
-void cc_sound_note(uint16_t id);
 void play_sound(uint16_t id);
 void cc_input_set(uint16_t flag, int pressed);
 void input_commit(void);

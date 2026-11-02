@@ -76,16 +76,8 @@ int16_t proximity_mode2(int16_t x, int16_t y, int16_t radius) {
     return ((int16_t)(y - g_state.player_y) > 0) ? -1 : 1;
 }
 
-/* Raw attempt log + host callback.  This is deliberately separate from the
- * Phase 6 driver state: the existing combat/cell/handler fixtures compare
- * the exact sequence of IDs passed to 0x1F9A:0x21F, regardless of the
- * sound-enable/priority decision inside the routine. */
-void cc_sound_note(uint16_t id) {
-    if (g_sound_log_count < 256)
-        g_sound_log[g_sound_log_count++] = id;
-    g_sound_log_total++;
-    if (g_sound_callback) g_sound_callback(id);
-}
+/* The raw attempt log + host callback (cc_sound_note) moved to wasm/sound.c
+ * with the rest of the sound state. */
 
 /* 0x1F9A:0x21F play_sound_or_effect(id).  All logging and driver selection
  * live in cc_sound_play()/cc_sound_note() so shell-triggered sounds use the
