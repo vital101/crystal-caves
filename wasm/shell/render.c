@@ -104,6 +104,69 @@ static void draw_prompt_text(int x, int y, const char *s) {
     }
 }
 
+/* Keyboard-redefine prompt (cursor on the trailing '^'). */
+static void render_key_redefine(void) {
+    static const char *const prompt[4] = {
+        "Select key to move left: ^",
+        "Select key to move right: ^",
+        "Select key to jump: ^",
+        "Select key to fire: ^"
+    };
+    const char *lines[5];
+    lines[0] = "KEYBOARD REDEFINE";
+    lines[1] = (g_key_action >= 0 && g_key_action < 4)
+        ? prompt[g_key_action] : "Select key: ^";
+    lines[2] = " ";
+    lines[3] = "Press ESC to cancel.";
+    lines[4] = " ";
+    cc_view_clear(0);
+    draw_lines_centered_frame(lines, 5, g_cursor_frame);
+}
+
+static void append_key_name(char *dst, int cap, const char *label,
+                            int scan) {
+    const char *nm;
+    cc_shell_key_name(scan, &nm);
+    dst[0] = 0;
+    scopy(dst, label, cap);
+    scopy(dst + slen(dst), nm, cap - slen(dst));
+}
+
+/* Redefine confirmation list with the captured key names. */
+static void render_key_confirm(void) {
+    char left[32], right[32], jump[32], fire[32];
+    const char *lines[6];
+    append_key_name(left, sizeof(left), "LEFT  - ", g_key_tmp[0]);
+    append_key_name(right, sizeof(right), "RIGHT - ", g_key_tmp[1]);
+    append_key_name(jump, sizeof(jump), "JUMP  - ", g_key_tmp[2]);
+    append_key_name(fire, sizeof(fire), "FIRE  - ", g_key_tmp[3]);
+    lines[0] = "KEYBOARD REDEFINED";
+    lines[1] = left;
+    lines[2] = right;
+    lines[3] = jump;
+    lines[4] = fire;
+    lines[5] = "Are these selections ok (Y-N): ^";
+    cc_view_clear(0);
+    draw_lines_centered_frame(lines, 6, g_cursor_frame);
+}
+
+/* Original exits to DOS; the browser stops here with an exit screen and
+ * any key restarts the attract sequence. */
+static void render_dos_screen(void) {
+    int cx = cc_global_get(0x512e);
+    int cy = cc_global_get(0x5130);
+    int scroll = cc_global_get(0x2b5c);
+    cc_global_set(0x512e, 0);
+    cc_global_set(0x5130, 0);
+    cc_global_set(0x2b5c, 0);
+    cc_view_clear(0);
+    draw_prompt_text(40, 88, "Crystal Caves has ended.");
+    draw_prompt_text(16, 104, "Press any key to restart. ^");
+    cc_global_set(0x512e, cx);
+    cc_global_set(0x5130, cy);
+    cc_global_set(0x2b5c, scroll);
+}
+
 void cc_shell_render(void) {
     switch (g_shell_state) {
         case CC_SHELL_LOGO:
@@ -136,50 +199,12 @@ void cc_shell_render(void) {
         case CC_SHELL_TITLE:
             cc_draw_screen_rows(1, 2, g_scroll_row);
             break;
-        case CC_SHELL_KEY_REDEFINE: {
-            static const char *const prompt[4] = {
-                "Select key to move left: ^",
-                "Select key to move right: ^",
-                "Select key to jump: ^",
-                "Select key to fire: ^"
-            };
-            const char *lines[5];
-            lines[0] = "KEYBOARD REDEFINE";
-            lines[1] = (g_key_action >= 0 && g_key_action < 4)
-                ? prompt[g_key_action] : "Select key: ^";
-            lines[2] = " ";
-            lines[3] = "Press ESC to cancel.";
-            lines[4] = " ";
-            cc_view_clear(0);
-            draw_lines_centered_frame(lines, 5, g_cursor_frame);
+        case CC_SHELL_KEY_REDEFINE:
+            render_key_redefine();
             break;
-        }
-        case CC_SHELL_KEY_CONFIRM: {
-            char left[32], right[32], jump[32], fire[32];
-            const char *lines[6];
-            const char *nm;
-            cc_shell_key_name(g_key_tmp[0], &nm);
-            left[0] = 0; scopy(left, "LEFT  - ", sizeof(left));
-            scopy(left + slen(left), nm, sizeof(left) - slen(left));
-            cc_shell_key_name(g_key_tmp[1], &nm);
-            right[0] = 0; scopy(right, "RIGHT - ", sizeof(right));
-            scopy(right + slen(right), nm, sizeof(right) - slen(right));
-            cc_shell_key_name(g_key_tmp[2], &nm);
-            jump[0] = 0; scopy(jump, "JUMP  - ", sizeof(jump));
-            scopy(jump + slen(jump), nm, sizeof(jump) - slen(jump));
-            cc_shell_key_name(g_key_tmp[3], &nm);
-            fire[0] = 0; scopy(fire, "FIRE  - ", sizeof(fire));
-            scopy(fire + slen(fire), nm, sizeof(fire) - slen(fire));
-            lines[0] = "KEYBOARD REDEFINED";
-            lines[1] = left;
-            lines[2] = right;
-            lines[3] = jump;
-            lines[4] = fire;
-            lines[5] = "Are these selections ok (Y-N): ^";
-            cc_view_clear(0);
-            draw_lines_centered_frame(lines, 6, g_cursor_frame);
+        case CC_SHELL_KEY_CONFIRM:
+            render_key_confirm();
             break;
-        }
         case CC_SHELL_HISCORE:
             draw_hiscore_screen();
             break;
@@ -239,23 +264,9 @@ void cc_shell_render(void) {
             draw_block_centered_frame(SHELL_TEXT_MENU_QUIT_DOS, 0,
                                       PAGE_LINES, g_cursor_frame);
             break;
-        case CC_SHELL_DOS: {
-            /* Original exits to DOS; the browser stops here with an exit
-             * screen and any key restarts the attract sequence. */
-            int cx = cc_global_get(0x512e);
-            int cy = cc_global_get(0x5130);
-            int scroll = cc_global_get(0x2b5c);
-            cc_global_set(0x512e, 0);
-            cc_global_set(0x5130, 0);
-            cc_global_set(0x2b5c, 0);
-            cc_view_clear(0);
-            draw_prompt_text(40, 88, "Crystal Caves has ended.");
-            draw_prompt_text(16, 104, "Press any key to restart. ^");
-            cc_global_set(0x512e, cx);
-            cc_global_set(0x5130, cy);
-            cc_global_set(0x2b5c, scroll);
+        case CC_SHELL_DOS:
+            render_dos_screen();
             break;
-        }
         case CC_SHELL_GAME:
         default:
             break;
