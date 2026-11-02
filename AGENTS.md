@@ -4,6 +4,19 @@
 
 There is no root Makefile; the build lives in `wasm/`.
 
+**No local toolchain (typical on Windows)? Run the dev container instead.**
+`compose.yaml` + `docker/Dockerfile.dev` provide clang/lld, Node.js, the
+capstone/unicorn venv and Playwright Chromium; every target in the table below
+works unchanged:
+
+```sh
+docker compose build                                  # once, from the repo root
+docker compose run --rm dev make -C wasm test-all     # any make target, -C wasm
+```
+
+The production image is the root `Dockerfile` (nginx static host), which is a
+different thing.  See the README section *Develop in Docker (any platform)*.
+
 | Command | Description |
 |---|---|
 | `make clang` | Build freestanding wasm via Homebrew LLVM (default) |
@@ -66,6 +79,14 @@ Makefile auto-detects it) or install system-wide. npm is **test-only**
 needs it. CI is `.github/workflows/ci.yml` (GitHub Actions or Forgejo Actions on Ubuntu:
 build + `test-all` + size/perf summary, browser smoke, manual oracle
 regeneration).
+
+Inside `docker/Dockerfile.dev` all of that is preinstalled and exported through
+the environment (`LLVM=/usr/bin`, `PYTHON=/opt/cc1/venv/bin/python`,
+`NODE_PATH=/opt/cc1/node_modules`, `PLAYWRIGHT_BROWSERS_PATH`), which wins
+against the Makefile's `?=` defaults, so no target needs `LLVM=...`. Node
+matches CI (22) and Chromium is baked in, so `make test-browser` runs instead of
+SKIPping. `.gitattributes` pins makefiles/shell scripts to LF because GNU make in
+the container misreads a CRLF `wasm/Makefile`.
 
 ## Data Pipeline
 
@@ -181,6 +202,11 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   57.1 ms budget), and the build uses `-Oz` (~152 KB vs ~180 KB at `-O2`).
   `notes/regression.md` maps every subsystem to its fixture and target; the
   root `README.md` documents build/run/test.
+- The development toolchain also runs in Docker: `compose.yaml` +
+  `docker/Dockerfile.dev` (apt clang/lld, Node 22, capstone/unicorn venv,
+  Playwright Chromium) let hosts with no local toolchain, e.g. Windows, build,
+  test and regenerate fixtures in the container.  The root `Dockerfile` stays
+  the production (nginx) image and is unaffected.
 - Refactor Phase 0 is implemented: `notes/refactor_baseline.md` records the
   pre-refactor commit, wasm size, perf timings and 184 public exports;
   `wasm/test_refactor_digest.js` + `notes/refactor_digests.json` provide 929
@@ -292,6 +318,12 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - `wasm/test_browser.js` / `wasm/browser_expectations.json` — Phase 8 headless browser smoke
 - `wasm/measure_perf.js` / `wasm/perf_baseline.json` — Phase 8 frame-budget/size checks
 - `notes/regression.md` — Phase 8 coverage matrix (target → fixture → harness)
+- `compose.yaml` + `docker/Dockerfile.dev` (+ `Dockerfile.dev.dockerignore`,
+  `cc1-entrypoint.sh`) — development toolchain container (clang/lld, Node 22,
+  capstone/unicorn venv, Playwright Chromium) for hosts with no local toolchain,
+  e.g. Windows
+- `.gitattributes` — LF pin for makefiles/shell scripts, required by GNU make in
+  that container
 - `README.md` — build, run, controls, test and oracle-regeneration guide
 
 ## Known Constraints
@@ -299,6 +331,9 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - No `pip` project or `cargo`; the game build is Python + clang/emcc only.
   npm exists solely for the optional Playwright browser test
   (`wasm/package.json`).
+- Windows hosts have no Homebrew: run the toolchain in the dev container
+  (`docker compose run --rm dev make -C wasm <target>`).  Keep `wasm/Makefile`
+  LF (`.gitattributes`) or GNU make inside the container misreads it.
 - Static levels are baked from oracle dumps; `cells.bin` carries mutable 20-byte records, dynamic redraw is implemented, and the HUD/text windows are oracle-exact.
 - Oracle catalog is the regression reference; never hand-edit generated headers
 - Level layout is code-encoded — changing map heights requires editing binary/code assumptions

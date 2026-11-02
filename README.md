@@ -39,6 +39,55 @@ python3 -m http.server 8080
 The page fetches the wasm module and asset files, so it must be served over
 HTTP — opening `game.html` from `file://` will not work.
 
+Nothing installed locally, or building on Windows?  Every command in this
+README also runs in the dev container — see
+[Develop in Docker](#develop-in-docker-any-platform).
+
+## Develop in Docker (any platform)
+
+Windows hosts, and any machine without a local LLVM/Node/Python toolchain, can
+run everything in a container instead of installing the requirements below:
+
+```sh
+docker compose build                                    # once, from the repo root
+docker compose run --rm dev make -C wasm clang          # build render.wasm
+docker compose run --rm dev make -C wasm test-all        # full regression suite
+docker compose run --rm dev make -C wasm test-browser    # Playwright smoke test
+docker compose run --rm dev make -C wasm test-oracle-physics   # Unicorn fixtures
+docker compose run --rm dev make -C wasm perf lint
+docker compose run --rm dev bash                        # interactive shell
+docker compose up web                                   # http://localhost:8080/game.html
+```
+
+`compose.yaml` builds `docker/Dockerfile.dev`: Debian `clang` + `lld`, Node.js 22
+(same as CI), a `capstone`/`unicorn` virtualenv at `/opt/cc1/venv`, and Playwright
+Chromium — i.e. every target in the Requirements table, with nothing to install on
+the host.  The image exports `LLVM`, `PYTHON`, `NODE_PATH` and
+`PLAYWRIGHT_BROWSERS_PATH`, which override the Makefile's Homebrew defaults, so no
+target needs `LLVM=...` inside the container.  The checkout is mounted at `/src`
+and build outputs (`wasm/render.wasm`, `wasm/assets/`) land in your working tree
+as usual, so the wasm you just built is the wasm the browser serves.
+
+The first build pulls a base image, the toolchain and Chromium: a few minutes
+and about 2.5 GB.  After that it is cached and only rebuilds when
+`wasm/package.json`, `wasm/package-lock.json` or `tools/requirements.txt`
+change.  Inside the container a full rebuild takes ~3 s and the whole
+`make test-all` suite about 10 s, so the container is not the slow part.
+
+Two notes for Windows users:
+
+- `.gitattributes` pins makefiles and shell scripts to LF.  A checkout made
+  before it existed may hold a CRLF `wasm/Makefile`, which GNU make inside the
+  container misreads (the dev container warns when it sees one).  git reports
+  such a file as clean, so a plain `git checkout` will not rewrite it: delete it
+  once and git re-checks it out as LF,
+  `rm wasm/Makefile && git checkout -- wasm/Makefile`.
+- The container runs as uid 1000, so files it writes stay usable from the host.
+
+This is the **development** image.  The root `Dockerfile` is a separate, much
+smaller production image (nginx, no toolchain, no test data) — see
+[Deploy with Dokku](#deploy-with-dokku).
+
 ## Requirements
 
 | Purpose | Requirements |
@@ -47,7 +96,11 @@ HTTP — opening `game.html` from `file://` will not work.
 | Tests | Node.js 18+ and Python 3.9+ (stdlib only) |
 | Oracle regeneration | Python venv with `tools/requirements.txt` (`capstone`, `unicorn`) |
 | Browser smoke test | npm + `playwright` (test-only; see `wasm/package.json`) |
-| Docker image | Docker 20.10+ (multi-stage build; no local toolchain needed) |
+| None of the above locally | Docker Desktop (Windows) or Docker 20.10+ — see [Develop in Docker](#develop-in-docker-any-platform) |
+| Production image | Docker 20.10+ (multi-stage build; no local toolchain needed) |
+
+There is no Homebrew on Windows, and the build is not portable to MSVC: on
+Windows use the dev container above, or `clang`/`lld` inside WSL.
 
 The Emscripten build (`make emcc`) additionally needs `emcc` on `PATH`; it is a
 secondary back-end and is not exercised by CI.
@@ -60,7 +113,8 @@ make                    # same as: make clang
 ```
 
 This copies the portable assets from `../out/portable/` into `wasm/assets/` and
-produces `wasm/render.wasm` (about 155 KB at `-Oz`).
+produces `wasm/render.wasm` (about 155 KB at `-Oz`).  Without a local LLVM, the
+same build is `docker compose run --rm dev make -C wasm clang`.
 
 `wasm/play.html` is a developer level-select harness.  `wasm/index.html` is a
 minimal renderer smoke page.  `make social-card` regenerates
@@ -120,7 +174,10 @@ therefore completely stateless — all player progress stays in the browser.
 ## Deploy with Dokku
 
 The repo ships a `Dockerfile` that builds the wasm module with Debian
-`clang`/`lld` and serves it from `nginx:alpine`.  Only `game.html`, its four
+`clang`/`lld` and serves it from `nginx:alpine`.  This is the **production**
+image — small, no toolchain, no test data; `docker/Dockerfile.dev` is the
+separate development toolchain image described in
+[Develop in Docker](#develop-in-docker-any-platform).  Only `game.html`, its four
 JS adapters, the favicon set, the link-preview card, `render.wasm` and
 `assets/` are copied into the runtime image; no toolchain, test data or
 original EXE is present in the result.  That is about 1.6 MB of game files on
@@ -164,6 +221,10 @@ make perf               # wasm size + frame-budget measurement
 make lint               # source-size guardrail (warning-only in Phase 0)
 ```
 
+On a host without the toolchain installed, the same targets run in the dev
+container: `docker compose run --rm dev make -C wasm test-all` (see
+[Develop in Docker](#develop-in-docker-any-platform)).
+
 `make test-all` needs no virtualenv and no Unicorn: every fixture is committed
 under `notes/`.  It covers rendering, physics, combat, handlers, transitions,
 cells, HUD/text/messages, the ordering/foreign/BBS/about/video/quit screens,
@@ -183,7 +244,9 @@ npm install
 npx playwright install chromium
 ```
 
-Without Playwright, `make test-browser` prints `SKIP` and exits 0.
+Without Playwright, `make test-browser` prints `SKIP` and exits 0.  Inside the
+dev container the dependency and its Chromium are already baked into the image,
+so the test always runs there.
 
 ### Oracle regeneration (optional)
 
@@ -201,6 +264,10 @@ make test-oracle-combat
 make test-oracle-cells
 # ... see the Makefile for the full list
 ```
+
+The dev container already has that virtualenv (`/opt/cc1/venv`, exported as
+`PYTHON`), so there the same targets are just
+`docker compose run --rm dev make -C wasm test-oracle-physics`.
 
 Regenerating raw extraction from the original archive additionally requires
 `CCSW10A.SHR` and is documented in `AGENTS.md`.
@@ -231,7 +298,9 @@ Authorized Integrations, while the jobs only need the default read token:
 | `out/oracle_L*.png` | Committed static render references (19 levels) |
 | `extracted/` | Unpacked original EXE and assets |
 | `refactor/` | Phased C/WASM refactoring plan |
-| `Dockerfile` | Multi-stage wasm build + nginx runtime image |
+| `Dockerfile` | Multi-stage wasm build + nginx runtime image (**production**) |
+| `docker/Dockerfile.dev`, `compose.yaml` | Development toolchain container: clang/lld, Node 22, capstone/unicorn venv, Playwright Chromium |
+| `.gitattributes` | LF pin for makefiles/shell scripts, needed by GNU make in that container |
 | `deploy/nginx.conf` | Static host config (MIME, gzip, cache) |
 
 Useful notes: `notes/physics.md` (timing/input), `notes/gameplay.md`

@@ -1,0 +1,22 @@
+# Line endings.  The index already stores LF for these paths; the Linux
+# toolchain in the dev container (GNU make, /bin/sh) additionally needs LF on
+# disk, so pin them at checkout as well.
+#
+# Deliberately no `* text=auto`: it would renormalize committed originals that
+# are stored CRLF byte-for-byte (see the -text rows below).
+Makefile text eol=lf
+makefile text eol=lf
+GNUmakefile text eol=lf
+*.mk text eol=lf
+*.sh text eol=lf
+Dockerfile* text eol=lf
+*.dockerignore text eol=lf
+compose.yaml text eol=lf
+.gitattributes text eol=lf
+
+# Extracted inputs are byte-exact as shipped (the index stores them with CRLF);
+# keep git from converting or renormalizing them, so `git add --renormalize .`
+# can never corrupt an oracle input.
+extracted/ORDER.FRM -text
+extracted/ORDERFRM.TXT -text
+extracted/VENDOR.DOC -text

@@ -1,0 +1,18 @@
+# Build context for docker/Dockerfile.dev.  BuildKit prefers "<dockerfile>
+# .dockerignore" next to the Dockerfile it builds, so the root .dockerignore
+# (which belongs to the production image and deliberately drops tools/ and
+# notes/) does not apply here.
+#
+# The dev image bakes the toolchain, not the checkout: the working tree is
+# bind-mounted at /src when the container runs, so only the dependency
+# manifests have to travel into the build.
+*
+!docker
+!docker/*
+!tools
+tools/*
+!tools/requirements.txt
+!wasm
+wasm/*
+!wasm/package.json
+!wasm/package-lock.json

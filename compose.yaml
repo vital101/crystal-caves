@@ -1,0 +1,38 @@
+# Development container for this repository: the full Linux toolchain that
+# wasm/Makefile expects (clang/lld, Node.js, capstone/unicorn, Playwright), so
+# Windows and plain-Linux hosts need no local Homebrew/venv/npm setup.
+#
+#   docker compose build
+#   docker compose run --rm dev make -C wasm clang
+#   docker compose run --rm dev make -C wasm test-all
+#   docker compose run --rm dev make -C wasm test-browser
+#   docker compose run --rm dev make -C wasm test-oracle-physics
+#   docker compose run --rm dev make -C wasm perf lint
+#   docker compose run --rm dev bash
+#
+#   docker compose up web          # then open http://localhost:8080/game.html
+#
+# The production image is the root Dockerfile (nginx static host); this file is
+# only the development environment.
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    image: crystal-caves-dev
+    working_dir: /src
+    volumes:
+      - .:/src
+    init: true
+    stdin_open: true
+    tty: true
+    command: bash
+
+  # Same image, serving the wasm build over HTTP for a browser session.
+  web:
+    extends: dev
+    working_dir: /src/wasm
+    ports:
+      - "8080:8080"
+    command: python3 -m http.server 8080

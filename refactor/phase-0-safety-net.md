@@ -24,6 +24,11 @@ make test-browser        # if Playwright is installed; otherwise it SKIPs
 make perf
 ```
 
+On a host without a local toolchain (Windows), the same commands run in the dev
+container: `docker compose run --rm dev make -C wasm <target>`.  Record the
+toolchain version (`clang --version`) either way, since the baseline's byte
+size and timings depend on it.
+
 Record in `notes/refactor_baseline.md`:
 
 - current git commit hash;

@@ -7,7 +7,9 @@ requirement to the target, fixture and harness that covers it.
 `make -C wasm test-all` runs every row marked **yes** below.  It needs only
 `node`, a C toolchain (Homebrew LLVM + lld, or apt `clang`/`lld`) and
 `python3`; no virtualenv, Unicorn or Capstone.  Oracle-regeneration targets
-are separate and need `tools/requirements.txt`.
+are separate and need `tools/requirements.txt`.  Hosts with no local toolchain
+(Windows) get all of it from `docker/Dockerfile.dev`:
+`docker compose run --rm dev make -C wasm test-all`.
 
 | Subsystem | Make target | Fixture / reference | Harness | In `test-all` |
 |---|---|---|---|---|
