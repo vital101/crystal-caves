@@ -24,6 +24,8 @@ different thing.  See the README section *Develop in Docker (any platform)*.
 | `make test-all` | Data checks + all-19 render + gameplay/loader/text/shell regression |
 | `make test-digest` | Golden-master SHA-256 digests (state/view/sound) over scripted runs |
 | `make test-digest-update` | Rewrite `notes/refactor_digests.json` after an intentional change |
+| `make test-render-digest` | Phase 2 render/text/scroll digests (`notes/refactor_render_digests.json`) |
+| `make render-digest-update` | Rewrite those Phase 2 digests after an intentional change |
 | `make lint` | Source-size/function-length report (warning-only in Phase 0) |
 | `make lint-strict` | Same report, exit 1 on violations (post-split CI mode) |
 | `make test-render-all` | Pixel-diff every level against `out/oracle_L*.png` |
@@ -225,6 +227,21 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
   `notes/refactor_map.md` for the implemented module/function map.  Semantic
   regrouping and per-module headers remain Phase 3/4 work; pre-existing long
   functions are Phase 3 targets.
+- Refactor Phase 2 (shell/text/render split) is implemented: `wasm/shell.c`,
+  `wasm/text.c` and `wasm/render.c` moved into `wasm/shell/`, `wasm/text/` and
+  `wasm/render/` (path-only commits) and split mechanically per responsibility,
+  with `shell/shell.c`, `text/text.c` and `render/render.c` kept as facades.
+  Shell uses a `shell_internal.h` umbrella (its internal `g_state` was renamed
+  `g_shell_state` to avoid a link clash with the gameplay `cc_state_t`); text
+  and render use small per-module headers including a new
+  `render/render_internal.h`.  The sound attempt log (`cc_sound_note`, host
+  callback and log accessors) moved from the gameplay modules into
+  `wasm/sound.c`.  No public export name changed, the 929 Phase 0 digest
+  snapshots are unchanged, and `wasm/test_render_digest.js` +
+  `notes/refactor_render_digests.json` add 155 render/text/scroll digests
+  (A/B-baselined against the pre-split build) behind `make test-render-digest`
+  / `render-digest-update`.  Largest remaining shell/text/render file is
+  `shell/input.c` (411 lines); long functions stay Phase 3 targets.
 - Phase 6 sound is implemented: all 36 Crystal Caves Sound effects are
   trace-captured from the real `0x1FBBF`/`0x0A3F` driver, rendered by
   `wasm/sound_synth.js`, and played through a single WebAudio channel.
@@ -302,6 +319,8 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 - `notes/sound_fixtures.json` — committed 36-ID sound-driver trace (`make test-sound`)
 - `notes/refactor_baseline.md` — Phase 0 size/perf/test/export baseline
 - `notes/refactor_digests.json` — Phase 0 golden-master SHA-256 digests (`make test-digest`)
+- `notes/refactor_render_digests.json` — Phase 2 render/text/scroll digests (`make test-render-digest`)
+- `wasm/test_render_digest.js` — Phase 2 render-surface characterization harness
 - `wasm/test_refactor_digest.js` — Phase 0 characterization harness
 - `tools/check_source_limits.py` — Phase 0 file/function size guardrail (`make lint`)
 - `wasm/ARCHITECTURE.md` — module/layer/ownership architecture skeleton

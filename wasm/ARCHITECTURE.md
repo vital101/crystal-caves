@@ -68,10 +68,9 @@ must not call gameplay.
 |---|---|
 | `wasm/game/*.c` (implemented; `wasm/objects.c` removed) | `game/*.c` split per the diagram; semantic regrouping continues in Phase 3 |
 | `wasm/game/handlers_*.c` handler functions `h_1fb9`, `h_2241`, … | `game/handlers/{platforms,actors,interaction,combat,misc}.c` with descriptive names |
-| `wasm/shell.c` (1,2xx lines) | `shell/{state,input,render,hiscore,config,persist,scroll}.c` |
-| `wasm/text.c` | `text/{font,window,hud}.c` |
-| `wasm/render.c` | `render/{runtime,blit,screens,render}.c` |
-| `wasm/render.c` `memset`/`memcpy`/`cc_alloc` | `runtime.c` / `render/runtime.c` |
+| `wasm/shell/*.c` (implemented; `shell.c` split into `state/input/render/hiscore/config/persist/scroll` + `shell_internal.h` umbrella) | same modules; state-machine redesign in Phase 3 |
+| `wasm/text/*.c` (implemented; `font/window/hud` with per-module headers) | same modules |
+| `wasm/render/*.c` (implemented; `render/runtime/blit/screens` with `render_internal.h`) | same modules; `cc_alloc`/`memset`/`memcpy` live in `render/runtime.c` |
 
 Names may shift during implementation, but ownership must not.  Target size is
 200–500 lines per hand-written `.c`; hard cap 600.  No function over 120 lines.

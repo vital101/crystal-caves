@@ -5,6 +5,39 @@
 Apply the same mechanical discipline to the remaining large files. No renaming
 or behavior changes in this phase.
 
+## Status
+
+**Implemented.**  `shell.c`, `text.c` and `render.c` each began with a
+path-only commit and were then split into the modules below.  The split was
+mechanical: no logic, renaming or behavior changes.  The golden-master digests
+are unchanged (929 Phase 0 snapshots plus a new 155-snapshot render/text/
+scroll harness, `wasm/test_render_digest.js` +
+`notes/refactor_render_digests.json`, baselined by an A/B stash of the render
+split).  See [`../notes/refactor_map.md`](../notes/refactor_map.md) for the
+implemented file/function map.
+
+Deviations from the plan above:
+
+- The shared shell globals live in one umbrella `shell/shell_internal.h`
+  (the Phase 1 `game_internal.h` pattern); per-module headers are Phase 4
+  work.  `text/` and `render/` do use small per-module headers.
+- The file-scope `g_state` in `shell.c` was renamed `g_shell_state`: the
+  Phase 1 gameplay modules already define a different `g_state`
+  (`cc_state_t`), so a link collision forced the rename.  It is internal
+  to the shell (no export or behavior change).
+- `draw_lines_centered` (listed under `shell/render.c`) does not exist in
+  the original file; the real centered-window helper `draw_block_centered`
+  is in `shell/render.c`.  Nothing was invented.
+- Phase 2.4 also moved the sound attempt log (`cc_sound_note`, the host
+  callback and the log accessors) out of the gameplay modules into
+  `wasm/sound.c`, as promised by the Phase 1 map notes.
+
+Exit criteria reached: `shell/shell.c` is a 25-line facade, `text/text.c`
+20 lines, `render/render.c` 144 lines; no shell/text/render file exceeds
+600 lines (largest: `shell/input.c`, 411).
+
+## 2.0 Paths first
+
 Start each file with a path-only commit:
 
 ```sh

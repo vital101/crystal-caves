@@ -1,7 +1,7 @@
 # Crystal Caves C/WASM Refactoring Plan
 
-Status: Phase 0 (safety net) and Phase 1 (gameplay split) are implemented;
-Phases 2–5 are proposed.  See
+Status: Phases 0 (safety net), 1 (gameplay split) and 2 (shell/text/render
+split) are implemented; Phases 3–5 are proposed.  See
 [`../notes/refactor_baseline.md`](../notes/refactor_baseline.md) for the
 captured baseline, [`../notes/refactor_map.md`](../notes/refactor_map.md) for
 the implemented module map and [`../wasm/ARCHITECTURE.md`](../wasm/ARCHITECTURE.md)
@@ -38,8 +38,27 @@ Known follow-ups (deferred to later phases by design): the umbrella header is
 still shared by every gameplay module (Phase 4 replaces it with per-module
 headers), and the pre-existing long functions (`cell_event()`, `slash_state1()`,
 `cc_global_get/set()`, `apply_startup_state()`, `apply_level_overlay()`,
-`cc_horizontal()`) still exceed the 120-line guideline (Phase 3).  `shell.c`
-(1,233 lines) is Phase 2 work.
+`cc_horizontal()`, plus the moved `cc_shell_key()` and `cc_shell_render()`)
+still exceed the 120-line guideline (Phase 3).
+
+Phase 2 is implemented the same way: `wasm/shell.c`, `wasm/text.c` and
+`wasm/render.c` moved to their directories in path-only commits, then split
+mechanically into `wasm/shell/*.c` (umbrella `shell_internal.h`),
+`wasm/text/*.c` and `wasm/render/*.c` (small per-module headers).  The sound
+attempt log also moved from the gameplay modules into `wasm/sound.c`.  Public
+export names are unchanged.
+
+Verification at the Phase 2 milestone:
+
+- `make clang` builds cleanly; `make test-all` and `make test-digest` pass
+  (the same 929 digest snapshots, before and after each split).
+- New render/text/scroll characterization harness: `make test-render-digest`
+  (155 digests in `notes/refactor_render_digests.json`), A/B-verified against
+  the pre-split build.
+- `make perf` reports ~1.0 ms per level frame (57.1 ms budget) and a
+  164,026-byte `render.wasm`; `make test-browser` passes.
+- Exit criteria: `shell/shell.c` 25 lines, `text/text.c` 20, `render/render.c`
+  144; largest file in the three areas is `shell/input.c` at 411 lines.
 
 ## Why this plan exists
 
