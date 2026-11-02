@@ -2,7 +2,7 @@
 #include "game_internal.h"
 
 /* 0x1F9A:0x3E70 (kind 36): two-frame ambient animation. */
-void h_3e70(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_ambient_anim_a(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     o->phase = (uint16_t)(o->phase + 1);
     if (o->phase > 0x7d00) o->phase = 0;
@@ -12,14 +12,14 @@ void h_3e70(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x4A4B (kind 31): two-frame ambient animation. */
-void h_4a4b(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_ambient_anim_b(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx; (void)x; (void)y;
     o->phase = (uint16_t)(o->phase + 1);
     if (o->phase % 2 == 0) anim_next(o);
 }
 
 /* 0x1F9A:0x4A82 (kind 44): interaction helper with state toggles. */
-void h_4a82(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_state_toggle(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     uint8_t old_513c = g_state.g_513c;
     uint8_t old_5140 = (uint8_t)g_state.g_5140;
@@ -31,7 +31,7 @@ void h_4a82(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x1FC2 (kind 8): proximity-triggered companion spawner/mover. */
-void h_1fc2(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_companion_spawner(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     int16_t r;
     anim_next(o);
 
@@ -56,7 +56,7 @@ void h_1fc2(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x323C (kind 24): spawns a companion when the player is below. */
-void h_323c(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_spawn_below(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)x; (void)y;
     if (o->y > g_state.player_y) return;
     if (idx + 1 < OBJ_MAX) {
@@ -73,7 +73,7 @@ void h_323c(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x2176 (kind 52): vertical mover / map companion. */
-void h_2176(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_map_companion(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     int solid;
     (void)idx;
     solid = cell_solid_at(x + 8, y + 3) || cell_solid_at(x + 8, y + 0xc);
@@ -174,7 +174,7 @@ int16_t proximity_obj_dir(int mode, int16_t r1, int16_t r2, int slot) {
 }
 
 /* 0x1F9A:0x5855 (kind 48): three-record moving group. */
-void h_5855(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_group_move3(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     ObjectEntry *n1 = (idx + 1 < OBJ_MAX) ? &g_state.obj[idx + 1] : o;
     ObjectEntry *n2 = (idx + 2 < OBJ_MAX) ? &g_state.obj[idx + 2] : o;
     int16_t x2 = (int16_t)(n2->x + (int32_t)n2->vx * n2->speed);
@@ -229,7 +229,7 @@ void h_5855(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x5BBE (kind 29/49/50/54/58): animated mover. */
-void h_5bbe(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_anim_mover(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     anim_next(o);
     if (cell_solid_at(x, y + 9) || cell_solid_at(x + 0xf, y + 9)) {
@@ -241,7 +241,7 @@ void h_5bbe(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x3BE8 (kind 21): expanding/contracting animator. */
-void h_3be8(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_expand_anim(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     o->phase = (uint16_t)(o->phase + 1);
     if (o->phase == 0x19) o->subtype = 1;
@@ -276,7 +276,7 @@ void dig_cell(int col, int row) {
 }
 
 /* 0x1F9A:0x251D: slot-2 slash update (also the a0f8 direct path for kind 2). */
-void h_251d(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_slash_update(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     /* Handler args arrive as (y_new, x_new); the slash hitbox tests the
      * bottom edge cells (x, y+9) and (x+0xF, y+9). */
     int col = x / 16;
@@ -291,7 +291,7 @@ void h_251d(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     if (cell_byte_cur(col, row, CELL_FLAG_SOLID) != 0 ||
         cell_byte_cur(col2, row2, CELL_FLAG_SOLID) != 0) {
         o->kind = 0x2B;
-        o->handler = 0x2241;
+        o->handler = HDL_DUG_BLOCK;
         o->handler_seg = 0x1F9A;
         o->phase = 0;
         dig_cell(col, row);
@@ -324,7 +324,7 @@ int cell_w0_is_dig(int col, int row) {
 
 /* 0x1F9A:0x2241: dug-block placement and animation. */
 
-void h_2241(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_dug_block(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx; (void)x; (void)y;
     if (o->phase == 0) {
         int col = o->x / 16 + 1;

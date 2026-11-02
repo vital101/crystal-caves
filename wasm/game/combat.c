@@ -39,7 +39,7 @@ void transform_object(ObjectEntry *o) {
             o->kind = 3;
             o->ready = 0;
             o->state = 0;
-            o->handler = 0x2877;
+            o->handler = HDL_DISSOLVE;
             o->handler_seg = 0x1F9A;
             play_sound(6);
             break;

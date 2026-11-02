@@ -503,7 +503,7 @@ after_hazards:
         if (g_state.obj_cursor < OBJ_MAX) g_state.obj[g_state.obj_cursor].state = 0x63;
         {
             SpawnArgs a;
-            a.handler = 0x672B; a.handler_seg = 0x1F9A;
+            a.handler = HDL_CRYSTAL_BOB; a.handler_seg = 0x1F9A;
             a.phase = 0; a.speed = 2; a.anim_last = 1;
             a.anim_shape_b = 0x25; a.anim_shape_a = 0x25;
             a.vy = 0xFFFF; a.vx = 0;
@@ -519,7 +519,7 @@ after_hazards:
     {
         SpawnArgs a;
         int shape = w3;
-        a.handler = 0x69D3; a.handler_seg = 0x1F9A;
+        a.handler = HDL_PICKUP_RISE; a.handler_seg = 0x1F9A;
         a.phase = 0; a.speed = 1; a.anim_last = 1;
         a.anim_shape_b = (uint16_t)shape; a.anim_shape_a = (uint16_t)shape;
         a.vy = 0xFFFF; a.vx = 0;

@@ -43,7 +43,7 @@ void step_objects(void) {
         }
 
         if (o->kind == 2 || o->kind == 0x2B) {
-            if (g_state.a0f8 && !o->ready) h_251d(o, s, (int16_t)x_new, (int16_t)y_new);
+            if (g_state.a0f8 && !o->ready) h_slash_update(o, s, (int16_t)x_new, (int16_t)y_new);
             if (!o->ready && !visible_obj(0x20, o->x, o->y)) o->ready = 1;
             continue;
         }
@@ -262,7 +262,7 @@ void cc_fire(void) {
     g_state.obj[2].ready = 0;
     a->state = 0;
     a->phase = 0;
-    a->handler = 0x2850;
+    a->handler = HDL_ATTACK_GATE;
     a->handler_seg = 0x1F9A;
     a->block = 6;
     g_state.impulse = g_state.fire_impulse;

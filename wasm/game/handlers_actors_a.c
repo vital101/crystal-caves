@@ -2,7 +2,7 @@
 #include "game_internal.h"
 
 /* 0x6681 (entry 0x26021): cell-erase effect; only y changes. */
-void h_6681(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_cell_erase(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx; (void)x; (void)y;
     o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
     mark_redraw((int16_t)(o->x_prev), (int16_t)(o->y_prev + 0x11));
@@ -11,7 +11,7 @@ void h_6681(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x672B (entry 0x260CB): crystal collection score/bob effect. */
-void h_672b(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_crystal_bob(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx; (void)x; (void)y;
     o->phase = (uint16_t)(o->phase + 1u);
     if (o->subtype == 0) {
@@ -75,7 +75,7 @@ void h_672b(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x69D3 (entry 0x26373): pickup sprite rise/fall and cell restore. */
-void h_69d3(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_pickup_rise(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)x; (void)y;
     if ((int16_t)o->phase >= 0 && (int16_t)o->phase <= 3) {
         o->y = (int16_t)(o->y - (int16_t)o->speed);
@@ -93,7 +93,7 @@ void h_69d3(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 uint32_t g_unknown_handler_hits = 0;
 
 /* 0x1F9A:0x298A (kind 0x05): two-phase walker. */
-void h_298a(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_walk_two_phase(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     anim_next(o);
     if (cell_test_200fe(x, y))
@@ -114,7 +114,7 @@ void h_298a(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x403A (kind 0x1E): proximity player shover. */
-void h_403a(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_player_shover(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     int16_t dir;
     dir = proximity_test(1, (int16_t)(g_state.g_50dc << 4), x, y);
     g_state.g_5126 = 0;
@@ -143,7 +143,7 @@ common:
 }
 
 /* 0x1F9A:0x55EC (kind 0x36): paired horizontal mover. */
-void h_55ec(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_move_h_paired(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     ObjectEntry *child;
     int16_t dir_p, dir_c;
     int spd;
@@ -181,7 +181,7 @@ void h_55ec(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 
 
 /* 0x1F9A:0x3A2E (kind 0x1C): proximity lever with animation phases. */
-void h_3a2e(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_lever_anim(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     int16_t dir;
     if (o->state == 1) o->state = 3;
@@ -209,7 +209,7 @@ void h_3a2e(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x3F6C (dynamic): proximity player shover (variant). */
-void h_3f6c(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_player_shover_alt(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     int16_t dir;
     g_state.g_5126 = 0;
@@ -232,7 +232,7 @@ common:
 }
 
 /* 0x1F9A:0x2E25 (kind 0x16): camera-relative spawner/mover. */
-void h_2e25(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_spawn_cam_rel(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx; (void)x; (void)y;
     if (o->phase == 0) {
         int32_t v = (int32_t)g_state.cam_x + (int32_t)cc_rng_next(0x140);
@@ -258,7 +258,7 @@ void h_2e25(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x2F83 (kind 0x1A): paired vertical mover/trigger. */
-void h_2f83(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_move_v_paired(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     ObjectEntry *child;
     if (idx + 1 >= OBJ_MAX) return;
     child = &g_state.obj[idx + 1];
@@ -286,7 +286,7 @@ void h_2f83(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x4AD3 (kind 0x35): left/right animated walker. */
-void h_4ad3(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_walk_anim_lr(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     if (cell_test_200fe(x, y)) o->vx = (int16_t)(-o->vx);
     o->subtype = (uint16_t)(o->subtype + 1u);
@@ -309,7 +309,7 @@ void h_4ad3(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x36B0 (kind 0x16): four-record vertical formation mover. */
-void h_36b0(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_move_v_formation(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     int k;
     if (idx + 3 >= OBJ_MAX) return;
     g_state.obj[idx + 1].state = 0xFFFF;
@@ -348,7 +348,7 @@ void h_36b0(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x4EEB (dynamic): simple companion walker. */
-void h_4eeb(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_walk_companion(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     anim_next(o);
     if (cell_byte_cur((x + 3) / 16, (y + 8) / 16, CELL_FLAG_SOLID) ||
@@ -359,7 +359,7 @@ void h_4eeb(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x52E7 (kind 0x37): projectile/phase state machine. */
-void h_52e7(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_projectile(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     int16_t dir;
     if (o->phase == 1) {
@@ -385,7 +385,7 @@ void h_52e7(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             o->speed = 2;
             o->hit_points = 1;
             o->phase = 1;
-            o->handler = 0x4EEB;
+            o->handler = HDL_WALK_COMPANION;
             o->handler_seg = 0x1F9A;
             mark_redraw((int16_t)o->x, (int16_t)(o->y + 0x10));
         } else {
@@ -404,7 +404,7 @@ void h_52e7(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x6232 (kind 0x33): two-frame walker. */
-void h_6232(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_walk_two_frame(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     o->phase = (uint16_t)(o->phase + 1u);
     if ((int16_t)o->phase % 2 == 0) anim_next(o);
@@ -417,7 +417,7 @@ void h_6232(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x4C92 (kind 0x37): spawner that converts a companion to 0x52E7. */
-void h_4c92(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_spawn_projectile(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     ObjectEntry *child;
     anim_next(o);
     if (proximity_test(2, 0x70, x, y) == 1 && idx > 0) {
@@ -431,7 +431,7 @@ void h_4c92(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             child->anim_frame = 1;
             child->speed = 6;
             child->hit_points = 0x7D00;
-            child->handler = 0x52E7;
+            child->handler = HDL_PROJECTILE;
             child->handler_seg = 0x1F9A;
             child->ready = 0;
             child->state = 0;

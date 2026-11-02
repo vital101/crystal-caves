@@ -171,7 +171,7 @@ void death_state2(void) {
         if (slot < OBJ_MAX) {
             SpawnArgs a;
             g_state.obj[slot].state = 0x63;
-            a.handler = 0x6681; a.handler_seg = 0x1F9A;
+            a.handler = HDL_CELL_ERASE; a.handler_seg = 0x1F9A;
             a.phase = 0; a.speed = 4; a.anim_last = 1;
             a.anim_shape_b = 0x15; a.anim_shape_a = 0x15;
             a.vy = 0xFFFF; a.vx = 0;

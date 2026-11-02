@@ -3,7 +3,7 @@
 
 
 /* 0x1F9A:0x5C8F (kind 0x3A): three-object boss formation. */
-void h_5c8f(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_boss_formation(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     ObjectEntry *prev, *next;
     int16_t prev_x, prev_y, next_x, next_y, dir;
     int flip = 0;
@@ -87,7 +87,7 @@ void h_5c8f(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x62F2 (kind 0x34): companion respawn walker. */
-void h_62f2(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_walk_respawn(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     int16_t dir;
     anim_next(o);
     if (cell_test_200fe(x, y)) {
@@ -109,7 +109,7 @@ void h_62f2(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x3416 (kind 0x0C): proximity walker with companion spawn. */
-void h_3416(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_walk_prox_spawn(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     ObjectEntry *child;
     o->phase = (uint16_t)proximity_test(1, 0x15, x, y);
     if ((int16_t)o->x > (int16_t)g_state.player_x &&
@@ -151,7 +151,7 @@ void h_3416(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x2D37 (kind 0x10): proximity-triggered vertical mover. */
-void h_2d37(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_move_v_prox(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     if (o->state == 3) {
         o->vy = (uint16_t)proximity_test(2, 0x70, x, y);
@@ -165,7 +165,7 @@ void h_2d37(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x2ACF (kind 0x06): flip-on-contact walker. */
-void h_2acf(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_walk_flip_contact(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     if (cell_test_200fe(x, y) && o->phase == 0) {
         o->vx = (int16_t)(-o->vx);
@@ -184,7 +184,7 @@ void h_2acf(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x2BD4 (kind 0x07): proximity-triggered horizontal walker. */
-void h_2bd4(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_walk_h_prox(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     if (o->state == 3)
         o->vx = (uint16_t)proximity_test(1, 0x80, x, y);
@@ -206,7 +206,7 @@ void h_2bd4(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x3904 (kind 0x0F): proximity-triggered lever/switch. */
-void h_3904(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_lever_switch(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx; (void)x; (void)y;
     int16_t dir;
     if (o->state == 1) o->state = 3;
@@ -225,7 +225,7 @@ void h_3904(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x47B9 (kind 0x0B): walker with two animation phases. */
-void h_47b9(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_walk_two_anim(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     anim_next(o);
     if (cell_test_200fe(x, y)) {
@@ -247,7 +247,7 @@ void h_47b9(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x32F6 (kind 0x19): companion-driven vertical mover. */
-void h_32f6(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_move_v_companion(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)x; (void)y;
     if (o->state == 2 && idx > 0) anim_next(&g_state.obj[idx - 1]);
     o->y = (int16_t)(o->y + (int32_t)o->vy * o->speed);
@@ -265,7 +265,7 @@ int cell_blocked_4145(int col, int row) {
     return cell_byte_cur(col, row, CELL_FLAG_SOLID) != 0 ||
            cell_word_cur(col, row, CELL_W0) == 0xFFA0;
 }
-void h_4145(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_bounce_adversary(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     int pick = 0;
     anim_next(o);
@@ -321,7 +321,7 @@ void h_4145(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x48FE (kind 0x0A): random walker; flips at walls/proximity. */
-void h_48fe(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_walk_random(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx;
     anim_next(o);
     o->subtype = (uint16_t)(o->subtype + 1u);
@@ -342,7 +342,7 @@ void h_48fe(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x6458 (kind 0x38): companion spawn/move pair. */
-void h_6458(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_companion_pair(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     ObjectEntry *n;
     int16_t dir;
     int16_t rem;
@@ -371,7 +371,7 @@ void h_6458(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x4FD4 (kind 0x39): multi-state boss/companion retargeter. */
-void h_4fd4(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_boss_retarget(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     ObjectEntry *cm1 = (idx >= 1) ? &g_state.obj[idx - 1] : o;
     ObjectEntry *cm2 = (idx >= 2) ? &g_state.obj[idx - 2] : o;
     int16_t dir;
@@ -427,61 +427,4 @@ move_x:
     o->x = (int16_t)(o->x + (int32_t)o->vx * o->speed);
 interact_only:
     player_interact(o, (int16_t)o->x, (int16_t)o->y);
-}
-
-handler_fn handler_for(uint16_t off) {
-    switch (off) {
-        case 0x1fb9: return h_1fb9;
-        case 0x2241: return h_2241;
-        case 0x2850: return h_2850;
-        case 0x2877: return h_2877;
-        case 0x831: return h_831;
-        case 0x1fc2: return h_1fc2;
-        case 0x2176: return h_2176;
-        case 0x323c: return h_323c;
-        case 0x3be8: return h_3be8;
-        case 0x3d23: return h_3d23;
-        case 0x3e70: return h_3e70;
-        case 0x3f13: return h_3f13;
-        case 0x298a: return h_298a;
-        case 0x2d37: return h_2d37;
-        case 0x3416: return h_3416;
-        case 0x403a: return h_403a;
-        case 0x55ec: return h_55ec;
-        case 0x62f2: return h_62f2;
-        case 0x6232: return h_6232;
-        case 0x4c92: return h_4c92;
-        case 0x5c8f: return h_5c8f;
-        case 0x4eeb: return h_4eeb;
-        case 0x52e7: return h_52e7;
-        case 0x2f83: return h_2f83;
-        case 0x3a2e: return h_3a2e;
-        case 0x3f6c: return h_3f6c;
-        case 0x2e25: return h_2e25;
-        case 0x4ad3: return h_4ad3;
-        case 0x36b0: return h_36b0;
-        case 0x2acf: return h_2acf;
-        case 0x2bd4: return h_2bd4;
-        case 0x3904: return h_3904;
-        case 0x4145: return h_4145;
-        case 0x47b9: return h_47b9;
-        case 0x32f6: return h_32f6;
-        case 0x4a4b: return h_4a4b;
-        case 0x4a82: return h_4a82;
-        case 0x48fe: return h_48fe;
-        case 0x4fd4: return h_4fd4;
-        case 0x6458: return h_6458;
-        case 0x5855: return h_5855;
-        case 0x5bbe: return h_5bbe;
-        case 0x6681: return h_6681;
-        case 0x672b: return h_672b;
-        case 0x69d3: return h_69d3;
-        case 0x6afa: return h_6afa;
-        case 0x6d31: return h_6d31;
-        case 0x6ff6: return h_6ff6;
-        case 0x70e4: return h_70e4;
-        default:
-            g_unknown_handler_hits++;
-            return h_1fb9;   /* inert fallback */
-    }
 }

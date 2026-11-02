@@ -12,23 +12,23 @@ int cell_solid_at(int32_t x, int32_t y) {
 }
 
 /* 0x1F9A:0x1FB9 (kind 1): pure noop (retf 6). */
-void h_1fb9(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_player_noop(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)o; (void)idx; (void)x; (void)y;
 }
 
-void h_251d(ObjectEntry *o, int idx, int16_t x, int16_t y);
+void h_slash_update(ObjectEntry *o, int idx, int16_t x, int16_t y);
 void load_level(int level, int new_game, int fresh_image,
                        int sound_start);
 void cc_warp_level(int level);
 void load_arg(int arg);
 
 /* 0x1F9A:0x2850 (kind 2): ready gate around the slash update 0x251D. */
-void h_2850(ObjectEntry *o, int idx, int16_t x, int16_t y) {
-    if (o->ready == 0) h_251d(o, idx, x, y);
+void h_attack_gate(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+    if (o->ready == 0) h_slash_update(o, idx, x, y);
 }
 
 /* 0x1F9A:0x2877 (kind 3): transformed-object dissolve animation. */
-void h_2877(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_dissolve(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx; (void)x; (void)y;
     o->phase = (uint16_t)(o->phase + 1u);
     if (o->block == 0x0D) {
@@ -51,7 +51,7 @@ void h_2877(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 
 /* 0x1F9A:0x6FF6 (kind 32): moving hazard/platform.
  * Flips p1e at the x bounds; advances x on even phase frames. */
-void h_6ff6(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_flip_mover(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)x; (void)y;
     g_state.g_512a = (uint16_t)idx;
 
@@ -70,7 +70,7 @@ void h_6ff6(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 
 /* 0x1F9A:0x70E4 (kind 33): partner mover.  It swaps its record with the
  * object last touched by 0x6FF6 at phase==3 and adjusts the partner shape. */
-void h_70e4(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_flip_partner(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)x; (void)y;
     int16_t dx;
     int skip_flip;
@@ -119,7 +119,7 @@ void h_70e4(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x3F13 (kind 60): door/entrance animation. */
-void h_3f13(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_door(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx; (void)x; (void)y;
     o->phase = (uint16_t)(o->phase + 1);
     if (o->phase > 0x7d00) o->phase = 0;
@@ -127,7 +127,7 @@ void h_3f13(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x3D23 (kind 34): two-record door/lever animation. */
-void h_3d23(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_door_lever(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)x; (void)y;
     ObjectEntry *n = (idx + 1 < OBJ_MAX) ? &g_state.obj[idx + 1] : o;
 
@@ -156,7 +156,7 @@ void h_3d23(ObjectEntry *o, int idx, int16_t x, int16_t y) {
 }
 
 /* 0x1F9A:0x6AFA (kind 19): horizontal moving platform. */
-void h_6afa(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_platform_h(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     if (cell_solid_at(x + 3, y + 8) || cell_solid_at(x + 12, y + 8)) {
         o->vx = (int16_t)(-o->vx);
     }
@@ -202,7 +202,7 @@ move:
 }
 
 /* 0x1F9A:0x6D31 (kind 20/0x27): vertical moving platform. */
-void h_6d31(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_platform_v(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     if (cell_solid_at(x + 8, y - 0x14) || cell_solid_at(x + 8, y + 0x10)) {
         o->vy = (int16_t)(-o->vy);
     }
@@ -253,7 +253,7 @@ move:
 }
 
 /* 0x1F9A:0x831 (0x201D1): short-lived pickup/effect object. */
-void h_831(ObjectEntry *o, int idx, int16_t x, int16_t y) {
+void h_pickup_effect(ObjectEntry *o, int idx, int16_t x, int16_t y) {
     (void)idx; (void)x; (void)y;
     if (o->phase > 0x10) o->ready = 1;
     o->phase = (uint16_t)(o->phase + 1);
@@ -395,7 +395,7 @@ void spawn_effect(int16_t shape, int16_t xcell, int16_t ycell) {
     o->kind = 0x2a;
     o->ready = 0;
     o->state = 0;
-    o->handler = 0x831;
+    o->handler = HDL_PICKUP_EFFECT;
     o->handler_seg = 0x1F9A;
 }
 
