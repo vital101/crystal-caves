@@ -28,6 +28,7 @@ FROM nginx:alpine
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
 
 COPY wasm/game.html \
+     wasm/game.js \
      wasm/keymap.js \
      wasm/legend.js \
      wasm/persist.js \
@@ -44,6 +45,7 @@ COPY wasm/game.html \
      wasm/apple-touch-icon.png \
      wasm/social-card.png \
      /srv/
+COPY wasm/game/*.js /srv/game/
 COPY --from=build /src/wasm/render.wasm /srv/render.wasm
 COPY --from=build /src/wasm/assets/ /srv/assets/
 

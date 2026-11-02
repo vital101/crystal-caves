@@ -1,5 +1,10 @@
 # Phase 4 — Structural and build cleanups
 
+Status: **gameplay side implemented** — deterministic wildcard build,
+`ObjectEntry` ownership, per-module gameplay headers, generated-data include
+ownership and the export-stability check.  The remaining follow-up is the
+small `shell_internal.h` umbrella.
+
 ## Goal
 
 Remove the remaining structural friction: generated-header coupling,

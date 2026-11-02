@@ -4,6 +4,7 @@
 /* Generated per-level object images/tables: this loader is the single
  * translation unit that includes the generated data header (Phase 4). */
 #include "objects_data.h"
+#include "startup_data.h"
 
 /* Apply the exact 0xC3E new-game defaults captured in startup_data.h. */
 

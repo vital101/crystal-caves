@@ -1,18 +1,5 @@
 // Phase 5 shell/HUD/text/save regression.
-const fs = require('fs');
-const path = require('path');
-
-const read = (p) => fs.readFileSync(path.join(__dirname, p));
-const wasm = read('render.wasm');
-const gfx = read('assets/gfx.bin');
-const levels = read('assets/levels.bin');
-const cells = read('assets/cells.bin');
-const overlay = read('assets/level_overlay.bin');
-const screens = read('assets/screens.bin');
-const f1 = read('assets/mni_f1.bin');
-const f2 = read('assets/mni_f2.bin');
-const spl = read('assets/mni_spl.bin');
-const pal = JSON.parse(read('assets/palette.json'));
+const { loadGame } = require('./test_helpers.js');
 
 function key(ch) { return typeof ch === 'number' ? ch : ch.charCodeAt(0); }
 
@@ -22,20 +9,7 @@ function assert(cond, msg) {
 }
 
 (async () => {
-  const { instance } = await WebAssembly.instantiate(wasm, {});
-  const e = instance.exports;
-  const mem = () => new Uint8Array(e.memory.buffer);
-  const copy = (b) => { const p = e.cc_alloc(b.length); mem().set(b, p); return p; };
-  const sput = (s) => { const p = e.cc_alloc(s.length + 1); const m = mem(); for (let i = 0; i < s.length; i++) m[p + i] = s.charCodeAt(i); m[p + s.length] = 0; return p; };
-  e.cc_set_assets(copy(gfx), copy(levels));
-  e.cc_set_cells(copy(cells));
-  const ovp = e.cc_alloc(overlay.length); mem().set(overlay, ovp); e.cc_set_level_overlay(ovp);
-  e.cc_set_screens(copy(screens));
-  e.cc_text_set_fonts(copy(f1), copy(f2), copy(spl));
-  const pp = e.cc_alloc(64);
-  const p32 = new Uint32Array(e.memory.buffer, pp, 16);
-  pal.colors.forEach(([r, g, b], i) => { p32[i] = (r << 16) | (g << 8) | b; });
-  e.cc_set_palette(pp);
+  const { e, copyString: sput } = await loadGame();
 
   const nonBlack = () => {
     const fb = e.cc_view_framebuffer();

@@ -1,5 +1,6 @@
 /* Crystal Caves gameplay module - split from wasm/objects.c. */
 #include "game_internal.h"
+#include "cells_data.h"
 
 
 

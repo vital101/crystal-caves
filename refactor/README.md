@@ -1,7 +1,9 @@
 # Crystal Caves C/WASM Refactoring Plan
 
 Status: Phases 0 (safety net), 1 (gameplay split), 2 (shell/text/render
-split) and 3 (readability) are implemented; Phases 4–5 are proposed.  See
+split), 3 (readability), 4 (structural cleanups, gameplay side) and 5 (browser
+JS, tests and docs) are implemented.  The only Phase 4 follow-up left is
+splitting the small `shell_internal.h` umbrella.  See
 [`../notes/refactor_baseline.md`](../notes/refactor_baseline.md) for the
 captured baseline, [`../notes/refactor_map.md`](../notes/refactor_map.md) for
 the implemented module map and [`../wasm/ARCHITECTURE.md`](../wasm/ARCHITECTURE.md)
@@ -23,8 +25,9 @@ This directory contains the refactoring plan split by phase:
 Phase 1 is implemented as a mechanical split of `wasm/objects.c` into
 `wasm/game/*.c` modules with a shared `game_internal.h` umbrella header.  The
 split preserves the `cc_state_t` layout, the public wasm export names and the
-original-address comments.  `wasm/objects.c` is removed; all 46 handlers remain
-reachable through `handler_for()` in `game/handlers_table.c`.
+original-address comments.  `wasm/objects.c` is removed; all 46 handler
+behaviours (49 dispatch offsets) remain reachable through `handler_for()` in
+`game/handlers_table.c`.
 
 Verification at the Phase 1 milestone:
 
@@ -34,10 +37,9 @@ Verification at the Phase 1 milestone:
   163,796-byte `render.wasm` against the 524,288-byte cap.
 - No public wasm export name changed.
 
-Known follow-ups (deferred to later phases by design): the umbrella header is
-still shared by every gameplay module (Phase 4 replaces it with per-module
-headers); the Phase 3 splits resolved the long functions, and Phase 4 should
-review the remaining umbrella/ownership boundaries.
+Known follow-ups (deferred to later phases by design): the umbrella header was
+later split into per-module headers by Phase 4; the Phase 3 splits resolved the
+long functions.
 
 Phase 2 is implemented the same way: `wasm/shell.c`, `wasm/text.c` and
 `wasm/render.c` moved to their directories in path-only commits, then split
@@ -86,6 +88,39 @@ Verification at the Phase 3 milestone:
   `make test-render-digest` (155) match their committed goldens.
 - `make perf` reports ~0.88 ms per level frame (57.1 ms budget) and a
   161,656-byte `render.wasm`; `make test-browser` passes.
+
+Phase 4 (structural cleanups) is implemented for the gameplay side:
+
+- `f9acf6d` replaced the hand-maintained clang/emcc source lists with
+  deterministic wildcard lists and per-file objects plus `-MMD -MP` depfiles.
+- `db966ba` moved `ObjectEntry` to hand-written `game/object.h`; the generated
+  `objects_data.h` is now data only and is included by `game/level.c`.
+- `game_internal.h` is now a small aggregator over per-module headers
+  (`state.h`, `math.h`, `cell_ops.h`, `object_ops.h`, `physics.h`, `combat.h`,
+  `cell_event.h`, `handlers.h`, `level.h`, `update.h`, `save.h`, `rng.h`,
+  `sound_ops.h`).  `cells_data.h` is included by `state.c`/`api_accessors.c`;
+  `startup_data.h` by `level.c`/`physics.c`/`handlers_actors_a.c`.
+- `make test-exports` compares the built module against the Makefile
+  `EXPORTS` list (184 exports).
+- Remaining follow-up: split `shell_internal.h` the same way.  Optional
+  hardening ideas remain in [phase-4-structural-cleanups.md](phase-4-structural-cleanups.md).
+
+Phase 5 (browser JS, tests and docs) is implemented:
+
+- The ~507-line inline script moved out of `wasm/game.html` into `wasm/game.js`
+  plus `game/render.js`, `game/input.js` and `game/requests.js`; `game.html` is
+  now markup, styles and script tags.  `window.__cc` and
+  `browser_expectations.json` are unchanged and `make test-browser` passes.
+- `wasm/test_helpers.js` provides the shared load/asset/state/assertion helpers;
+  `test_persist.js` and `test_browser.js` use it, as do the large shell/text
+  harnesses and `test_refactor_digest.js` where the duplication was real.
+  Every test still runs alone.
+- Public JS entry points in `persist.js`, `keymap.js`, `touch.js`, `audio.js`
+  and `sound_synth.js` have JSDoc; `persist.js` remains one cohesive module.
+- `wasm/ARCHITECTURE.md` is complete (layers, module map, state/save invariants,
+  traceability, handler/cell tables, extension recipes, test ladder and digest
+  procedure), and `AGENTS.md` carries the short conventions.
+- No bundler was added: the plain ordered scripts are deliberate.
 
 ## Why this plan exists
 
@@ -199,6 +234,7 @@ milestone.
 
 | Change area | Minimum tests |
 |---|---|
+| Build / public API | `make test-exports` |
 | Gameplay core | `make test-digest test-handlers test-caves test-cells test-combat test-physics test-loader` |
 | Shell | `make test-shell test-shell-flow test-menus test-hud test-text test-persist` |
 | Rendering | `make test-render-all test-view test-caves test-browser` |

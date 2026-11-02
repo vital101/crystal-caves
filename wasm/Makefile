@@ -145,6 +145,10 @@ test-render-all: clang
 test-data:
 	$(PYTHON) ../tools/check_oracle.py
 
+# Phase 4: the built module must expose exactly the Makefile EXPORTS list.
+test-exports: clang
+	node test_exports.js
+
 test-objects: clang
 	node test_objects.js
 
@@ -336,11 +340,11 @@ test-oracle-objects: clang
 	$(PYTHON) ../tools/emulate_game.py 3 120 --json > oracle_level3.json
 	node test_oracle_objects.js oracle_level3.json
 
-test-all: test-data test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat test-handlers test-loader test-caves test-cells test-digest test-hud test-messages test-text test-menus test-shell test-shell-flow test-cursor test-persist test-exactness test-sound
+test-all: test-data test-exports test-render-all test-view test-objects test-gameplay test-integration test-physics test-combat test-handlers test-loader test-caves test-cells test-digest test-hud test-messages test-text test-menus test-shell test-shell-flow test-cursor test-persist test-exactness test-sound
 # NOTE: test-keymap is already run by test-exactness; keep it as its own target.
 
 clean:
 	rm -f $(OUT) app.js app.wasm app.d out_wasm_level*.png oracle_level*.json
 	rm -rf obj
 
-.PHONY: clang emcc assets favicon social-card data startup test test-render-all test-data test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-oracle-menus test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update test-digest test-digest-update test-render-digest render-digest-update lint lint-strict perf test-all clean
+.PHONY: clang emcc assets favicon social-card data startup test test-render-all test-data test-exports test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-oracle-menus test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update test-digest test-digest-update test-render-digest render-digest-update lint lint-strict perf test-all clean

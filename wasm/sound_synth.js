@@ -14,10 +14,12 @@
   const TICK_DIVISOR = 0x2147;
   const AMPLITUDE = 12000;
 
+  /** @returns {number} samples produced by a trace at sampleRate. */
   function sampleCount(trace, sampleRate) {
     return Math.floor(trace.length * sampleRate * TICK_DIVISOR / PIT_HZ);
   }
 
+  /** Render a tick trace to signed 16-bit samples (exact integer reference). */
   function renderInt16(trace, sampleRate, amplitude) {
     amplitude = amplitude === undefined ? AMPLITUDE : amplitude;
     const total = sampleCount(trace, sampleRate);
@@ -42,6 +44,7 @@
     return out;
   }
 
+  /** Render a tick trace to WebAudio-compatible Float32 samples. */
   function renderFloat(trace, sampleRate, amplitude) {
     const src = renderInt16(trace, sampleRate, amplitude);
     const out = new Float32Array(src.length);

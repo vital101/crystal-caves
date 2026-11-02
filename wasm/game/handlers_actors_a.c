@@ -1,5 +1,6 @@
 /* Crystal Caves gameplay module - split from wasm/objects.c. */
 #include "game_internal.h"
+#include "startup_data.h"
 
 /* 0x6681 (entry 0x26021): cell-erase effect; only y changes. */
 void h_cell_erase(ObjectEntry *o, int idx, int16_t x, int16_t y) {

@@ -40,6 +40,7 @@
     return dflt;
   }
 
+  /** @returns {object} the original CC1.CFG-equivalent defaults. */
   function defaultConfig() {
     return {
       version: 2,
@@ -50,6 +51,7 @@
     };
   }
 
+  /** Validate a stored config; unknown/future/malformed fields fall back. */
   function normalizeConfig(raw) {
     const cfg = defaultConfig();
     if (!isObject(raw)) return cfg;
@@ -69,6 +71,7 @@
     return cfg;
   }
 
+  /** Load config, migrating the legacy browser-keyCode document if needed. */
   function loadConfig(storage) {
     let raw = null;
     try {
@@ -94,6 +97,7 @@
     return defaultConfig();
   }
 
+  /** Persist a config after normalisation. @returns {boolean} success. */
   function saveConfig(storage, cfg) {
     const norm = normalizeConfig(cfg);
     try {
@@ -104,6 +108,7 @@
     }
   }
 
+  /** Clamp a high-score name to printable ASCII, 20 characters max. */
   function sanitizeName(s) {
     if (typeof s !== 'string') return null;
     let out = '';
@@ -129,6 +134,7 @@
     return s;
   }
 
+  /** Write the live ten-row high-score table to localStorage. */
   function saveHighScores(storage, e) {
     const arr = [];
     for (let i = 0; i < HS_COUNT; i++) {
@@ -145,6 +151,10 @@
     }
   }
 
+  /**
+   * Load the high-score table; a missing/corrupt table is replaced by the
+   * original CC1.HS defaults (all-or-nothing, like the DOS file).
+   */
   function loadHighScores(storage, e, copyString) {
     let arr = null;
     try {
@@ -188,6 +198,7 @@
     return out;
   }
 
+  /** Save one 0-9 slot as base64 of the versioned state image. */
   function saveSlot(storage, slot, e, stateP, stateSize, mem) {
     if (!isInt(slot, 0, 9) || !stateP || stateSize <= 0) return false;
     const n = e.cc_state_save(stateP, stateSize);
@@ -201,6 +212,10 @@
     }
   }
 
+  /**
+   * Load one 0-9 slot after validating its length; hubOnly enforces the
+   * original "save from the hub only" restriction.
+   */
   function loadSlot(storage, slot, e, stateP, stateSize, mem, hubOnly) {
     if (!isInt(slot, 0, 9) || !stateP || stateSize <= 0) return false;
     let raw = null;

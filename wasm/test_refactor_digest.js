@@ -15,6 +15,9 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const {
+  read, loadAssets, bindMemory, copyAssets
+} = require('./test_helpers.js');
 
 const DIR = __dirname;
 const ROOT = path.join(DIR, '..');
@@ -28,7 +31,6 @@ const TEX_H = 400;
 const STATE_FRAMES = 480;      // 8 phases x 60 frames
 const SNAPSHOT_EVERY = 10;
 
-const read = (p) => fs.readFileSync(path.join(DIR, p));
 const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
 
 // Deterministic input schedule: idle, walk, jump, fire, reverse.
@@ -61,43 +63,15 @@ function levelName(level) { return `level${String(level).padStart(2, '0')}`; }
 
 let wasmModule;
 const wasmBytes = read('render.wasm');
-const assets = {
-  gfx: read('assets/gfx.bin'),
-  levels: read('assets/levels.bin'),
-  cells: read('assets/cells.bin'),
-  overlay: read('assets/level_overlay.bin'),
-  screens: read('assets/screens.bin'),
-  f1: read('assets/mni_f1.bin'),
-  f2: read('assets/mni_f2.bin'),
-  spl: read('assets/mni_spl.bin'),
-  palette: JSON.parse(read('assets/palette.json').toString('utf8')),
-};
+const assets = loadAssets();
 
 // Instantiate a fresh game and wire the portable assets.  Each scenario group
 // calls boot() so state cannot leak between groups.
 function boot() {
   const instance = new WebAssembly.Instance(wasmModule);
   const e = instance.exports;
-  const mem = () => new Uint8Array(e.memory.buffer);
-  const copy = (b) => {
-    const p = e.cc_alloc(b.length);
-    if (!p) throw new Error(`asset allocation failed (${b.length} bytes)`);
-    mem().set(b, p);
-    return p;
-  };
-
-  e.cc_set_assets(copy(assets.gfx), copy(assets.levels));
-  e.cc_set_cells(copy(assets.cells));
-  e.cc_set_level_overlay(copy(assets.overlay));
-  e.cc_set_screens(copy(assets.screens));
-  e.cc_text_set_fonts(copy(assets.f1), copy(assets.f2), copy(assets.spl));
-
-  const palP = e.cc_alloc(64);
-  const p32 = new Uint32Array(e.memory.buffer, palP, 16);
-  assets.palette.colors.forEach(([r, g, b], i) => {
-    p32[i] = (r << 16) | (g << 8) | b;
-  });
-  e.cc_set_palette(palP);
+  const { mem, copy, copyString } = bindMemory(e);
+  copyAssets(e, copy, assets);
 
   e.cc_sound_init();
   e.cc_sound_set_enabled(0);
@@ -106,14 +80,6 @@ function boot() {
   const stateSize = e.cc_state_size();
   const stateP = e.cc_alloc(stateSize);
   const loadP = e.cc_alloc(stateSize);
-
-  function copyString(s) {
-    const p = e.cc_alloc(s.length + 1);
-    const m = mem();
-    for (let i = 0; i < s.length; i++) m[p + i] = s.charCodeAt(i);
-    m[p + s.length] = 0;
-    return p;
-  }
 
   function stateBytes() {
     const n = e.cc_state_save(stateP, stateSize);

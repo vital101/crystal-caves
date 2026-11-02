@@ -80,13 +80,10 @@ def main():
         "#ifndef CELLS_DATA_H",
         "#define CELLS_DATA_H",
         "",
-        "#include <stdint.h>",
+        "#include \"game/cell.h\"",
         "",
         "/* Cell flags, bit-packed per row: bit col set => cell (col,row) has flag. */",
         "/* byte offset 0x11 = solid (0x13 = exit), runtime 20-byte cell record. */",
-        "#define CELL_COLS 40",
-        "#define CELL_ROWS 25",
-        "#define CELL_LEVELS 19",
         "",
     ]
     lines += emit_table("g_cell_solid", levels_solid)

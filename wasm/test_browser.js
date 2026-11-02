@@ -14,14 +14,14 @@
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
+const { createAsserts, readJson } = require('./test_helpers.js');
 
 const ROOT = __dirname;
 const UPDATE = process.argv.includes('--update');
 const EXPECT_FILE = path.join(ROOT, 'browser_expectations.json');
 // Message block ids come from the exported text table so inserting blocks
 // cannot silently shift the expected id (same derivation as test_messages.js).
-const blockTable = JSON.parse(
-  fs.readFileSync(path.join(ROOT, '..', 'out', 'portable', 'shell_text.json')));
+const blockTable = readJson('../out/portable/shell_text.json');
 const BLOCK = {};
 blockTable.blocks.forEach((b, i) => { BLOCK[b.id] = i; });
 const MIME = {
@@ -41,16 +41,9 @@ try {
   process.exit(0);
 }
 
-let failures = 0;
+const asserts = createAsserts();
+const check = asserts.check;
 const seen = {};
-function check(cond, msg) {
-  if (cond) {
-    console.log('PASS', msg);
-  } else {
-    failures++;
-    console.error('FAIL', msg);
-  }
-}
 
 function startServer() {
   const server = http.createServer((req, res) => {
@@ -536,8 +529,8 @@ function startServer() {
     server.close();
   }
 
-  if (failures) {
-    console.error(`\n${failures} browser smoke check(s) failed`);
+  if (asserts.failures) {
+    console.error(`\n${asserts.failures} browser smoke check(s) failed`);
     process.exit(1);
   }
   if (UPDATE) {

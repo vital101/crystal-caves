@@ -177,11 +177,12 @@ The repo ships a `Dockerfile` that builds the wasm module with Debian
 `clang`/`lld` and serves it from `nginx:alpine`.  This is the **production**
 image — small, no toolchain, no test data; `docker/Dockerfile.dev` is the
 separate development toolchain image described in
-[Develop in Docker](#develop-in-docker-any-platform).  Only `game.html`, its four
-JS adapters, the favicon set, the link-preview card, `render.wasm` and
-`assets/` are copied into the runtime image; no toolchain, test data or
-original EXE is present in the result.  That is about 1.6 MB of game files on
-top of `nginx:alpine` (≈65 MB total).
+[Develop in Docker](#develop-in-docker-any-platform).  Only `game.html`, its
+browser scripts (`game.js` plus `game/*.js` and the small adapters), the
+favicon set, the link-preview card, `render.wasm` and `assets/` are copied into
+the runtime image; no toolchain, test data or original EXE is present in the
+result.  That is about 1.6 MB of game files on top of `nginx:alpine` (≈65 MB
+total).
 
 Dokku auto-detects the root `Dockerfile` and needs no ports configured: the
 image exposes `80`, so the host's nginx proxies straight to it.
@@ -215,10 +216,11 @@ Run from `wasm/`:
 
 ```sh
 make test-all           # full committed-fixture regression suite
+make test-exports       # built wasm exports match the Makefile EXPORTS list
 make test-digest        # golden-master state/view/sound digests
 make test-browser       # headless Chromium smoke test (Playwright)
 make perf               # wasm size + frame-budget measurement
-make lint               # source-size guardrail (warning-only in Phase 0)
+make lint               # source-size guardrail report (`lint-strict` fails)
 ```
 
 On a host without the toolchain installed, the same targets run in the dev
@@ -280,8 +282,8 @@ Actions (Forgejo reads `.github/workflows` directly). The workflow has no
 Authorized Integrations, while the jobs only need the default read token:
 
 - **build + deterministic suite** — apt `clang`/`lld`, `make clang`,
-  `make test-all`, `make lint` (warning-only until the Phase 1/2 split), then
-  wasm size and frame budget in the job summary;
+  `make test-all`, `make lint-strict`, then wasm size and frame budget in the
+  job summary;
 - **headless browser smoke** — `npm ci`, Playwright Chromium,
   `make test-browser`;
 - **oracle regeneration** — manual `workflow_dispatch` job with

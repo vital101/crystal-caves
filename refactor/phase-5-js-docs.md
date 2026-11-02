@@ -1,5 +1,9 @@
 # Phase 5 — Browser JS, tests and final documentation
 
+Status: **implemented** — inline script extracted, shared test helpers added,
+public JS JSDoc added, architecture/refactor docs completed, and the browser
+smoke test passes with the existing expectations.
+
 ## Goal
 
 Finish the cleanup outside the C core and leave the project with clear,
