@@ -1,43 +1,179 @@
 /* Crystal Caves gameplay module - split from wasm/objects.c. */
 #include "game_internal.h"
 
-/* Generic DS-offset access for the captured gameplay globals. */
+/*
+ * Generic DS-offset access for the captured gameplay globals.
+ *
+ * Each row is one observable scalar: DS word offset (as the JS harnesses
+ * address it), the cc_state_t field that mirrors it, and the read/write
+ * widths the original stores use (byte fields are masked to 8 bits, words
+ * keep 16; a few fields read back signed).  Order and duplicates mirror the
+ * original switch arms; cave_flags (DS 0x50A8..0x50B8) are the only
+ * range-mapped group and stay handled separately.
+ */
+typedef struct GlobalField {
+    uint16_t off;
+    unsigned long field;
+    unsigned char sgn;  /* read back sign-extended (int16_t fields) */
+    unsigned char wide; /* word store (matches a >= 2-byte state field) */
+} GlobalField;
+
+#define GF(off, field, sgn)                                            \
+    { off, CC_OFFSETOF(cc_state_t, field), sgn,                        \
+      sizeof(((cc_state_t *)0)->field) >= 2 }
+
+/* Rows mirror the original switch arms in order.  The byte-vs-word store
+ * width comes from the cc_state_t field itself, so it cannot drift. */
+static const GlobalField g_global_fields[] = {
+    GF(0xA0F1, blocked_l, 0),
+    GF(0xA0F2, blocked_r, 0),
+    GF(0xA0F6, interaction_lock, 0),
+    GF(0xA0F8, a0f8, 0),
+    GF(0xA0FC, g_a0fc, 0),
+    GF(0xA0FD, airborne, 0),
+    GF(0xA0EA, invuln_timer, 0),
+    GF(0xA0B4, walk_phase, 0),
+    GF(0xA0B8, g_a0b8, 0),
+    GF(0x02BA, walk_speed, 0),
+    GF(0x02CC, g_2cc, 0),
+    GF(0x02CE, g_2ce, 0),
+    GF(0x02D4, g_2d4, 0),
+    GF(0x02D6, g_2d6, 0),
+    GF(0x02D8, g_2d8, 0),
+    GF(0x02FA, g_2fa, 0),
+    GF(0x02FC, g_2fc, 0),
+    GF(0x02FE, g_2fe, 0),
+    GF(0x02CA, impulse, 0),
+    GF(0x02C8, c8, 0),
+    GF(0x02C6, c6, 0),
+    GF(0x02E0, cooldown, 0),
+    GF(0x0260, g_260, 0),
+    GF(0x50DC, g_50dc, 0),
+    GF(0x50DE, g_50de, 0),
+    GF(0x50E0, g_50e0, 0),
+    GF(0xA0F0, g_a0f0, 0),
+    GF(0xA0FA, g_a0fa, 0),
+    GF(0x0306, jump_flag, 0),
+    GF(0x030A, anim_suppress, 0),
+    GF(0x030B, status_30b, 0),
+    GF(0x030C, paused_30c, 0),
+    GF(0x5118, carry_x_delta, 0),
+    GF(0x5126, scroll_x_accum, 0),
+    GF(0x5128, carry_y_delta, 0),
+    GF(0x5124, death_state, 0),
+    GF(0x512E, cam_x, 1),
+    GF(0x5130, cam_y, 1),
+    GF(0x5132, gravity_scale, 1),
+    GF(0x5134, jump_phase, 0),
+    GF(0x513C, interaction_enabled, 0),
+    GF(0x513D, riding_horizontal, 0),
+    GF(0x5140, interaction_suppressed, 0),
+    GF(0x5142, riding_vertical, 0),
+    GF(0x509C, ammo, 0),
+    GF(0x509E, health, 0),
+    GF(0x02A6, rng_lo, 0),
+    GF(0x02A8, rng_hi, 0),
+    GF(0x02DA, fire_impulse, 0),
+    GF(0x02F2, g_2f2, 0),
+    GF(0x02B8, g_2b8, 0),
+    GF(0x2B5E, restart_timer, 0),
+    GF(0x2B5C, text_scroll, 1),
+    GF(0x511E, g_511e, 0),
+    GF(0x5122, g_5122, 0),
+    GF(0x50A5, score_lo, 0),
+    GF(0x50A7, score_hi, 0),
+    GF(0x50A0, checkpoint_50a0, 0),
+    GF(0x50BE, checkpoint_50be, 0),
+    GF(0x50C4, checkpoint_50c4, 0),
+    GF(0x50C7, checkpoint_50c7, 0),
+    GF(0x50C9, checkpoint_50c9, 0),
+    GF(0xA0FF, power_shot_active, 0),
+    GF(0xA0C4, power_timer, 0),
+    GF(0xA0CC, crystals_remaining, 0),
+    GF(0x50A2, crystals_collected, 0),
+    GF(0xA0F5, exit_unlocked, 0),
+    GF(0xA0F7, hub_door_active, 0),
+    GF(0xA0F9, switch_latch, 0),
+    GF(0xA0F3, lever_state, 0),
+    GF(0xA0FB, all_caves_complete, 0),
+    GF(0xA126, story_transition, 0),
+    GF(0xA10B, collectible_spawn_active, 0),
+    GF(0xA10A, suppress_base_stamp, 0),
+    GF(0xA0E8, switch_repeat, 0),
+    GF(0xA0D0, spawn_cell_x, 0),
+    GF(0xA0D2, spawn_cell_y, 0),
+    GF(0xA0D4, switch_a_col, 0),
+    GF(0xA0D6, switch_a_row, 0),
+    GF(0xA0D8, switch_b_col, 0),
+    GF(0xA0DA, switch_b_row, 0),
+    GF(0xA0DC, switch_c_col, 0),
+    GF(0xA0DE, switch_c_row, 0),
+    GF(0xA0CE, collectible_spawn_timer, 0),
+    GF(0xA0C2, power_shot_timer_preset, 0),
+    GF(0xA0C8, gravity_timer_preset, 0),
+    GF(0xA0CA, red_mushroom_timer_preset, 0),
+    GF(0xA0E4, stun_timer_preset, 0),
+    GF(0xA0C6, power_subtimer, 0),
+    GF(0xA0E0, exit_col, 0),
+    GF(0xA0E2, exit_row, 0),
+    GF(0xA0E6, exit_step, 0),
+    GF(0xA0BE, next_level, 0),
+    GF(0xA100, g_a100, 0),
+    GF(0xA101, g_a101, 0),
+    GF(0xA102, g_a102, 0),
+    GF(0xA104, g_a104, 0),
+    GF(0xA105, g_a105, 0),
+    GF(0xA106, g_a106, 0),
+    GF(0xA107, g_a107, 0),
+    GF(0xA108, g_a108, 0),
+    GF(0xA109, g_a109, 0),
+    GF(0xA10D, g_a10d, 0),
+    GF(0xA0F4, g_a0f4, 0),
+    GF(0x3392, g_3392, 0),
+    GF(0x3395, g_3395, 0),
+    GF(0x3396, g_3396, 0),
+};
+
+static const GlobalField *global_field(uint16_t off) {
+    for (unsigned i = 0; i < sizeof g_global_fields / sizeof g_global_fields[0]; ++i)
+        if (g_global_fields[i].off == off)
+            return &g_global_fields[i];
+    return 0;
+}
+
+/* Row semantics:
+ *  - read: `wide` rows fetch the DS word (16-bit, `sgn` fields sign-extended);
+ *    the others fetch the single byte, matching the byte-typed state fields
+ *    the original switch arms returned.
+ *  - write: `wide` rows store the full word (word stores), the others are
+ *    byte stores (mov byte [off], al) touching only the low byte.
+ * Byte/word rows mirror the original store widths; when renaming a field
+ * keep the width that the original memory had at that DS offset. */
+static int global_read(const GlobalField *f) {
+    const unsigned char *p = (const unsigned char *)&g_state + f->field;
+    unsigned v = (unsigned)p[0];
+    if (f->wide)
+        v |= (unsigned)p[1] << 8;
+    return f->sgn ? (int)(int16_t)v : (int)v;
+}
+
+static void global_write(const GlobalField *f, int32_t v) {
+    unsigned char *p = (unsigned char *)&g_state + f->field;
+    p[0] = (unsigned char)v;
+    if (f->wide)
+        p[1] = (unsigned char)(v >> 8);
+}
+
+/* Arms the table cannot express: DS aliases that mirror into the player
+ * object image (0x4611..0x4629) and the attack slot (0x4660/0x4652), plus
+ * the 0x460D object byte.  Everything else is a g_global_fields row. */
 int32_t cc_global_get(int off) {
+    const GlobalField *f = global_field((uint16_t)(off & 0xFFFF));
+    if (f)
+        return global_read(f);
     switch (off & 0xFFFF) {
         case 0x4611: return (int16_t)g_state.player_x;
         case 0x4613: return (int16_t)g_state.player_y;
-        case 0xA0F1: return g_state.blocked_l;
-        case 0xA0F2: return g_state.blocked_r;
-        case 0xA0F6: return g_state.interaction_lock;
-        case 0xA0F8: return g_state.a0f8;
-        case 0xA0FC: return g_state.g_a0fc;
-        case 0xA0FD: return g_state.airborne;
-        case 0xA0EA: return g_state.invuln_timer;
-        case 0xA0B4: return g_state.walk_phase;
-        case 0xA0B8: return g_state.g_a0b8;
-        case 0x02BA: return g_state.walk_speed;
-        case 0x02CC: return g_state.g_2cc;
-        case 0x02CE: return g_state.g_2ce;
-        case 0x02D4: return g_state.g_2d4;
-        case 0x02D6: return g_state.g_2d6;
-        case 0x02D8: return g_state.g_2d8;
-        case 0x02FA: return g_state.g_2fa;
-        case 0x02FC: return g_state.g_2fc;
-        case 0x02FE: return g_state.g_2fe;
-        case 0x02CA: return g_state.impulse;
-        case 0x02C8: return g_state.c8;
-        case 0x02C6: return g_state.c6;
-        case 0x02E0: return g_state.cooldown;
-        case 0x0260: return g_state.g_260;
-        case 0x50DC: return g_state.g_50dc;
-        case 0x50DE: return g_state.g_50de;
-        case 0x50E0: return g_state.g_50e0;
-        case 0xA0F0: return g_state.g_a0f0;
-        case 0xA0FA: return g_state.g_a0fa;
-        case 0x0306: return g_state.jump_flag;
-        case 0x030A: return g_state.anim_suppress;
-        case 0x030B: return g_state.status_30b;
-        case 0x030C: return g_state.paused_30c;
         case 0x461B: return g_state.anim_timer;
         case 0x461D: return g_state.shape_b;
         case 0x461F: return g_state.shape_a;
@@ -45,83 +181,8 @@ int32_t cc_global_get(int off) {
         case 0x4627: return g_state.shape_player;
         case 0x4629: return g_state.move_dir;
         case 0x460D: return g_state.obj[1].hit_flag;
-        case 0x5118: return g_state.carry_x_delta;
-        case 0x5126: return g_state.scroll_x_accum;
-        case 0x5128: return g_state.carry_y_delta;
-        case 0x5124: return g_state.death_state;
-        case 0x512E: return (int16_t)g_state.cam_x;
-        case 0x5130: return (int16_t)g_state.cam_y;
-        case 0x5132: return g_state.gravity_scale;
-        case 0x5134: return g_state.jump_phase;
-        case 0x513C: return g_state.interaction_enabled;
-        case 0x513D: return g_state.riding_horizontal;
-        case 0x5140: return g_state.interaction_suppressed;
-        case 0x5142: return g_state.riding_vertical;
-        case 0x509C: return g_state.ammo;
-        case 0x509E: return g_state.health;
         case 0x4660: return g_state.obj[2].ready;
         case 0x4652: return g_state.obj[2].subtype;
-        case 0x02A6: return g_state.rng_lo;
-        case 0x02A8: return g_state.rng_hi;
-        case 0x02DA: return g_state.fire_impulse;
-        case 0x02F2: return g_state.g_2f2;
-        case 0x02B8: return g_state.g_2b8;
-        case 0x2B5E: return g_state.restart_timer;
-        case 0x2B5C: return (int16_t)g_state.text_scroll;
-        case 0x511E: return g_state.g_511e;
-        case 0x5122: return g_state.g_5122;
-        case 0x50A5: return g_state.score_lo;
-        case 0x50A7: return g_state.score_hi;
-        case 0x50A0: return g_state.checkpoint_50a0;
-        case 0x50BE: return g_state.checkpoint_50be;
-        case 0x50C4: return g_state.checkpoint_50c4;
-        case 0x50C7: return g_state.checkpoint_50c7;
-        case 0x50C9: return g_state.checkpoint_50c9;
-        case 0xA0FF: return g_state.power_shot_active;
-        case 0xA0C4: return g_state.power_timer;
-        case 0xA0CC: return g_state.crystals_remaining;
-        case 0x50A2: return g_state.crystals_collected;
-        case 0xA0F5: return g_state.exit_unlocked;
-        case 0xA0F7: return g_state.hub_door_active;
-        case 0xA0F9: return g_state.switch_latch;
-        case 0xA0F3: return g_state.lever_state;
-        case 0xA0FB: return g_state.all_caves_complete;
-        case 0xA126: return g_state.story_transition;
-        case 0xA10B: return g_state.collectible_spawn_active;
-        case 0xA10A: return g_state.suppress_base_stamp;
-        case 0xA0E8: return g_state.switch_repeat;
-        case 0xA0D0: return g_state.spawn_cell_x;
-        case 0xA0D2: return g_state.spawn_cell_y;
-        case 0xA0D4: return g_state.switch_a_col;
-        case 0xA0D6: return g_state.switch_a_row;
-        case 0xA0D8: return g_state.switch_b_col;
-        case 0xA0DA: return g_state.switch_b_row;
-        case 0xA0DC: return g_state.switch_c_col;
-        case 0xA0DE: return g_state.switch_c_row;
-        case 0xA0CE: return g_state.collectible_spawn_timer;
-        case 0xA0C2: return g_state.power_shot_timer_preset;
-        case 0xA0C8: return g_state.gravity_timer_preset;
-        case 0xA0CA: return g_state.red_mushroom_timer_preset;
-        case 0xA0E4: return g_state.stun_timer_preset;
-        case 0xA0C6: return g_state.power_subtimer;
-        case 0xA0E0: return (uint16_t)g_state.exit_col;
-        case 0xA0E2: return (uint16_t)g_state.exit_row;
-        case 0xA0E6: return g_state.exit_step;
-        case 0xA0BE: return (uint16_t)g_state.next_level;
-        case 0xA100: return g_state.g_a100;
-        case 0xA101: return g_state.g_a101;
-        case 0xA102: return g_state.g_a102;
-        case 0xA104: return g_state.g_a104;
-        case 0xA105: return g_state.g_a105;
-        case 0xA106: return g_state.g_a106;
-        case 0xA107: return g_state.g_a107;
-        case 0xA108: return g_state.g_a108;
-        case 0xA109: return g_state.g_a109;
-        case 0xA10D: return g_state.g_a10d;
-        case 0xA0F4: return g_state.g_a0f4;
-        case 0x3392: return g_state.g_3392;
-        case 0x3395: return g_state.g_3395;
-        case 0x3396: return g_state.g_3396;
         default:
             if ((off & 0xFFFF) >= 0x50A8 && (off & 0xFFFF) <= 0x50B8)
                 return cave_flag_get((off & 0xFFFF) - 0x50A8);
@@ -129,41 +190,14 @@ int32_t cc_global_get(int off) {
     }
 }
 void cc_global_set(int off, int32_t v) {
+    const GlobalField *f = global_field((uint16_t)(off & 0xFFFF));
+    if (f) {
+        global_write(f, v);
+        return;
+    }
     switch (off & 0xFFFF) {
         case 0x4611: g_state.player_x = (int16_t)v; g_state.obj[1].x = (int16_t)v; break;
         case 0x4613: g_state.player_y = (int16_t)v; g_state.obj[1].y = (int16_t)v; break;
-        case 0xA0F1: g_state.blocked_l = (uint8_t)v; break;
-        case 0xA0F2: g_state.blocked_r = (uint8_t)v; break;
-        case 0xA0F6: g_state.interaction_lock = (uint8_t)v; break;
-        case 0xA0F8: g_state.a0f8 = (uint8_t)v; break;
-        case 0xA0FC: g_state.g_a0fc = (uint8_t)v; break;
-        case 0xA0FD: g_state.airborne = (uint8_t)v; break;
-        case 0xA0EA: g_state.invuln_timer = (uint16_t)v; break;
-        case 0xA0B4: g_state.walk_phase = (uint16_t)v; break;
-        case 0xA0B8: g_state.g_a0b8 = (uint16_t)v; break;
-        case 0x02BA: g_state.walk_speed = (uint16_t)v; break;
-        case 0x02CC: g_state.g_2cc = (uint16_t)v; break;
-        case 0x02CE: g_state.g_2ce = (uint16_t)v; break;
-        case 0x02D4: g_state.g_2d4 = (uint16_t)v; break;
-        case 0x02D6: g_state.g_2d6 = (uint16_t)v; break;
-        case 0x02D8: g_state.g_2d8 = (uint16_t)v; break;
-        case 0x02FA: g_state.g_2fa = (uint16_t)v; break;
-        case 0x02FC: g_state.g_2fc = (uint16_t)v; break;
-        case 0x02FE: g_state.g_2fe = (uint16_t)v; break;
-        case 0x02CA: g_state.impulse = (uint16_t)v; break;
-        case 0x02C8: g_state.c8 = (uint16_t)v; break;
-        case 0x02C6: g_state.c6 = (uint16_t)v; break;
-        case 0x02E0: g_state.cooldown = (uint16_t)v; break;
-        case 0x0260: g_state.g_260 = (uint16_t)v; break;
-        case 0x50DC: g_state.g_50dc = (uint16_t)v; break;
-        case 0x50DE: g_state.g_50de = (uint16_t)v; break;
-        case 0x50E0: g_state.g_50e0 = (uint16_t)v; break;
-        case 0xA0F0: g_state.g_a0f0 = (uint8_t)v; break;
-        case 0xA0FA: g_state.g_a0fa = (uint8_t)v; break;
-        case 0x0306: g_state.jump_flag = (uint8_t)v; break;
-        case 0x030A: g_state.anim_suppress = (uint8_t)v; break;
-        case 0x030B: g_state.status_30b = (uint8_t)v; break;
-        case 0x030C: g_state.paused_30c = (uint8_t)v; break;
         case 0x461B: g_state.anim_timer = (uint16_t)v; g_state.obj[1].anim_frame = (uint16_t)v; break;
         case 0x461D: g_state.shape_b = (uint16_t)v; g_state.obj[1].anim_shape_a = (uint16_t)v; break;
         case 0x461F: g_state.shape_a = (uint16_t)v; g_state.obj[1].anim_shape_b = (uint16_t)v; break;
@@ -171,83 +205,8 @@ void cc_global_set(int off, int32_t v) {
         case 0x4627: g_state.shape_player = (uint16_t)v; g_state.obj[1].shape = (uint16_t)v; break;
         case 0x4629: g_state.move_dir = (uint16_t)v; g_state.obj[1].vx = (int16_t)v; break;
         case 0x460D: g_state.obj[1].hit_flag = (uint16_t)v; break;
-        case 0x5118: g_state.carry_x_delta = (uint16_t)v; break;
-        case 0x5126: g_state.scroll_x_accum = (uint16_t)v; break;
-        case 0x5128: g_state.carry_y_delta = (uint16_t)v; break;
-        case 0x5124: g_state.death_state = (uint16_t)v; break;
-        case 0x512E: g_state.cam_x = (int16_t)v; break;
-        case 0x5130: g_state.cam_y = (int16_t)v; break;
-        case 0x5132: g_state.gravity_scale = (int16_t)v; break;
-        case 0x5134: g_state.jump_phase = (uint16_t)v; break;
-        case 0x513C: g_state.interaction_enabled = (uint8_t)v; break;
-        case 0x513D: g_state.riding_horizontal = (uint8_t)v; break;
-        case 0x5140: g_state.interaction_suppressed = (uint8_t)v; break;
-        case 0x5142: g_state.riding_vertical = (uint8_t)v; break;
-        case 0x509C: g_state.ammo = (uint16_t)v; break;
-        case 0x509E: g_state.health = (uint16_t)v; break;
         case 0x4660: g_state.obj[2].ready = (uint8_t)v; break;
         case 0x4652: g_state.obj[2].subtype = (uint16_t)v; break;
-        case 0x02A6: g_state.rng_lo = (uint16_t)v; break;
-        case 0x02A8: g_state.rng_hi = (uint16_t)v; break;
-        case 0x02DA: g_state.fire_impulse = (uint16_t)v; break;
-        case 0x02F2: g_state.g_2f2 = (uint16_t)v; break;
-        case 0x02B8: g_state.g_2b8 = (uint16_t)v; break;
-        case 0x2B5E: g_state.restart_timer = (uint16_t)v; break;
-        case 0x2B5C: g_state.text_scroll = (int16_t)v; break;
-        case 0x511E: g_state.g_511e = (uint16_t)v; break;
-        case 0x5122: g_state.g_5122 = (uint16_t)v; break;
-        case 0x50A5: g_state.score_lo = (uint16_t)v; break;
-        case 0x50A7: g_state.score_hi = (uint16_t)v; break;
-        case 0x50A0: g_state.checkpoint_50a0 = (uint16_t)v; break;
-        case 0x50BE: g_state.checkpoint_50be = (uint16_t)v; break;
-        case 0x50C4: g_state.checkpoint_50c4 = (uint16_t)v; break;
-        case 0x50C7: g_state.checkpoint_50c7 = (uint16_t)v; break;
-        case 0x50C9: g_state.checkpoint_50c9 = (uint16_t)v; break;
-        case 0xA0FF: g_state.power_shot_active = (uint8_t)v; break;
-        case 0xA0C4: g_state.power_timer = (uint16_t)v; break;
-        case 0xA0CC: g_state.crystals_remaining = (uint16_t)v; break;
-        case 0x50A2: g_state.crystals_collected = (uint16_t)v; break;
-        case 0xA0F5: g_state.exit_unlocked = (uint8_t)v; break;
-        case 0xA0F7: g_state.hub_door_active = (uint8_t)v; break;
-        case 0xA0F9: g_state.switch_latch = (uint8_t)v; break;
-        case 0xA0F3: g_state.lever_state = (uint8_t)v; break;
-        case 0xA0FB: g_state.all_caves_complete = (uint8_t)v; break;
-        case 0xA126: g_state.story_transition = (uint8_t)v; break;
-        case 0xA10B: g_state.collectible_spawn_active = (uint8_t)v; break;
-        case 0xA10A: g_state.suppress_base_stamp = (uint8_t)v; break;
-        case 0xA0E8: g_state.switch_repeat = (uint16_t)v; break;
-        case 0xA0D0: g_state.spawn_cell_x = (uint16_t)v; break;
-        case 0xA0D2: g_state.spawn_cell_y = (uint16_t)v; break;
-        case 0xA0D4: g_state.switch_a_col = (uint16_t)v; break;
-        case 0xA0D6: g_state.switch_a_row = (uint16_t)v; break;
-        case 0xA0D8: g_state.switch_b_col = (uint16_t)v; break;
-        case 0xA0DA: g_state.switch_b_row = (uint16_t)v; break;
-        case 0xA0DC: g_state.switch_c_col = (uint16_t)v; break;
-        case 0xA0DE: g_state.switch_c_row = (uint16_t)v; break;
-        case 0xA0CE: g_state.collectible_spawn_timer = (uint16_t)v; break;
-        case 0xA0C2: g_state.power_shot_timer_preset = (uint16_t)v; break;
-        case 0xA0C8: g_state.gravity_timer_preset = (uint16_t)v; break;
-        case 0xA0CA: g_state.red_mushroom_timer_preset = (uint16_t)v; break;
-        case 0xA0E4: g_state.stun_timer_preset = (uint16_t)v; break;
-        case 0xA0C6: g_state.power_subtimer = (uint16_t)v; break;
-        case 0xA0E0: g_state.exit_col = (int16_t)v; break;
-        case 0xA0E2: g_state.exit_row = (int16_t)v; break;
-        case 0xA0E6: g_state.exit_step = (uint16_t)v; break;
-        case 0xA0BE: g_state.next_level = (int16_t)v; break;
-        case 0xA100: g_state.g_a100 = (uint8_t)v; break;
-        case 0xA101: g_state.g_a101 = (uint8_t)v; break;
-        case 0xA102: g_state.g_a102 = (uint8_t)v; break;
-        case 0xA104: g_state.g_a104 = (uint8_t)v; break;
-        case 0xA105: g_state.g_a105 = (uint8_t)v; break;
-        case 0xA106: g_state.g_a106 = (uint8_t)v; break;
-        case 0xA107: g_state.g_a107 = (uint8_t)v; break;
-        case 0xA108: g_state.g_a108 = (uint8_t)v; break;
-        case 0xA109: g_state.g_a109 = (uint8_t)v; break;
-        case 0xA10D: g_state.g_a10d = (uint8_t)v; break;
-        case 0xA0F4: g_state.g_a0f4 = (uint8_t)v; break;
-        case 0x3392: g_state.g_3392 = (uint8_t)v; break;
-        case 0x3395: g_state.g_3395 = (uint8_t)v; break;
-        case 0x3396: g_state.g_3396 = (uint8_t)v; break;
         default:
             if ((off & 0xFFFF) >= 0x50A8 && (off & 0xFFFF) <= 0x50B8)
                 cave_flag_set((off & 0xFFFF) - 0x50A8, (int)v);
