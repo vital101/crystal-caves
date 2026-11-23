@@ -15,6 +15,7 @@ wasm/node_modules/
 wasm/obj/
 wasm/out_wasm_level*.png
 wasm/oracle_level*.json
+native/build/
 
 # Debug artifacts
 out/block20_strip.png

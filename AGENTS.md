@@ -2,7 +2,10 @@
 
 ## Build & Test (run from `wasm/`)
 
-There is no root Makefile; the build lives in `wasm/`.
+There is no root Makefile; the wasm build lives in `wasm/`, the native desktop
+build in `native/` (CMake + SDL3; `make -C native test-digest` re-runs the 929
+golden-master digests inside the native binary against
+`notes/refactor_digests.json`).
 
 **No local toolchain (typical on Windows)? Run the dev container instead.**
 `compose.yaml` + `docker/Dockerfile.dev` provide clang/lld, Node.js, the
@@ -52,6 +55,9 @@ different thing.  See the README section *Develop in Docker (any platform)*.
 | `make test-keymap` | Browser physical-key → DOS scan-code mapping |
 | `make test-sound` | Sound driver, trace asset, JS synth and shell sound fixtures |
 | `make test-browser` | Headless Chromium smoke test of `game.html` (Playwright; skips if absent) |
+| `make -C native build` | Native desktop build (CMake/SDL3): `native/build/caves` + `cc_digest` |
+| `make -C native test-digest` | Native golden-master digests vs `notes/refactor_digests.json` (929 snapshots) |
+| `make -C native test-smoke` | Headless SDL host run (`--smoke 120`, dummy drivers) |
 | `make test-browser-update` | Regenerate `wasm/browser_expectations.json` framebuffer hashes |
 | `make perf` | wasm size + per-frame timing against the 57.1 ms game budget |
 | `make test-oracle-sound` | Regenerate the Unicorn sound trace, then compare |

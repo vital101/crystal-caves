@@ -2,6 +2,7 @@
  */
 #include "runtime.h"
 
+#ifndef CC_HOST_LIBC
 void *memset(void *d, int c, unsigned n) {
     unsigned char *p = (unsigned char *)d;
     while (n--) *p++ = (unsigned char)c;
@@ -13,6 +14,7 @@ void *memcpy(void *d, const void *s, unsigned n) {
     while (n--) *p++ = *q++;
     return d;
 }
+#endif
 
 /* bump allocator over a static arena (JS copies assets in via cc_alloc). */
 static unsigned char g_heap[4 << 20];

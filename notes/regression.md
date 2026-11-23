@@ -37,6 +37,8 @@ are separate and need `tools/requirements.txt`.  Hosts with no local toolchain
 | DOS scan-code key map | `test-exactness` → `test-keymap` | `notes/keymap_fixtures.json` | `test_keymap.js` | yes (via exactness) |
 | Sound driver / synth / shell | `test-sound` | `notes/sound_fixtures.json`, `notes/sound_synth_fixtures.json`, `notes/sound_shell_fixtures.json` | `test_sound.js`, `test_sound_shell.js` | yes |
 | Refactor golden master | `test-digest` | `notes/refactor_digests.json` | `test_refactor_digest.js` | yes |
+| Native build golden master | `make -C native test-digest` | `notes/refactor_digests.json` | `native/cc_digest` + `native/compare_digests.js` | no (native CI job) |
+| Native SDL host smoke | `make -C native test-smoke` | — (dummy drivers, fb hash) | `native/caves --smoke` | no (native CI job) |
 | Wasm export stability | `test-exports` | Makefile `EXPORTS` | `test_exports.js` | yes |
 | Source-size guardrail | `lint` | `refactor/phase-0-safety-net.md` limits | `tools/check_source_limits.py` | no (CI, strict) |
 | Browser smoke | `test-browser` | `wasm/browser_expectations.json` + message trigger | `test_browser.js` (Playwright) | no (separate CI job) |

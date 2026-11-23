@@ -121,6 +121,23 @@ minimal renderer smoke page.  `make social-card` regenerates
 `wasm/social-card.png` (1200x630) from the original title screen for link
 previews.
 
+### Native desktop executables (Windows/macOS/Linux)
+
+The same C core also builds as a standalone SDL3 executable — see
+[`native/README.md`](native/README.md):
+
+```sh
+cmake -S native -B native/build -DCMAKE_BUILD_TYPE=Release
+cmake --build native/build
+./native/build/caves        # single self-contained binary, assets embedded
+```
+
+The native build is verified against the same golden-master digests as the
+wasm build: `make -C native test-digest` runs the 929 SHA-256 snapshots from
+`notes/refactor_digests.json` inside the native binary and must match.  CI
+builds Windows/Linux/macOS binaries on every push and uploads them as
+artifacts.
+
 ## Controls
 
 Defaults follow the original DOS bindings, with Space and Up Arrow added as
@@ -223,6 +240,14 @@ make perf               # wasm size + frame-budget measurement
 make lint               # source-size guardrail report (`lint-strict` fails)
 ```
 
+Native desktop build (see `native/README.md`):
+
+```sh
+make -C native build          # CMake/SDL3: native/build/caves + cc_digest
+make -C native test-digest    # native binary vs the same 929 wasm digests
+make -C native test-smoke     # headless SDL host run (dummy drivers)
+```
+
 On a host without the toolchain installed, the same targets run in the dev
 container: `docker compose run --rm dev make -C wasm test-all` (see
 [Develop in Docker](#develop-in-docker-any-platform)).
@@ -286,6 +311,10 @@ Authorized Integrations, while the jobs only need the default read token:
   job summary;
 - **headless browser smoke** — `npm ci`, Playwright Chromium,
   `make test-browser`;
+- **native build** — matrix over Ubuntu/Windows/macOS: CMake build of
+  `native/` (SDL3 via package or FetchContent), the 929 golden-master digests
+  re-run inside the native binary against `notes/refactor_digests.json`, a
+  headless SDL smoke run, and the executables uploaded as artifacts;
 - **oracle regeneration** — manual `workflow_dispatch` job with
   capstone/unicorn for re-verifying fixtures.
 
@@ -294,6 +323,7 @@ Authorized Integrations, while the jobs only need the default read token:
 | Path | Contents |
 |---|---|
 | `wasm/` | C port, build, page shell, JS adapters and tests |
+| `native/` | SDL3 desktop host (Windows/macOS/Linux) + native digest harness |
 | `notes/` | Recovered routine notes, oracle fixtures and format docs |
 | `tools/` | Extraction, oracle emulation, fixture generation and asset export |
 | `out/portable/` | Build inputs: levels, GFX, cells, screens, fonts, sound |

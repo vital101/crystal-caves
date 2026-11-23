@@ -83,6 +83,53 @@ jobs:
       - name: Browser smoke test
         run: make -C wasm test-browser LLVM="$LLVM"
 
+  native:
+    name: native build (${{ matrix.os }}) + digest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # CMake, a C compiler, Python 3 and git are preinstalled on all three
+      # runner images.  SDL3 is found via find_package when present, otherwise
+      # CMake FetchContent builds it from source (see native/CMakeLists.txt).
+      - name: Configure
+        run: cmake -S native -B native/build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build native/build --config Release
+
+      # Same golden-master SHA-256 fixture as the wasm digest test: each
+      # scenario group runs in a fresh process and must hash identically.
+      - name: Native digest vs wasm golden master
+        shell: bash
+        run: |
+          mkdir -p native/build/digest
+          for g in static_render gameplay transitions warp shell save_round_trip; do
+            ./native/build/cc_digest "$g" "native/build/digest/$g.json" || exit 1
+          done
+          node native/compare_digests.js notes/refactor_digests.json native/build/digest/*.json
+
+      - name: Headless host smoke (dummy video/audio)
+        shell: bash
+        run: |
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./native/build/caves --smoke 120
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: caves-${{ matrix.os }}
+          path: |
+            native/build/caves
+            native/build/caves.exe
+          if-no-files-found: error
+
   oracle:
     name: oracle regeneration (manual)
     if: github.event_name == 'workflow_dispatch'
