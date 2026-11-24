@@ -12,6 +12,8 @@ __pycache__/
 # See notes/ep2_diff.md for the bring-your-own-data workflow.
 extracted/ep2/
 extracted/ep3/
+notes/ep2/
+notes/ep3/
 
 # Generated build/test outputs
 wasm/render.wasm

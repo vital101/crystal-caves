@@ -181,6 +181,26 @@ Refined phases (the earlier R1-R5 sketch still holds; scope is much smaller):
 - **R5 — Episode 3.**  Same tool against `CC3-UNLZ.EXE`; expect similar deltas
   but verify the segment constants and level chain first — do not assume.
 
+## Harness validation (R1 first increment)
+
+- `tools/episode_config.py` centralises per-episode constants; `--episode ep2`
+  is accepted by `tools/emulate_startup.py` and `tools/emulate_load.py`
+  (defaults are unchanged).
+- Episode-1 regression: `emulate_startup.py` regenerates `notes/startup.json`
+  byte-identically, and `emulate_load.py` level 2 reproduces the committed
+  objects/cells/spawns/cursor exactly.
+- Episode 2: startup plus all 19 loader runs complete in ~72 s (the same
+  runtime as Episode 1) and produce `notes/ep2/startup.json` (git-ignored).
+  The vertical displacement table is identical; the hub player spawn (32,64)
+  matches, cave 1's spawn differs.
+- Object/cell dumps for the hub and cave 1 are sane: every handler offset
+  comes from the existing 49-entry dispatch table (no new behaviours); the
+  layouts differ substantially (469/1000 and 960/1000 cells, 26->34 and
+  31->33 spawns), as expected for new level data.
+- Fixed a latent JSON serialization bug in `emulate_load.py` (`tail_ref`
+  deque) that blocked oracle-dump regeneration.
+- Episode 2 outputs stay under `notes/ep2/` (git-ignored).
+
 ## Open questions
 
 1. Identify the `0x273AE` handler-tail cluster (function at CC1 `0x27390`) and

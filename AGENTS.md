@@ -106,7 +106,9 @@ original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 
 Registered Episode 2/3 data is never committed: stage it under
 `extracted/ep2/` or `extracted/ep3/` (git-ignored) and see `notes/ep2_diff.md`
-for the R0 delta analysis, address map and bring-your-own-data workflow.
+for the R0 delta analysis, address map and bring-your-own-data workflow.  The
+oracle tools accept `--episode ep2`; per-episode constants live in
+`tools/episode_config.py`.
 
 1. `python3 tools/unlzexe.py` — `extracted/CC1-UNLZ.EXE` (184,288-byte load module)
 2. `python3 tools/emulate_startup.py` — captures `0xC3E` startup + loader state to `notes/startup.json`
@@ -376,6 +378,7 @@ The authoritative target list is the table at the top of this file.
 | `tools/handler_fixtures.py` / `notes/handler_fixtures.json` | Per-handler oracle fixtures (`make test-handlers`) |
 | `tools/loader_fixtures.py` / `notes/loader_fixtures.json` | Exact transition fixtures (`make test-loader`) |
 | `tools/episode_diff.py` / `notes/ep2_diff.md` | Compare two unpacked episode EXEs/data sets (R0 episode-delta analysis) |
+| `tools/episode_config.py` | Per-episode oracle constants (`--episode ep1\|ep2`) |
 | `tools/export_level_overlay.py` / `out/portable/level_overlay.bin` | Loader occupancy overlay asset (v2: decor + door recipes) |
 | `tools/analyze_loader_tags.py` / `notes/loader_tags.json` | Regenerate source-dependent loader tags |
 | `tools/cave_fixtures.py` / `notes/cave_fixtures.json` | All-cave full-frame fixtures (`make test-caves`) |

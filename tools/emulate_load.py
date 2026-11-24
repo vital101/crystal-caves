@@ -74,6 +74,13 @@ SPAWN = 0x47D
 # to `add sp,8; nop; nop` because they need the GFX tables.
 DRAW_SITES = (0x52B, 0x560)
 
+# TP RNG routine: segment base and offset (episode config rewrites both).
+RNG_SEG = 0x2BB5
+RNG_IP = 0x0980
+
+# Number of loader levels (intro, finale, hub + 16 caves).
+LEVEL_COUNT = 19
+
 # Far segments whose routines we stub out entirely (video / sound / utility).
 SKIP_SEGS = {0x28B5, 0x26C5, 0x0FC5}
 
@@ -255,7 +262,7 @@ def run_loader(mu, module, arg, boot_seed=True, trace_writes=False):
 
         cs = uc.reg_read(UC_X86_REG_CS)
         ip = uc.reg_read(UC_X86_REG_IP)
-        if cs == 0x2BB5 and ip == 0x980:
+        if cs == RNG_SEG and ip == RNG_IP:
             sp = uc.reg_read(UC_X86_REG_SP)
             ss = uc.reg_read(UC_X86_REG_SS)
             rng_count[0] += 1
@@ -353,7 +360,6 @@ def run_loader(mu, module, arg, boot_seed=True, trace_writes=False):
     if trace_writes:
         mu.hook_add(UC_HOOK_MEM_WRITE, hook_write)
 
-    stats["tail_ref"] = tail
     try:
         mu.emu_start(LOADER, 0x110000, count=20_000_000)
     except Exception as e:
@@ -453,9 +459,14 @@ def main():
                     help="output JSON path")
     ap.add_argument("--only", action="store_true",
                     help="only rewrite the requested levels, keep others")
+    ap.add_argument("--episode", default="ep1",
+                    help="episode constants to apply (ep1, ep2)")
     args = ap.parse_args()
 
-    levels = args.levels if args.levels else list(range(19))
+    import episode_config
+    episode_config.apply(args.episode)
+
+    levels = args.levels if args.levels else list(range(LEVEL_COUNT))
 
     path = args.out
     out = {}
