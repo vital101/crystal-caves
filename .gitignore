@@ -8,6 +8,11 @@ __pycache__/
 *.egg-info/
 .venv/
 
+# User-supplied registered episode data (Episodes 2/3) - never committed.
+# See notes/ep2_diff.md for the bring-your-own-data workflow.
+extracted/ep2/
+extracted/ep3/
+
 # Generated build/test outputs
 wasm/render.wasm
 wasm/assets/

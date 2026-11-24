@@ -104,6 +104,10 @@ the container misreads a CRLF `wasm/Makefile`.
 original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 (not in repo), then run `python3 tools/extract_shr.py`.
 
+Registered Episode 2/3 data is never committed: stage it under
+`extracted/ep2/` or `extracted/ep3/` (git-ignored) and see `notes/ep2_diff.md`
+for the R0 delta analysis, address map and bring-your-own-data workflow.
+
 1. `python3 tools/unlzexe.py` — `extracted/CC1-UNLZ.EXE` (184,288-byte load module)
 2. `python3 tools/emulate_startup.py` — captures `0xC3E` startup + loader state to `notes/startup.json`
 3. `python3 tools/emulate_load.py` — dumps full startup+loader state to `notes/oracle_objects.json`
@@ -371,6 +375,7 @@ The authoritative target list is the table at the top of this file.
 | `tools/emulate_game.py` | Full update-loop + handler oracle (video/sound stubbed) |
 | `tools/handler_fixtures.py` / `notes/handler_fixtures.json` | Per-handler oracle fixtures (`make test-handlers`) |
 | `tools/loader_fixtures.py` / `notes/loader_fixtures.json` | Exact transition fixtures (`make test-loader`) |
+| `tools/episode_diff.py` / `notes/ep2_diff.md` | Compare two unpacked episode EXEs/data sets (R0 episode-delta analysis) |
 | `tools/export_level_overlay.py` / `out/portable/level_overlay.bin` | Loader occupancy overlay asset (v2: decor + door recipes) |
 | `tools/analyze_loader_tags.py` / `notes/loader_tags.json` | Regenerate source-dependent loader tags |
 | `tools/cave_fixtures.py` / `notes/cave_fixtures.json` | All-cave full-frame fixtures (`make test-caves`) |
@@ -421,6 +426,8 @@ The authoritative target list is the table at the top of this file.
 - `notes/refactor_baseline.md` — Phase 0 size/perf/test/export baseline
 - `notes/refactor_digests.json` — Phase 0 golden-master SHA-256 digests (`make test-digest`)
 - `notes/refactor_render_digests.json` — Phase 2 render/text/scroll digests (`make test-render-digest`)
+- `notes/ep2_diff.md`, `notes/ep2_diff.json` — Episode 2 R0 delta analysis and address map
+  (`tools/episode_diff.py`; registered data is BYO and git-ignored)
 - `wasm/test_render_digest.js` — Phase 2 render-surface characterization harness
 - `wasm/test_refactor_digest.js` — Phase 0 characterization harness
 - `tools/check_source_limits.py` — Phase 0 file/function size guardrail (`make lint`)
