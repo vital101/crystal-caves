@@ -201,6 +201,44 @@ Refined phases (the earlier R1-R5 sketch still holds; scope is much smaller):
   deque) that blocked oracle-dump regeneration.
 - Episode 2 outputs stay under `notes/ep2/` (git-ignored).
 
+## Episode 2 level data appendix
+
+All 19 loader levels run successfully.  Cell counts compare the Episode-2
+oracle dump against Episode 1 (1,000 cells per level); the full dumps stay in
+git-ignored `notes/ep2/oracle_objects.json`.
+
+| Level | Spawns ep1 -> ep2 | Cells changed | Live objects |
+|---:|---:|---:|---:|
+| 0 (intro) | 5 -> 5 | 0 | 58 |
+| 1 (finale) | 5 -> 5 | 0 | 58 |
+| 2 (hub) | 26 -> 34 | 469 | 53 |
+| 3 | 31 -> 33 | 960 | 60 |
+| 4 | 37 -> 32 | 960 | 59 |
+| 5 | 33 -> 28 | 960 | 53 |
+| 6 | 24 -> 41 | 960 | 56 |
+| 7 | 20 -> 43 | 726 | 56 |
+| 8 | 25 -> 32 | 960 | 59 |
+| 9 | 27 -> 26 | 960 | 56 |
+| 10 | 39 -> 16 | 700 | 60 |
+| 11 | 21 -> 29 | 960 | 57 |
+| 12 | 29 -> 30 | 960 | 58 |
+| 13 | 32 -> 33 | 960 | 55 |
+| 14 | 20 -> 35 | 960 | 58 |
+| 15 | 20 -> 28 | 960 | 60 |
+| 16 | 25 -> 41 | 960 | 55 |
+| 17 | 37 -> 40 | 960 | 60 |
+| 18 | 28 -> 23 | 960 | 60 |
+
+Notes:
+
+- No episode-2 spawn uses a handler offset outside the existing 49-entry
+  table; `handler_seg` is `0x1F72` throughout.
+- The intro/finale cell maps are identical to Episode 1 (shared story-screen
+  background); every cave layout differs.
+- Levels 7 and 10 share more cells with Episode 1 (726 / 700 changed) than the
+  other caves (960 changed = 24 of 25 rows), consistent with the shared-row
+  rule and partly reused layouts.
+
 ## Open questions
 
 1. Identify the `0x273AE` handler-tail cluster (function at CC1 `0x27390`) and
