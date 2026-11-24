@@ -85,9 +85,10 @@ uses `brew --prefix llvm` or pass `LLVM=/path/to/bin`. The clang build uses
 `tools/requirements.txt` (`capstone`, `unicorn`); use `../.venv/bin/python` (the
 Makefile auto-detects it) or install system-wide. npm is **test-only**
 (`wasm/package.json` + Playwright for `test-browser`); the game build never
-needs it. CI is `.github/workflows/ci.yml` (GitHub Actions or Forgejo Actions on Ubuntu:
-build + `test-all` + size/perf summary, browser smoke, manual oracle
-regeneration).
+needs it. CI is `.forgejo/workflows/ci.yml` (Forgejo Actions only; GitHub never
+reads that directory, so nothing runs on github.com): build + `test-all` +
+size/perf summary, browser smoke, native build + digest, manual oracle
+regeneration.
 
 Inside `docker/Dockerfile.dev` all of that is preinstalled and exported through
 the environment (`LLVM=/usr/bin`, `PYTHON=/opt/cc1/venv/bin/python`,
@@ -267,7 +268,7 @@ The authoritative target list is the table at the top of this file.
 - Phase 8 is implemented: `make test-all` covers the full committed-fixture
   suite with an unknown-handler guard, `make test-browser` runs
   title → hub → save/restore → finale in headless Chromium via real key
-  events, `.github/workflows/ci.yml` builds/tests on Ubuntu, `make perf`
+  events, `.forgejo/workflows/ci.yml` builds/tests on Ubuntu, `make perf`
   reports wasm size and frame cost (~1.2 ms per level frame against the
   57.1 ms budget), and the build uses `-Oz` (~152 KB vs ~180 KB at `-O2`).
   `notes/regression.md` maps every subsystem to its fixture and target; the

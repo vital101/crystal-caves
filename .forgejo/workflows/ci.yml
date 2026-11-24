@@ -12,15 +12,19 @@ on:
         type: string
         default: 'test-oracle-physics test-oracle-combat test-oracle-cells test-oracle-handlers test-oracle-loader test-oracle-caves'
 
-# No `permissions:` block: Forgejo ignores it (capabilities are granted through
-# Authorized Integrations) and these jobs only need the default read token.
+# Forgejo-only: this file lives in .forgejo/workflows (GitHub never reads
+# that directory, so nothing runs on github.com).  Actions are loaded from
+# data.forgejo.org and referenced fully qualified, per the Forgejo docs.
+# No `permissions:` block: Forgejo ignores it (capabilities are granted
+# through Authorized Integrations) and these jobs only need the default
+# read token.
 
 jobs:
   deterministic:
     name: build + deterministic suite
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: https://data.forgejo.org/actions/checkout@v4
 
       - name: Install LLVM toolchain
         run: |
@@ -55,7 +59,7 @@ jobs:
     name: headless browser smoke
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: https://data.forgejo.org/actions/checkout@v4
 
       - name: Install LLVM toolchain
         run: |
@@ -68,7 +72,7 @@ jobs:
           fi
           echo "LLVM=$llvm_dir" >> "$GITHUB_ENV"
 
-      - uses: actions/setup-node@v4
+      - uses: https://data.forgejo.org/actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
@@ -91,15 +95,30 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: https://data.forgejo.org/actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: https://data.forgejo.org/actions/setup-node@v4
         with:
           node-version: '22'
 
-      # CMake, a C compiler, Python 3 and git are preinstalled on all three
-      # runner images.  SDL3 is found via find_package when present, otherwise
-      # CMake FetchContent builds it from source (see native/CMakeLists.txt).
+      # GitHub-hosted images preinstall CMake, a C compiler, Python 3 and git;
+      # self-hosted/act images (e.g. catthehacker/ubuntu) may not, so install
+      # whatever is missing.  SDL3 is found via find_package when present,
+      # otherwise CMake FetchContent builds it from source (see
+      # native/CMakeLists.txt) — that needs git and a C compiler.
+      - name: Ensure build tools (Linux images may lack them)
+        if: runner.os == 'Linux'
+        run: |
+          missing=()
+          command -v cmake   >/dev/null || missing+=(cmake)
+          command -v cc      >/dev/null || missing+=(build-essential)
+          command -v python3 >/dev/null || missing+=(python3)
+          command -v git     >/dev/null || missing+=(git)
+          if [ ${#missing[@]} -gt 0 ]; then
+            sudo apt-get update
+            sudo apt-get install -y "${missing[@]}"
+          fi
+
       - name: Configure
         run: cmake -S native -B native/build -DCMAKE_BUILD_TYPE=Release
 
@@ -122,7 +141,9 @@ jobs:
         run: |
           SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./native/build/caves --smoke 120
 
-      - uses: actions/upload-artifact@v4
+      # Forgejo's fork of upload-artifact: the upstream v4 action refuses to
+      # run against any server that is not github.com (GHESNotSupportedError).
+      - uses: https://data.forgejo.org/forgejo/upload-artifact@v4
         with:
           name: caves-${{ matrix.os }}
           path: |
@@ -135,7 +156,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: https://data.forgejo.org/actions/checkout@v4
 
       - name: Install LLVM toolchain
         run: |
@@ -144,7 +165,7 @@ jobs:
           llvm_dir=$(dirname "$(readlink -f "$(command -v clang)")")
           echo "LLVM=$llvm_dir" >> "$GITHUB_ENV"
 
-      - uses: actions/setup-python@v5
+      - uses: https://data.forgejo.org/actions/setup-python@v5
         with:
           python-version: '3.12'
 

@@ -301,8 +301,9 @@ Regenerating raw extraction from the original archive additionally requires
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on Ubuntu under GitHub Actions or Forgejo
-Actions (Forgejo reads `.github/workflows` directly). The workflow has no
+`.forgejo/workflows/ci.yml` runs on Forgejo Actions only (GitHub never reads
+that directory, so nothing runs on github.com).  Actions are loaded from
+`data.forgejo.org` and referenced fully qualified.  The workflow has no
 `permissions:` block — Forgejo ignores it and grants capabilities through
 Authorized Integrations, while the jobs only need the default read token:
 
@@ -311,10 +312,14 @@ Authorized Integrations, while the jobs only need the default read token:
   job summary;
 - **headless browser smoke** — `npm ci`, Playwright Chromium,
   `make test-browser`;
-- **native build** — matrix over Ubuntu/Windows/macOS: CMake build of
-  `native/` (SDL3 via package or FetchContent), the 929 golden-master digests
-  re-run inside the native binary against `notes/refactor_digests.json`, a
-  headless SDL smoke run, and the executables uploaded as artifacts;
+- **native build** — matrix over Ubuntu/Windows/macOS: a bootstrap step
+  installs CMake/compiler/Python/git when a runner image lacks them, CMake
+  builds `native/` (SDL3 via package or FetchContent), the 929 golden-master
+  digests re-run inside the native binary against
+  `notes/refactor_digests.json`, a headless SDL smoke run follows, and the
+  executables are uploaded as artifacts through Forgejo's
+  `forgejo/upload-artifact` fork (the upstream `actions/upload-artifact@v4`
+  refuses any non-github.com server);
 - **oracle regeneration** — manual `workflow_dispatch` job with
   capstone/unicorn for re-verifying fixtures.
 

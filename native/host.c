@@ -1,6 +1,6 @@
 /* Crystal Caves Episode 1 - native desktop host (Windows/macOS/Linux).
  *
- * Native port of wasm/game.js (+ wasm/game/*.js): same fixed-step loop (140.06 Hz PIT ticks,
+ * Native port of wasm/game.js (+ the wasm/game JS adapters): same fixed-step loop (140.06 Hz PIT ticks,
  * 8 ticks per game frame), same render path (320x200 RGBA view framebuffer
  * blitted integer-scaled), same input model (DOS set-1 scan codes + shell key
  * values, gamepad axes/buttons), same save/restore handshake, same sound
