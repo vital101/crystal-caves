@@ -303,13 +303,15 @@ shots/ep3_cave.png: ../out/ep3/oracle_L06.png
 # Complete web deployment bundle: the launch picker, the game pages and all
 # three episodes' modules and asset packs — exactly what the production
 # image serves.  CI uploads dist/crystal-caves-web.tar.gz on tag builds.
+# `assets` is a prerequisite (not just part of `clang`): a clean checkout
+# running only bundle-web must still stage the Episode 1 asset pack.
 WEB_FILES = select.html game.html game.js keymap.js legend.js persist.js \
 	    sound_synth.js audio.js touch.js manifest.webmanifest \
 	    favicon.ico favicon.svg favicon-16.png favicon-32.png \
 	    favicon-192.png favicon-512.png apple-touch-icon.png \
 	    social-card.png
 
-bundle-web: $(OUT) $(EP2_OUT) $(EP3_OUT) ep2-assets ep3-assets shots
+bundle-web: assets $(OUT) $(EP2_OUT) $(EP3_OUT) ep2-assets ep3-assets shots
 	rm -rf dist
 	mkdir -p dist/site
 	cp $(WEB_FILES) dist/site/
