@@ -40,7 +40,7 @@ void transform_object(ObjectEntry *o) {
             o->ready = 0;
             o->state = 0;
             o->handler = HDL_DISSOLVE;
-            o->handler_seg = 0x1F9A;
+            o->handler_seg = CC_EP_HANDLER_SEG;
             play_sound(SND_HIT);
             break;
         default:

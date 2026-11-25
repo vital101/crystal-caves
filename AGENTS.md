@@ -33,6 +33,7 @@ different thing.  See the README section *Develop in Docker (any platform)*.
 | `make lint-strict` | Same report, exit 1 on violations (what CI runs) |
 | `make test-render-all` | Pixel-diff every level against `out/oracle_L*.png` |
 | `make test-render-ep2` | Pixel-diff all ep2 levels against `out/ep2/oracle_L*.png` (BYO data; skips if absent) |
+| `make -C wasm ep2` | Build `render_ep2.wasm` from generated Episode 2 data (BYO; `make test-ep2` runs the checks) |
 | `make test-data` | Run `../tools/check_oracle.py` (structural oracle assertions) |
 | `make test-exports` | Built wasm exports must match the Makefile `EXPORTS` list |
 | `make test-view` | 320x200 viewport crop regression |
@@ -361,6 +362,16 @@ The authoritative target list is the table at the top of this file.
   draw state is non-zero, never while walking), ID 2 is an unused bank
   entry with a negative test, the logo plays ID 32, the attract loop is
   silent and menu accept plays ID 33.
+- Episode 2 (registered, bring-your-own data) port progress: the engine is the
+  same binary with new level/shell data.  All 19 static levels render
+  pixel-exactly in the unmodified wasm (`make test-render-ep2`), the
+  per-episode build (`make -C wasm ep2`) reproduces the loader's objects,
+  start state and cells for every level against the Unicorn oracle
+  (`make test-ep2`), and 60-120 frame gameplay fixtures match the emulator.
+  Two data-driven deltas are handled (crystal `w7` range, `handler_seg`
+  `0x1F72`), and the ep2 fixtures exposed a latent formation-mover bug now
+  fixed.  Shell text/menus, browser/native product integration and Episode 3
+  remain; see `notes/ep2_diff.md`.
 
 ## Tooling Entrypoints
 
@@ -380,6 +391,7 @@ The authoritative target list is the table at the top of this file.
 | `tools/loader_fixtures.py` / `notes/loader_fixtures.json` | Exact transition fixtures (`make test-loader`) |
 | `tools/episode_diff.py` / `notes/ep2_diff.md` | Compare two unpacked episode EXEs/data sets (R0 episode-delta analysis) |
 | `tools/episode_config.py` | Per-episode oracle constants (`--episode ep1\|ep2`) |
+| `tools/make_episode_data.py` | Generate per-episode `episode_data.h` (crystal rule, handler segment) |
 | `tools/export_level_overlay.py` / `out/portable/level_overlay.bin` | Loader occupancy overlay asset (v2: decor + door recipes) |
 | `tools/analyze_loader_tags.py` / `notes/loader_tags.json` | Regenerate source-dependent loader tags |
 | `tools/cave_fixtures.py` / `notes/cave_fixtures.json` | All-cave full-frame fixtures (`make test-caves`) |
@@ -452,6 +464,8 @@ The authoritative target list is the table at the top of this file.
 - `wasm/sound.c/h`, `wasm/sound_data.h`, `wasm/sound_synth.js`, `wasm/audio.js` — Phase 6 sound
 - `wasm/test_browser.js` / `wasm/browser_expectations.json` — Phase 8 headless browser smoke
 - `wasm/test_render_all_ep2.js` — Episode 2 static-level pixel check (`make test-render-ep2`, BYO data)
+- `wasm/test_ep2_data.js` — Episode 2 compiled-data/oracle check (`make test-ep2`, BYO data)
+- `wasm/episode_data.h` — generated per-episode cell-rule/segment constants
 - `wasm/measure_perf.js` / `wasm/perf_baseline.json` — Phase 8 frame-budget/size checks
 - `notes/regression.md` — Phase 8 coverage matrix (target → fixture → harness)
 - `compose.yaml` + `docker/Dockerfile.dev` (+ `Dockerfile.dev.dockerignore`,

@@ -38,6 +38,15 @@ EPISODES = {
         "spawn": 0x047D,
         "draw_sites": (0x052B, 0x0560),
         "handler_seg": 0x1F9A,
+        "crystal_w7": (0x01, 0x04),
+        "frame": {
+            "horiz": 0xE011, "jump": 0xE36B, "contact": 0xE5D3,
+            "fire": 0xEBF2, "status": 0xEAEA, "objects": 0xD72A,
+        },
+        "cell_event_linear": 0x1B776,
+        "cell_event_seg": 0x0FC5,
+        "cell_event_off": 0xBB26,
+        "play_sound": 0x1FBC5,
         "levels": 19,
     },
     "ep2": {
@@ -57,6 +66,15 @@ EPISODES = {
         "spawn": 0x047D,
         "draw_sites": (0x052B, 0x0560),
         "handler_seg": 0x1F72,
+        "crystal_w7": (0x0D, 0x10),
+        "frame": {
+            "horiz": 0xDF9B, "jump": 0xE2F5, "contact": 0xE55D,
+            "fire": 0xEB7C, "status": 0xEA74, "objects": 0xD6B4,
+        },
+        "cell_event_linear": 0x1B4ED,
+        "cell_event_seg": 0x0FBD,
+        "cell_event_off": 0xB91D,
+        "play_sound": 0x1F945,
         "levels": 19,
     },
 }
@@ -106,4 +124,22 @@ def apply(name):
     for module in targets:
         for attr, value in attrs.items():
             setattr(module, attr, value)
+
+    # Physics/game oracles keep their own copies of the frame-routine
+    # addresses and skip sets; patch them when those modules are loaded.
+    physics = sys.modules.get("oracle_physics")
+    if physics is not None:
+        physics.SKIP_SEGS = set(cfg["skip_segs"])
+        physics.LIVE_FC5 = {(cfg["cell_event_seg"], cfg["cell_event_off"])}
+        physics.HORIZ = cfg["frame"]["horiz"]
+        physics.JUMP = cfg["frame"]["jump"]
+        physics.CONTACT = cfg["frame"]["contact"]
+        physics.FIRE_TIMERS = cfg["frame"]["fire"]
+        physics.STATUS_TIMERS = cfg["frame"]["status"]
+        physics.OBJECTS = cfg["frame"]["objects"]
+        physics.CELL_EVENT = cfg["cell_event_linear"]
+        physics.PLAY_SOUND = cfg["play_sound"]
+    game = sys.modules.get("emulate_game")
+    if game is not None:
+        game.UPDATE_LOOP = cfg["frame"]["objects"]
     return cfg

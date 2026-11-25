@@ -291,6 +291,39 @@ python3 tools/export_level_overlay.py --episode ep2
   Text-block discovery in `export_shell_assets.py` is Episode-1-specific
   (hardcoded page offsets and menu fixtures) and stays R3 work.
 
+## R4: per-episode build and gameplay validation
+
+The data generators accept `--episode`
+(`make_startup_data.py`, `build_oracle_catalog.py`, `make_objects_data.py`,
+`make_cells_data.py`), plus the new `make_episode_data.py` for the tiny
+cell-rule/segment constants.  `make -C wasm ep2` compiles the same C sources
+with `-Iep2_data` and links `render_ep2.wasm` (~161.7 KB); portable assets stay
+runtime-loaded.
+
+- **Compiled data:** `wasm/test_ep2_data.js` boots `render_ep2.wasm` with the
+  ep2 cells and checks all 19 levels against the oracle: every object record
+  (60 slots x 23 fields), player/camera start, cursor, key globals and all
+  380,000 cell bytes match.  It also picks up a crystal through the real
+  cell-event handler on levels 3 and 14, verifying the counters, score and cell
+  clear.
+- **Frame stepping:** `emulate_game.py --episode=ep2` runs the real update
+  loop, and `test_oracle_objects.js` (now `CC_WASM`/`CC_CELLS` aware) matches
+  the oracle for 60 frames on level 3, 60 on level 14 and **120 frames on
+  level 10 with fire input**.
+- **Two engine-data deltas handled:**
+  - the crystal pickup's layer-3 shape range differs (ep1 `w7 = 1..4`, ep2
+    `w7 = 0x0D..0x10`), recovered from disassembling both cell-event handlers;
+    `episode_data.h` supplies `CC_EP_CRYSTAL_W7_LO/HI` and the crystal count
+    now matches the loader's `a0cc` exactly;
+  - runtime spawns store `handler_seg` = `0x1F72` in ep2 (`CC_EP_HANDLER_SEG`),
+    not the hard-coded `0x1F9A`.
+- **Latent Episode 1 bug found by the ep2 fixtures:** the formation mover
+  (`0x1F9A:0x36B0` at `0x2315D`) must restore `speed = 8` when it reverses to
+  `+1`; the port only handled the `-1` case.  Fixed.  The 929 Phase-0 digests
+  changed only for the `gameplay.level04` frames that had recorded the bug and
+  were regenerated with `make test-digest-update` (documented behaviour fix);
+  the oracle-exact suites (caves/combat/handlers) and `make test-all` pass.
+
 ## Open questions
 
 1. ~~Identify the `0x273AE` handler-tail cluster~~ — resolved: the function at

@@ -324,6 +324,11 @@ void h_move_v_formation(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             o->phase = 1;
             o->subtype = 0;
             play_sound(SND_MULTIPART_MOVE);
+        } else {
+            /* 0x1F9A:0x36B0 @ 0x2315D: reversing to +1 restores speed 8.
+             * This branch was missing from the port and is exercised by the
+             * episode-2 level-3 formation mover (R4 fixture). */
+            o->speed = 8;
         }
     }
     if (o->phase == 0) {
@@ -387,7 +392,7 @@ void h_projectile(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             o->hit_points = 1;
             o->phase = 1;
             o->handler = HDL_WALK_COMPANION;
-            o->handler_seg = 0x1F9A;
+            o->handler_seg = CC_EP_HANDLER_SEG;
             mark_redraw((int16_t)o->x, (int16_t)(o->y + 0x10));
         } else {
             o->phase = 1;
@@ -433,7 +438,7 @@ void h_spawn_projectile(ObjectEntry *o, int idx, int16_t x, int16_t y) {
             child->speed = 6;
             child->hit_points = 0x7D00;
             child->handler = HDL_PROJECTILE;
-            child->handler_seg = 0x1F9A;
+            child->handler_seg = CC_EP_HANDLER_SEG;
             child->ready = 0;
             child->state = 0;
             child->x = (int16_t)(((int16_t)(o->x + 8) / 16) << 4);

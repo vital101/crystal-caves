@@ -396,6 +396,6 @@ void spawn_effect(int16_t shape, int16_t xcell, int16_t ycell) {
     o->ready = 0;
     o->state = 0;
     o->handler = HDL_PICKUP_EFFECT;
-    o->handler_seg = 0x1F9A;
+    o->handler_seg = CC_EP_HANDLER_SEG;
 }
 

@@ -88,6 +88,14 @@ def main(argv):
         raise SystemExit(__doc__)
     level = int(argv[1])
     frames = int(argv[2])
+    episode = "ep1"
+    for a in argv[3:]:
+        if a.startswith("--episode="):
+            episode = a.split("=", 1)[1]
+    import episode_config
+    cfg = episode_config.apply(episode)
+    global UPDATE_LOOP
+    UPDATE_LOOP = cfg["frame"]["objects"]
     pressed = set(a for a in argv[3:] if not a.startswith("-"))
     as_json = "--json" in argv
     px = py = None

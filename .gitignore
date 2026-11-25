@@ -17,6 +17,9 @@ notes/ep3/
 
 # Generated build/test outputs
 wasm/render.wasm
+wasm/render_ep2.wasm
+wasm/ep2_data/
+wasm/obj_ep2/
 wasm/assets/
 wasm/node_modules/
 wasm/obj/

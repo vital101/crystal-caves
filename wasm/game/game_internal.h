@@ -15,6 +15,7 @@
 #include "shell.h"
 #include "sound.h"
 #include "sound_ids.h"
+#include "episode_data.h"
 
 #include "state.h"
 #include "math.h"

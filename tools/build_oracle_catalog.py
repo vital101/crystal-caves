@@ -25,6 +25,20 @@ FIELDS = ["state", "p02", "p04", "x", "y", "x_prev", "y_prev", "tile",
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser(description="Build the oracle object catalog")
+    ap.add_argument("--episode", default="ep1", help="ep1, ep2, ...")
+    ap.add_argument("--out", default=None)
+    opts = ap.parse_args()
+
+    global SRC, DST
+    if opts.episode != "ep1":
+        SRC = os.path.join(ROOT, "notes", opts.episode, "oracle_objects.json")
+    if opts.out:
+        DST = opts.out
+    elif opts.episode != "ep1":
+        DST = os.path.join(ROOT, "notes", opts.episode, "oracle_catalog.json")
+
     src = json.load(open(SRC))
     catalog = {"levels": {}, "note": "oracle-derived from Unicorn run of 0xB1A9"}
     for lv in sorted(src, key=lambda k: int(k)):
@@ -63,6 +77,7 @@ def main():
             "spawns": spawns,
             "objects": objects,
         }
+    os.makedirs(os.path.dirname(DST), exist_ok=True)
     json.dump(catalog, open(DST, "w"), indent=1)
     total = sum(len(v["spawns"]) for v in catalog["levels"].values())
     print("wrote", DST)
