@@ -205,10 +205,14 @@ jobs:
       # The complete site: launch picker, game pages and all three episodes'
       # modules and asset packs — the same file set the production image
       # serves (see wasm/Makefile bundle-web).
+      # NOTE: keep this a full-stream read (`wc -l`, not `head -5`): the
+      # runner shell is bash -eo pipefail, so a pipe consumer that exits
+      # early kills tar with SIGPIPE (exit 141) and fails the step.
       - name: Build and package the web bundle
         run: |
           make -C wasm bundle-web LLVM="$LLVM"
-          tar -tzf wasm/dist/crystal-caves-web.tar.gz | head -5
+          test -s wasm/dist/crystal-caves-web.tar.gz
+          echo "web bundle: $(tar -tzf wasm/dist/crystal-caves-web.tar.gz | wc -l) files"
 
       - uses: https://data.forgejo.org/forgejo/upload-artifact@v4
         with:
