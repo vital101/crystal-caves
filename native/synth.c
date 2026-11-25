@@ -81,6 +81,11 @@ int cc_synth_play(cc_synth *s, int id) {
     return 1;
 }
 
+const int16_t *cc_synth_pcm(const cc_synth *s, int *len) {
+    *len = s ? s->pcm_len : 0;
+    return s ? s->pcm : 0;
+}
+
 void cc_synth_stop(cc_synth *s) {
     s->pcm_pos = s->pcm_len;   /* exhausts the current sound on next fill */
     s->current_id = 0;

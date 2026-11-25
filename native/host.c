@@ -8,6 +8,9 @@
  * localStorage (see persist.c).  Assets are embedded (assets_embed.c).
  *
  * Usage: caves [--smoke N]   (--smoke runs N headless frames, dummy drivers)
+ *        caves --dump-sound ID OUT.wav [--rate HZ]
+ *                             (write one effect's exact playback PCM; the
+ *                              default rate is the output device's native rate)
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -278,12 +281,63 @@ static int boot(void) {
     return 1;
 }
 
+/* -------------------------------------------------------- audio helpers */
+
+/* Traces are rendered at the output device's native rate, like WebAudio's
+ * ctx.sampleRate: resampling a square wave in SDL folds its high harmonics
+ * into audible inharmonic images (the "tinny" native-only artefact). */
+static int native_audio_rate(void) {
+    SDL_AudioSpec dev;
+    SDL_zero(dev);
+    if (SDL_GetAudioDeviceFormat(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &dev, NULL)
+        && dev.freq >= 22050 && dev.freq <= 192000) {
+        return dev.freq;
+    }
+    return 44100;
+}
+
+/* Minimal RIFF/WAVE PCM writer for --dump-sound. */
+static int write_wav(const char *path, const int16_t *pcm, int frames, int rate) {
+    FILE *f = fopen(path, "wb");
+    if (!f) return 0;
+    uint32_t data = (uint32_t)frames * 2u;
+    uint32_t riff = 36u + data;
+    uint32_t fmt_size = 16;
+    uint32_t byte_rate = (uint32_t)rate * 2u;
+    uint16_t one = 1, channels = 1, bits = 16, align = 2;
+    int ok = 1;
+    ok &= fwrite("RIFF", 1, 4, f) == 4;
+    ok &= fwrite(&riff, 4, 1, f) == 1;
+    ok &= fwrite("WAVE", 1, 4, f) == 4;
+    ok &= fwrite("fmt ", 1, 4, f) == 4;
+    ok &= fwrite(&fmt_size, 4, 1, f) == 1;
+    ok &= fwrite(&one, 2, 1, f) == 1;
+    ok &= fwrite(&channels, 2, 1, f) == 1;
+    ok &= fwrite(&rate, 4, 1, f) == 1;
+    ok &= fwrite(&byte_rate, 4, 1, f) == 1;
+    ok &= fwrite(&align, 2, 1, f) == 1;
+    ok &= fwrite(&bits, 2, 1, f) == 1;
+    ok &= fwrite("data", 1, 4, f) == 4;
+    ok &= fwrite(&data, 4, 1, f) == 1;
+    ok &= fwrite(pcm, 2, (size_t)frames, f) == (size_t)frames;
+    fclose(f);
+    return ok;
+}
+
 /* ------------------------------------------------------------ main loop */
 
 int main(int argc, char **argv) {
-    int smoke = 0;
+    int smoke = 0, dump_id = -1, dump_rate = 0;
+    const char *dump_path = NULL;
     for (int i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "--smoke") && i + 1 < argc) smoke = atoi(argv[++i]);
+        if (!strcmp(argv[i], "--smoke") && i + 1 < argc) {
+            smoke = atoi(argv[++i]);
+        } else if (!strcmp(argv[i], "--dump-sound") && i + 2 < argc) {
+            dump_id = atoi(argv[++i]);
+            dump_path = argv[++i];
+        } else if (!strcmp(argv[i], "--rate") && i + 1 < argc) {
+            dump_rate = atoi(argv[++i]);
+        }
     }
     if (smoke > 0) {
 #ifdef _WIN32
@@ -293,6 +347,37 @@ int main(int argc, char **argv) {
         setenv("SDL_VIDEODRIVER", "dummy", 1);
         setenv("SDL_AUDIODRIVER", "dummy", 1);
 #endif
+    }
+
+    if (dump_id >= 0) {
+        if (!SDL_Init(SDL_INIT_AUDIO)) {
+            fprintf(stderr, "SDL_Init: %s\n", SDL_GetError());
+            return 1;
+        }
+        int rate = dump_rate > 0 ? dump_rate : native_audio_rate();
+        cc_synth *snd = cc_synth_new(rate);
+        if (!snd || !cc_synth_play(snd, dump_id)) {
+            fprintf(stderr, "dump-sound: unknown effect id %d\n", dump_id);
+            return 1;
+        }
+        int len = 0, ended = 0;
+        (void)cc_synth_pcm(snd, &len);
+        int16_t *out = len > 0 ? malloc((size_t)len * 2) : NULL;
+        if (!out) {
+            fprintf(stderr, "dump-sound: out of memory\n");
+            return 1;
+        }
+        cc_synth_fill(snd, out, len, &ended);
+        int ok = write_wav(dump_path, out, len, rate);
+        if (ok)
+            fprintf(stderr, "dump-sound: id %d, %d frames at %d Hz -> %s\n",
+                    dump_id, len, rate, dump_path);
+        else
+            fprintf(stderr, "dump-sound: cannot write %s\n", dump_path);
+        free(out);
+        cc_synth_free(snd);
+        SDL_Quit();
+        return ok ? 0 : 1;
     }
 
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD)) {
@@ -316,7 +401,7 @@ int main(int argc, char **argv) {
     SDL_zero(spec);
     spec.format = SDL_AUDIO_S16LE;
     spec.channels = 1;
-    spec.freq = 44100;
+    spec.freq = native_audio_rate();
     g_synth = cc_synth_new(spec.freq);
     g_audio = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
                                         &spec, audio_callback, NULL);
