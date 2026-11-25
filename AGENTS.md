@@ -34,6 +34,8 @@ different thing.  See the README section *Develop in Docker (any platform)*.
 | `make test-render-all` | Pixel-diff every level against `out/oracle_L*.png` |
 | `make test-render-ep2` | Pixel-diff all ep2 levels against `out/ep2/oracle_L*.png` (BYO data; skips if absent) |
 | `make -C wasm ep2` | Build `render_ep2.wasm` from generated Episode 2 data (BYO; `make test-ep2` runs the checks) |
+| `make -C wasm ep2-assets` | Build `assets_ep2/` for `game.html?ep=2` (BYO) |
+| `make -C wasm test-ep2` | Episode 2 render + compiled-data + browser checks (BYO; skips if absent) |
 | `make test-data` | Run `../tools/check_oracle.py` (structural oracle assertions) |
 | `make test-exports` | Built wasm exports must match the Makefile `EXPORTS` list |
 | `make test-view` | 320x200 viewport crop regression |
@@ -368,10 +370,14 @@ The authoritative target list is the table at the top of this file.
   per-episode build (`make -C wasm ep2`) reproduces the loader's objects,
   start state and cells for every level against the Unicorn oracle
   (`make test-ep2`), and 60-120 frame gameplay fixtures match the emulator.
+  Shell content is generated per episode (story pages, menus, high scores via
+  `shell_exactness.py --episode`), and `game.html?ep=2` serves the episode
+  from `render_ep2.wasm` + `assets_ep2/` with a `cc2.*` storage namespace;
+  the browser smoke covers title -> intro -> hub -> save/restore -> finale.
   Two data-driven deltas are handled (crystal `w7` range, `handler_seg`
   `0x1F72`), and the ep2 fixtures exposed a latent formation-mover bug now
-  fixed.  Shell text/menus, browser/native product integration and Episode 3
-  remain; see `notes/ep2_diff.md`.
+  fixed.  Remaining: native desktop episode selection and Episode 3 (needs
+  user-supplied data); see `notes/ep2_diff.md`.
 
 ## Tooling Entrypoints
 
@@ -465,6 +471,7 @@ The authoritative target list is the table at the top of this file.
 - `wasm/test_browser.js` / `wasm/browser_expectations.json` — Phase 8 headless browser smoke
 - `wasm/test_render_all_ep2.js` — Episode 2 static-level pixel check (`make test-render-ep2`, BYO data)
 - `wasm/test_ep2_data.js` — Episode 2 compiled-data/oracle check (`make test-ep2`, BYO data)
+- `wasm/test_ep2_browser.js` / `wasm/browser_expectations_ep2.json` — Episode 2 browser smoke hashes (`make test-ep2-browser`, BYO)
 - `wasm/episode_data.h` — generated per-episode cell-rule/segment constants
 - `wasm/measure_perf.js` / `wasm/perf_baseline.json` — Phase 8 frame-budget/size checks
 - `notes/regression.md` — Phase 8 coverage matrix (target → fixture → harness)

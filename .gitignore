@@ -21,6 +21,7 @@ wasm/render_ep2.wasm
 wasm/ep2_data/
 wasm/obj_ep2/
 wasm/assets/
+wasm/assets_ep2/
 wasm/node_modules/
 wasm/obj/
 wasm/out_wasm_level*.png

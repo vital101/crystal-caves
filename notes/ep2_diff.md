@@ -324,6 +324,33 @@ runtime-loaded.
   were regenerated with `make test-digest-update` (documented behaviour fix);
   the oracle-exact suites (caves/combat/handlers) and `make test-all` pass.
 
+## R3/R4: shell content and browser episode selection
+
+- **Shell exactness capture** is parameterized (`tools/shell_exactness.py
+  --episode ep2`): the shared page renderer is hooked once, and per-episode
+  menu/story/high-score/key-name addresses come from `episode_config`.  The
+  order-based capture reproduces the committed Episode-1 menu fixture
+  byte-identically; the Episode-2 capture found the real content deltas:
+  intro is 4 pages starting `SHIP'S LOG - STARDATE 2121.47`, finale is 4 pages
+  with the new epilogue, high-score defaults are "Play all 3 episodes / Call
+  1-800-852-5659 ...", and the video page has a one-space change.  Every other
+  menu/info page is identical.
+- `export_shell_assets.py --episode` emits Episode-2 `screens.bin`
+  (`out/portable_ep2/`) plus `shell_text_data.h`; `make_shell_exact_data.py
+  --episode` emits `shell_exact_data.h`.  The ep2 build compiles them from
+  `wasm/ep2_data/`.
+- **Browser product:** `game.html?ep=2` loads `render_ep2.wasm` and
+  `assets_ep2/` (built by `make -C wasm ep2-assets`), namespaces storage as
+  `cc2.config.v2` / `cc2.hiscores.v1` / `cc2.save.<slot>`, and offers an
+  episode switch button.  Episode-1 keys are untouched.
+- **Tests:** `make -C wasm test-ep2` runs the 19-level static render check, the
+  compiled-data oracle check and the browser smoke
+  (`wasm/test_ep2_browser.js`): title -> attract -> menu -> intro (4 pages,
+  2121.47 text) -> hub (32,64) -> save/restore under `cc2.*` -> config and
+  high-score reload -> finale (4 pages) -> ending, with framebuffer hashes in
+  `wasm/browser_expectations_ep2.json`.  All targets skip cleanly without the
+  bring-your-own data; Episode-1 browser/digest suites still pass.
+
 ## Open questions
 
 1. ~~Identify the `0x273AE` handler-tail cluster~~ — resolved: the function at

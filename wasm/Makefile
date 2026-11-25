@@ -93,7 +93,46 @@ obj_ep2/%.o: %.c
 -include $(EP2_OBJ:.o=.d)
 
 $(EP2_OBJ): $(EP2_DATA)/startup_data.h $(EP2_DATA)/objects_data.h \
-	    $(EP2_DATA)/cells_data.h $(EP2_DATA)/episode_data.h
+	    $(EP2_DATA)/cells_data.h $(EP2_DATA)/episode_data.h \
+	    $(EP2_DATA)/shell_text_data.h $(EP2_DATA)/shell_exact_data.h
+
+$(EP2_DATA)/shell_text_data.h: ../extracted/ep2/CC2-UNLZ.EXE \
+	    ../notes/ep2/menu_fixtures.json
+	@mkdir -p $(EP2_DATA)
+	$(PYTHON) ../tools/export_shell_assets.py --episode ep2
+
+$(EP2_DATA)/shell_exact_data.h: ../notes/ep2/shell_exactness_fixtures.json
+	@mkdir -p $(EP2_DATA)
+	$(PYTHON) ../tools/make_shell_exact_data.py --episode ep2
+
+# Episode 2 browser asset pack (assets_ep2/).  Copy-only: the portable set is
+# produced by the tools/ ep2 pipeline (see notes/ep2_diff.md).
+EP2_ASSETS = assets_ep2
+EP2_ASSET_FILES = gfx.bin levels.bin cells.bin level_overlay.bin \
+		  palette.json screens.bin mni_f1.bin mni_f2.bin \
+		  mni_spl.bin sound.json
+
+ep2-assets: $(addprefix $(EP2_ASSETS)/,$(EP2_ASSET_FILES))
+
+$(EP2_ASSETS)/%.bin: ../out/portable_ep2/%.bin
+	@mkdir -p $(EP2_ASSETS)
+	cp $< $@
+
+$(EP2_ASSETS)/palette.json: ../out/portable_ep2/palette.json
+	@mkdir -p $(EP2_ASSETS)
+	cp $< $@
+
+$(EP2_ASSETS)/sound.json: ../out/portable/sound.json
+	@mkdir -p $(EP2_ASSETS)
+	cp $< $@
+
+# Regenerators for the ep2 portable artifacts the copies depend on.
+../out/portable_ep2/screens.bin: ../extracted/ep2/CC2-UNLZ.EXE \
+	    ../notes/ep2/menu_fixtures.json
+	$(PYTHON) ../tools/export_shell_assets.py --episode ep2
+
+../out/portable_ep2/level_overlay.bin: ../notes/ep2/loader_tags.json
+	$(PYTHON) ../tools/export_level_overlay.py --episode ep2
 
 $(EP2_DATA)/startup_data.h: ../notes/ep2/startup.json
 	@mkdir -p $(EP2_DATA)
@@ -194,9 +233,12 @@ test-render-all: clang
 test-render-ep2: clang
 	node test_render_all_ep2.js
 
-# Episode 2 compiled data + gameplay frames (skips without BYO data).
-test-ep2: ep2 test-render-ep2
+# Episode 2 compiled data + gameplay frames + browser flow (BYO data; skips).
+test-ep2: ep2 ep2-assets test-render-ep2 test-ep2-browser
 	node test_ep2_data.js
+
+test-ep2-browser: ep2 ep2-assets
+	node test_ep2_browser.js
 
 test-data:
 	$(PYTHON) ../tools/check_oracle.py
@@ -403,4 +445,4 @@ clean:
 	rm -f $(OUT) $(EP2_OUT) app.js app.wasm app.d out_wasm_level*.png oracle_level*.json
 	rm -rf obj obj_ep2 ep2_data
 
-.PHONY: clang emcc ep2 assets favicon social-card data startup test test-render-all test-render-ep2 test-ep2 test-data test-exports test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-oracle-menus test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update test-digest test-digest-update test-render-digest render-digest-update lint lint-strict perf test-all clean
+.PHONY: clang emcc ep2 ep2-assets assets favicon social-card data startup test test-render-all test-render-ep2 test-ep2 test-ep2-browser test-data test-exports test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-oracle-menus test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update test-digest test-digest-update test-render-digest render-digest-update lint lint-strict perf test-all clean
