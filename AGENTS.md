@@ -35,7 +35,7 @@ different thing.  See the README section *Develop in Docker (any platform)*.
 | `make test-render-ep2` | Pixel-diff all ep2 levels against `out/ep2/oracle_L*.png` (BYO data; skips if absent) |
 | `make -C wasm ep2` | Build `render_ep2.wasm` from generated Episode 2 data (BYO; `make test-ep2` runs the checks) |
 | `make -C wasm ep2-assets` | Build `assets_ep2/` for `game.html?ep=2` (BYO) |
-| `make -C wasm test-ep2` | Episode 2 render + compiled-data + browser checks (BYO; skips if absent) |
+| `make -C wasm test-ep2` | Episode 2 render + compiled-data + transition + browser checks (BYO; skips if absent) |
 | `make test-data` | Run `../tools/check_oracle.py` (structural oracle assertions) |
 | `make test-exports` | Built wasm exports must match the Makefile `EXPORTS` list |
 | `make test-view` | 320x200 viewport crop regression |

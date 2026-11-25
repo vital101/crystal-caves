@@ -355,6 +355,12 @@ runtime-loaded.
   files use `cc2.*` names and the window title is episode-specific.
   `make -C native test-smoke-ep2` runs the headless SDL smoke (the target is
   skipped at configure time when the BYO data is absent).
+- **Transitions:** `tools/loader_fixtures.py --episode ep2` captured all 32
+  poisoned hub<->cave transitions from the real loader; the C overlay replay
+  (`test_loader.js` with `CC_WASM`/`CC_CELLS`/`CC_OVERLAY`, wired as
+  `make test-ep2-transitions`) matches every cell, object, global, cursor and
+  RNG value.  The fixture stays in git-ignored `notes/ep2/` (13 min Unicorn
+  regeneration).
 
 ## Open questions
 
