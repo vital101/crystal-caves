@@ -43,6 +43,20 @@ are separate and need `tools/requirements.txt`.  Hosts with no local toolchain
 | Source-size guardrail | `lint` | `refactor/phase-0-safety-net.md` limits | `tools/check_source_limits.py` | no (CI, strict) |
 | Browser smoke | `test-browser` | `wasm/browser_expectations.json` + message trigger | `test_browser.js` (Playwright) | no (separate CI job) |
 | Frame budget / wasm size | `perf` | `wasm/perf_baseline.json` | `measure_perf.js` | no (CI summary) |
+
+## Episode 2 (bring-your-own registered data)
+
+`make -C wasm test-ep2` runs these; every row skips cleanly when the Episode 2
+data has not been staged/exported.
+
+| Subsystem | Make target | Fixture / reference | Harness |
+|---|---|---|---|
+| Static rendering, all 19 levels | `test-render-ep2` | `out/ep2/oracle_L*.png` | `test_render_all_ep2.js` + wasm |
+| Compiled data + crystal rule | `test-ep2` | `notes/ep2/{startup,oracle_objects,oracle_catalog}.json` | `test_ep2_data.js` |
+| Hub<->cave transitions | `test-ep2-transitions` | `notes/ep2/loader_fixtures.json` | `test_loader.js` |
+| Shell text / story / high scores | `test-ep2` | `notes/ep2/shell_exactness_fixtures.json`, `menu_fixtures.json` | exported headers + browser |
+| Browser flow | `test-ep2-browser` | `wasm/browser_expectations_ep2.json` | `test_ep2_browser.js` (Playwright) |
+| Native binary smoke | `make -C native test-smoke-ep2` | — (dummy drivers, fb hash) | `native/caves_ep2 --smoke` |
 Oracle regeneration (not part of `test-all`; requires `tools/requirements.txt`):
 
 `test-oracle-objects`, `test-oracle-physics`, `test-oracle-combat`,

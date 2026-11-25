@@ -362,6 +362,26 @@ runtime-loaded.
   RNG value.  The fixture stays in git-ignored `notes/ep2/` (13 min Unicorn
   regeneration).
 
+## Episode 3 (blocked: no data supplied)
+
+Episode 3 has not been started because no Episode 3 archive was provided.
+The pipeline is ready; the required steps are:
+
+1. Supply the registered Episode 3 files and stage them under
+   `extracted/ep3/` (git-ignored).  The trilogy is freeware.
+2. `python3 tools/unlzexe.py extracted/ep3/CC3.EXE extracted/ep3/CC3-UNLZ.EXE`
+3. `python3 tools/episode_diff.py extracted/CC1-UNLZ.EXE
+   extracted/ep3/CC3-UNLZ.EXE --assets-a extracted --assets-b extracted/ep3
+   --json notes/ep3_diff.json` (the tool is episode-agnostic) and inspect the
+   delta report.
+4. Add an `ep3` entry to `tools/episode_config.py` from the run map: DS/loader/
+   handler/TP segments, frame-routine addresses, shell addresses, handler
+   segment and the crystal `w7` range (re-derive the cell-event rule, do not
+   assume Episode 2's).
+5. Follow R1-R4: `emulate_startup/load/game --episode ep3`, the asset/shell
+   exporters with `--episode ep3`, `make_episode_data.py --episode ep3`,
+   `make -C wasm ep3` and the corresponding tests.
+
 ## Open questions
 
 1. ~~Identify the `0x273AE` handler-tail cluster~~ — resolved: the function at
