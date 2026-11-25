@@ -8,7 +8,7 @@ GROUPS  = static_render gameplay transitions warp shell save_round_trip
 DIGEST_DIR = $(BUILD)/digest
 FIXTURE = ../notes/refactor_digests.json
 
-.PHONY: all build test-digest test-smoke test-smoke-ep2 clean
+.PHONY: all build test-digest test-smoke test-smoke-ep2 test-smoke-ep3 clean
 
 all: build
 
@@ -22,6 +22,9 @@ $(BUILD)/caves $(BUILD)/cc_digest: $(BUILD)/Makefile
 
 $(BUILD)/caves_ep2: $(BUILD)/Makefile
 	$(CMAKE) --build $(BUILD) --target caves_ep2
+
+$(BUILD)/caves_ep3: $(BUILD)/Makefile
+	$(CMAKE) --build $(BUILD) --target caves_ep3
 
 # Run every digest group in a fresh process (fresh static state, like the JS
 # harness's fresh WebAssembly.Instance) and compare against the wasm fixture.
@@ -38,6 +41,9 @@ test-smoke: $(BUILD)/caves
 
 test-smoke-ep2: $(BUILD)/caves_ep2
 	SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./$(BUILD)/caves_ep2 --smoke 120
+
+test-smoke-ep3: $(BUILD)/caves_ep3
+	SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./$(BUILD)/caves_ep3 --smoke 120
 
 clean:
 	rm -rf $(BUILD)

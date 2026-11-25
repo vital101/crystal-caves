@@ -29,6 +29,8 @@
 #endif
 #if CC_EPISODE == 2
 #define CC_WINDOW_TITLE "Crystal Caves Episode 2 - Slugging It Out"
+#elif CC_EPISODE == 3
+#define CC_WINDOW_TITLE "Crystal Caves Episode 3 - Mylo vs. the Supernova"
 #else
 #define CC_WINDOW_TITLE "Crystal Caves Episode 1"
 #endif

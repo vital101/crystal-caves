@@ -86,45 +86,50 @@ target_link_libraries(caves PRIVATE ccore SDL3::SDL3)
 add_executable(cc_digest digest.c sha256.c)
 target_link_libraries(cc_digest PRIVATE ccore)
 
-# ------------------------------------------------------------- Episode 2
-# The same core compiled against the generated Episode 2 data headers and
-# Episode 2 embedded assets.  Skipped when the data has not
-# been generated (make -C wasm ep2 && make -C wasm ep2-assets).
-set(PORTABLE_EP2 ${REPO}/out/portable_ep2)
-set(EP2_DATA ${WASM}/ep2_data)
-if(EXISTS ${EP2_DATA}/startup_data.h AND EXISTS ${EP2_DATA}/objects_data.h
-   AND EXISTS ${EP2_DATA}/cells_data.h AND EXISTS ${EP2_DATA}/episode_data.h
-   AND EXISTS ${PORTABLE_EP2}/levels.bin AND EXISTS ${PORTABLE_EP2}/screens.bin)
-  set(EMBED2_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated_ep2)
-  set(EMBED2_C ${EMBED2_DIR}/assets_embed.c)
-  set(EMBED2_H ${EMBED2_DIR}/assets_embed.h)
-  file(MAKE_DIRECTORY ${EMBED2_DIR})
-  set(EP2_PORTABLE_DEPS)
+# --------------------------------------------------- Episodes 2/3 (data)
+# The same core compiled against a per-episode generated data directory and
+# embedded portable assets.  Each target is skipped when that episode's data
+# has not been generated (make -C wasm ep2 ep2-assets, ep3 ep3-assets).
+function(add_episode_target ep_name ep_num)
+  set(DATA_DIR ${WASM}/${ep_name}_data)
+  set(PORTABLE ${REPO}/out/portable_${ep_name})
+  if(NOT (EXISTS ${DATA_DIR}/startup_data.h AND EXISTS ${DATA_DIR}/objects_data.h
+          AND EXISTS ${DATA_DIR}/cells_data.h AND EXISTS ${DATA_DIR}/episode_data.h
+          AND EXISTS ${PORTABLE}/levels.bin AND EXISTS ${PORTABLE}/screens.bin))
+    message(STATUS "Episode ${ep_num} data not found; caves_${ep_name} target skipped")
+    return()
+  endif()
+  set(EMBED_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated_${ep_name})
+  set(EMBED_C ${EMBED_DIR}/assets_embed.c)
+  set(EMBED_H ${EMBED_DIR}/assets_embed.h)
+  file(MAKE_DIRECTORY ${EMBED_DIR})
+  set(PORTABLE_DEPS)
   foreach(f gfx.bin levels.bin cells.bin level_overlay.bin screens.bin
             mni_f1.bin mni_f2.bin mni_spl.bin palette.json sound.json)
-    list(APPEND EP2_PORTABLE_DEPS ${PORTABLE_EP2}/${f})
+    list(APPEND PORTABLE_DEPS ${PORTABLE}/${f})
   endforeach()
   add_custom_command(
-    OUTPUT ${EMBED2_C} ${EMBED2_H}
+    OUTPUT ${EMBED_C} ${EMBED_H}
     COMMAND ${Python3_EXECUTABLE} ${REPO}/tools/embed_assets.py
-            ${EMBED2_C} ${EMBED2_H} ${PORTABLE_EP2}
-    DEPENDS ${EP2_PORTABLE_DEPS} ${REPO}/tools/embed_assets.py
-    COMMENT "Embedding Episode 2 portable assets")
-  add_library(ccore_ep2 STATIC ${CORE_SRC} ${EMBED2_C})
-  target_include_directories(ccore_ep2 PUBLIC
-    ${EP2_DATA} ${WASM} ${WASM}/render ${WASM}/game ${WASM}/text
-    ${WASM}/shell ${EMBED2_DIR})
-  target_compile_definitions(ccore_ep2 PRIVATE CC_HOST_LIBC CC_EPISODE=2)
-  target_compile_options(ccore_ep2 PRIVATE -ffreestanding -fno-builtin -O2)
+            ${EMBED_C} ${EMBED_H} ${PORTABLE}
+    DEPENDS ${PORTABLE_DEPS} ${REPO}/tools/embed_assets.py
+    COMMENT "Embedding Episode ${ep_num} portable assets")
+  add_library(ccore_${ep_name} STATIC ${CORE_SRC} ${EMBED_C})
+  target_include_directories(ccore_${ep_name} PUBLIC
+    ${DATA_DIR} ${WASM} ${WASM}/render ${WASM}/game ${WASM}/text
+    ${WASM}/shell ${EMBED_DIR})
+  target_compile_definitions(ccore_${ep_name} PRIVATE CC_HOST_LIBC CC_EPISODE=${ep_num})
+  target_compile_options(ccore_${ep_name} PRIVATE -ffreestanding -fno-builtin -O2)
   if(MSVC)
-    target_compile_options(ccore_ep2 PRIVATE /W3)
+    target_compile_options(ccore_${ep_name} PRIVATE /W3)
   else()
-    target_compile_options(ccore_ep2 PRIVATE -Wall -Wextra
+    target_compile_options(ccore_${ep_name} PRIVATE -Wall -Wextra
       -Wno-unused-parameter -Wno-unused-function)
   endif()
-  add_executable(caves_ep2 host.c keymap.c persist.c synth.c)
-  target_compile_definitions(caves_ep2 PRIVATE CC_EPISODE=2)
-  target_link_libraries(caves_ep2 PRIVATE ccore_ep2 SDL3::SDL3)
-else()
-  message(STATUS "Episode 2 data not found; caves_ep2 target skipped")
-endif()
+  add_executable(caves_${ep_name} host.c keymap.c persist.c synth.c)
+  target_compile_definitions(caves_${ep_name} PRIVATE CC_EPISODE=${ep_num})
+  target_link_libraries(caves_${ep_name} PRIVATE ccore_${ep_name} SDL3::SDL3)
+endfunction()
+
+add_episode_target(ep2 2)
+add_episode_target(ep3 3)
