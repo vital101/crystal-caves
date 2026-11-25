@@ -81,6 +81,17 @@ matched rather than converted.  `native/build/caves --dump-sound ID OUT.wav
 A/B listening; at the same rate it is bit-identical to
 `wasm/sound_synth.js`.
 
+**Small-speaker stage.**  A raw square wave keeps its harmonics up to
+Nyquist, which is brighter than the original PC buzzer (and than the
+emulators' period-correct "small speaker" filters).  Playback therefore runs
+the rendered buffer through a second-order Butterworth low-pass at 5.5 kHz
+(`CCSynth.speakerShape` in `wasm/sound_synth.js`, `speaker_shape` in
+`native/synth.c`; the highest note in the 36 traces is 5013 Hz, so every
+fundamental stays intact).  This is a playback stage only: `renderInt16` stays
+the raw, hash-checked reference, and `test-sound` additionally asserts the
+10 kHz / 1 kHz gain of the filter.  The cutoff lives in one constant on each
+platform if it needs tuning.
+
 ## Priority / preemption
 
 `cc_sound_play(id)` in `wasm/sound.c` mirrors `0x1FBBF`:

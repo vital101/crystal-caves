@@ -52,13 +52,48 @@
     return out;
   }
 
+  /* Small-speaker playback model.  The raw renderer above keeps the square
+   * wave's harmonics up to Nyquist, while the original PC buzzer (and every
+   * emulator's "small speaker" filter) rolls them off.  Second-order
+   * Butterworth low-pass; the reference hashes above stay on the raw path. */
+  const SPEAKER_LP_HZ = 5500;
+  const SPEAKER_Q = Math.SQRT1_2;
+
+  /** Filter Float32 playback samples (small-speaker response). */
+  function speakerShape(samples, sampleRate) {
+    const out = new Float32Array(samples.length);
+    if (!(sampleRate > 0) || sampleRate <= SPEAKER_LP_HZ * 2) {
+      out.set(samples);
+      return out;
+    }
+    const w0 = 2 * Math.PI * SPEAKER_LP_HZ / sampleRate;
+    const cosw = Math.cos(w0);
+    const alpha = Math.sin(w0) / (2 * SPEAKER_Q);
+    const a0 = 1 + alpha;
+    const b0 = (1 - cosw) / (2 * a0);
+    const b1 = (1 - cosw) / a0;
+    const a1 = -2 * cosw / a0;
+    const a2 = (1 - alpha) / a0;
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < samples.length; i++) {
+      const x = samples[i];
+      const y = b0 * x + b1 * x1 + b0 * x2 - a1 * y1 - a2 * y2;
+      out[i] = y;
+      x2 = x1; x1 = x;
+      y2 = y1; y1 = y;
+    }
+    return out;
+  }
+
   const api = {
     PIT_HZ: PIT_HZ,
     TICK_DIVISOR: TICK_DIVISOR,
     AMPLITUDE: AMPLITUDE,
+    SPEAKER_LP_HZ: SPEAKER_LP_HZ,
     sampleCount: sampleCount,
     renderInt16: renderInt16,
     renderFloat: renderFloat,
+    speakerShape: speakerShape,
   };
 
   root.CCSynth = api;
