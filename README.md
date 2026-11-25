@@ -61,6 +61,19 @@ The browser stores Episode 2 config, high scores and saves under `cc2.*`,
 separate from Episode 1's `cc1.*`.  The R0 delta analysis, address map and
 artifact inventory are documented in `notes/ep2_diff.md`.
 
+### Play Episode 3
+
+Episode 3 ("Mylo vs. the Supernova") is committed the same way:
+
+```sh
+python3 -m http.server 8080 -d wasm # open /game.html?ep=3
+make -C wasm test-ep3               # render/data/transition/browser checks
+```
+
+Rebuild after engine changes with `make -C wasm ep3 ep3-assets`.  Episode 3
+stores its config, high scores and saves under `cc3.*`; its delta analysis and
+the three-screen ending are documented in `notes/ep3_diff.md`.
+
 Nothing installed locally, or building on Windows?  Every command in this
 README also runs in the dev container — see
 [Develop in Docker](#develop-in-docker-any-platform).
@@ -169,7 +182,9 @@ make -C native test-smoke-ep2      # builds/runs native/build/caves_ep2 headless
 
 `caves_ep2` embeds `out/portable_ep2`, sets an episode-specific window title
 and keeps its config, high scores and save slots in `cc2.*` files next to the
-Episode 1 `cc1.*` files.
+Episode 1 `cc1.*` files.  `caves_ep3` is built the same way
+(`make -C wasm ep3 ep3-assets`, then `make -C native test-smoke-ep3`) and keeps
+its data in `cc3.*` files.
 
 ## Controls
 

@@ -278,9 +278,6 @@ void ov_obj_byte(int slot, int off, unsigned char value) {
     raw[off] = value;
 }
 
-typedef struct OvCellTag { uint16_t bit; uint8_t tag; uint16_t payload; } OvCellTag;
-typedef struct OvObjTag  { uint8_t slot, off, tag; uint16_t payload; } OvObjTag;
-
 /* Overlay v2 decoration and hub-door recipes: RNG-selected values written
  * straight into the cells (the hub's two background recipes plus doors). */
 static void ov_decor_and_doors(const unsigned char *draw_p,
@@ -322,17 +319,19 @@ static void ov_decor_and_doors(const unsigned char *draw_p,
 }
 
 /* Cell bytes whose value comes from a draw roll or a live global. */
-static void ov_apply_cell_tags(const OvCellTag *ct, uint16_t ct_n,
+static void ov_apply_cell_tags(const unsigned char *p, uint16_t n,
                                const uint16_t *draws, uint16_t draw_n) {
     uint16_t i;
-    for (i = 0; i < ct_n; i++) {
-        unsigned cell = ct[i].bit / 20, boff = ct[i].bit % 20;
+    for (i = 0; i < n; i++, p += 5) {
+        uint16_t bit = ov_rd16(p);
+        uint8_t tag = p[2];
+        uint16_t payload = ov_rd16(p + 3);
+        unsigned cell = bit / 20, boff = bit % 20;
         unsigned char value;
-        if (ct[i].tag == 2) {
-            value = (unsigned char)cc_global_get(ct[i].payload);
-        } else if (ct[i].tag == 1) {
-            uint16_t di = ct[i].payload;
-            value = (unsigned char)(di < draw_n ? draws[di] : 0);
+        if (tag == 2) {
+            value = (unsigned char)cc_global_get(payload);
+        } else if (tag == 1) {
+            value = (unsigned char)(payload < draw_n ? draws[payload] : 0);
         } else {
             continue;
         }
@@ -342,22 +341,22 @@ static void ov_apply_cell_tags(const OvCellTag *ct, uint16_t ct_n,
 
 /* Object bytes whose value comes from a draw roll (high/low half by offset
  * parity) or a live global. */
-static void ov_apply_obj_tags(const OvObjTag *ot, uint16_t ot_n,
+static void ov_apply_obj_tags(const unsigned char *p, uint16_t n,
                               const uint16_t *draws, uint16_t draw_n) {
     uint16_t i;
-    for (i = 0; i < ot_n; i++) {
+    for (i = 0; i < n; i++, p += 5) {
+        uint8_t slot = p[0], off = p[1], tag = p[2];
+        uint16_t payload = ov_rd16(p + 3);
         unsigned char value;
-        if (ot[i].tag == 2) {
-            value = (unsigned char)cc_global_get(ot[i].payload);
-        } else if (ot[i].tag == 1) {
-            uint16_t di = ot[i].payload;
-            uint16_t v = di < draw_n ? draws[di] : 0;
-            value = (ot[i].off & 1) ? (unsigned char)(v >> 8)
-                                    : (unsigned char)v;
+        if (tag == 2) {
+            value = (unsigned char)cc_global_get(payload);
+        } else if (tag == 1) {
+            uint16_t v = payload < draw_n ? draws[payload] : 0;
+            value = (off & 1) ? (unsigned char)(v >> 8) : (unsigned char)v;
         } else {
             continue;
         }
-        ov_obj_byte(ot[i].slot, ot[i].off, value);
+        ov_obj_byte(slot, off, value);
     }
 }
 
@@ -368,9 +367,6 @@ void apply_level_overlay(int level) {
     uint16_t cell_tag_n, obj_lit_n, obj_tag_n, glob_n, draw_n, draw_n_raw;
     uint16_t draws[1024];
     uint16_t vi = 0, i, version;
-    OvCellTag ct[256];
-    OvObjTag ot[256];
-    uint16_t ct_n = 0, ot_n = 0;
 
     if (!base || level < 0 || level >= OBJ_LEVELS) return;
     if (ov_rd32(base) != 0x4F4C4343u) return;  /* "CCLO" */
@@ -387,12 +383,6 @@ void apply_level_overlay(int level) {
     p = values + vi;
     cell_tag_n = ov_rd16(p); p += 2;
     cell_tag_p = p; p += (unsigned)cell_tag_n * 5;
-    for (i = 0; i < cell_tag_n && ct_n < 256; i++) {
-        ct[ct_n].bit = ov_rd16(cell_tag_p + i * 5);
-        ct[ct_n].tag = cell_tag_p[i * 5 + 2];
-        ct[ct_n].payload = ov_rd16(cell_tag_p + i * 5 + 3);
-        ct_n++;
-    }
     obj_lit_n = ov_rd16(p); p += 2;
     obj_lit_p = p; p += (unsigned)obj_lit_n * 3;
     for (i = 0; i < obj_lit_n; i++)
@@ -400,13 +390,6 @@ void apply_level_overlay(int level) {
                     obj_lit_p[i * 3 + 2]);
     obj_tag_n = ov_rd16(p); p += 2;
     obj_tag_p = p; p += (unsigned)obj_tag_n * 5;
-    for (i = 0; i < obj_tag_n && ot_n < 256; i++) {
-        ot[ot_n].slot = obj_tag_p[i * 5];
-        ot[ot_n].off = obj_tag_p[i * 5 + 1];
-        ot[ot_n].tag = obj_tag_p[i * 5 + 2];
-        ot[ot_n].payload = ov_rd16(obj_tag_p + i * 5 + 3);
-        ot_n++;
-    }
     glob_n = ov_rd16(p); p += 2;
     glob_p = p; p += (unsigned)glob_n * 5;
     for (i = 0; i < glob_n; i++) {
@@ -433,8 +416,8 @@ void apply_level_overlay(int level) {
         uint16_t add = ov_rd16(draw_p + i * 4 + 2);
         draws[i] = (uint16_t)(cc_rng_next(n) + add);
     }
-    ov_apply_cell_tags(ct, ct_n, draws, draw_n);
-    ov_apply_obj_tags(ot, ot_n, draws, draw_n);
+    ov_apply_cell_tags(cell_tag_p, cell_tag_n, draws, draw_n);
+    ov_apply_obj_tags(obj_tag_p, obj_tag_n, draws, draw_n);
 }
 
 void load_level(int level, int new_game, int fresh_image, int sound_start) {

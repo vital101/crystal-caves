@@ -20,6 +20,10 @@ int  cc_synth_play(cc_synth *s, int id);
 /* Stop the current sound immediately (audio.js stop()). */
 void cc_synth_stop(cc_synth *s);
 
+/* Raw rendered PCM (before the playback gain); *len receives the frame
+ * count.  Valid after cc_synth_play(); used by --dump-sound. */
+const int16_t *cc_synth_pcm(const cc_synth *s, int *len);
+
 /* Audio callback body: write up to `frames` int16 mono samples into out.
  * When the current sound finishes, *ended_id is set to its ID (the host then
  * calls cc_sound_end(id), mirroring the WebAudio onended handler). */

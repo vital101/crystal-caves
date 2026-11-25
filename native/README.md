@@ -65,7 +65,7 @@ JSON against `notes/refactor_digests.json`.  `cc_digest` needs no SDL.
 | `host.c` | SDL3 host: window/integer-scaled blit, fixed-step 140.06 Hz loop, input, gamepad, audio pump, save/restore handshake — port of `wasm/game.js` + `wasm/game/*.js` |
 | `keymap.c` | SDL scancode → DOS set-1 scan code — port of `wasm/keymap.js` |
 | `persist.c` | pref-dir files for config/high scores/save slots — port of `wasm/persist.js` |
-| `synth.c` | PC-speaker trace renderer + single-channel player — port of `wasm/sound_synth.js` + `wasm/audio.js` |
+| `synth.c` | PC-speaker trace renderer + single-channel player — port of `wasm/sound_synth.js` + `wasm/audio.js`; traces render at the output device's native rate (`host.c` queries it) and pass through the same 5.5 kHz small-speaker low-pass as the browser |
 | `digest.c` | golden-master digest harness — port of `wasm/test_refactor_digest.js` |
 | `sha256.c` | SHA-256 for the digest harness |
 | `compare_digests.js` | assembles `cc_digest` group outputs and diffs them against the fixture |

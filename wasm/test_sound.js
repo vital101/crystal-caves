@@ -109,6 +109,29 @@ async function main() {
     }
   }
 
+  // ---- speaker shaping (playback stage, not the reference hash) -----
+  {
+    const rate = 48000, n = rate / 2;
+    const sine = (hz) => {
+      const s = new Float32Array(n);
+      for (let i = 0; i < n; i++) s[i] = Math.sin(2 * Math.PI * hz * i / rate) * 0.3;
+      return s;
+    };
+    const rms = (s) => {
+      let acc = 0, k = 0;
+      for (let i = rate / 10; i < s.length; i++) { acc += s[i] * s[i]; k++; }
+      return Math.sqrt(acc / k);
+    };
+    const low = CCSynth.speakerShape(sine(1000), rate);
+    const high = CCSynth.speakerShape(sine(10000), rate);
+    const ratio = rms(high) / rms(low);
+    if (!(ratio < 0.5)) {
+      fail("speaker.shape", `10 kHz gain ${ratio.toFixed(3)} (want < 0.5)`);
+    } else {
+      console.log(`ok  speaker shaping: 10 kHz / 1 kHz RMS ${ratio.toFixed(3)}`);
+    }
+  }
+
   if (failures) {
     console.error(`FAIL: ${failures} sound checks`);
     process.exit(1);

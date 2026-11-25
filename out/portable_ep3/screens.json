@@ -1,0 +1,47 @@
+{
+  "screen_bytes": 64000,
+  "screens": [
+    {
+      "id": "apogee",
+      "file": "CC3.APG",
+      "offset": 0,
+      "width": 320,
+      "height": 200
+    },
+    {
+      "id": "title",
+      "file": "CC3.TTL",
+      "offset": 64000,
+      "width": 320,
+      "height": 200
+    },
+    {
+      "id": "credits",
+      "file": "CC3.CDT",
+      "offset": 128000,
+      "width": 320,
+      "height": 200
+    },
+    {
+      "id": "ending1",
+      "file": "CC3-END1.END",
+      "offset": 192000,
+      "width": 320,
+      "height": 200
+    },
+    {
+      "id": "ending2",
+      "file": "CC3-END2.END",
+      "offset": 256000,
+      "width": 320,
+      "height": 200
+    },
+    {
+      "id": "ending3",
+      "file": "CC3-END3.END",
+      "offset": 320000,
+      "width": 320,
+      "height": 200
+    }
+  ]
+}

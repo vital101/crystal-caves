@@ -71,6 +71,27 @@ renders it with integer phase/boundary math.  The JS synth is checked against
 the Python reference hashes in `notes/sound_synth_fixtures.json` at 44.1 and
 48 kHz.
 
+The browser plays at the AudioContext's native rate; the native host does the
+same by querying the output device (`SDL_GetAudioDeviceFormat`) and rendering
+the traces at that rate.  Rendering a fixed 44.1 kHz stream and letting SDL
+resample it to a 48 kHz device folds the square wave's near-Nyquist harmonics
+into audible inharmonic images (a metallic "tinny" sheen), so the rate is
+matched rather than converted.  `native/build/caves --dump-sound ID OUT.wav
+[--rate HZ]` writes one effect's exact playback PCM (post-gain, pre-SDL) for
+A/B listening; at the same rate it is bit-identical to
+`wasm/sound_synth.js`.
+
+**Small-speaker stage.**  A raw square wave keeps its harmonics up to
+Nyquist, which is brighter than the original PC buzzer (and than the
+emulators' period-correct "small speaker" filters).  Playback therefore runs
+the rendered buffer through a second-order Butterworth low-pass at 5.5 kHz
+(`CCSynth.speakerShape` in `wasm/sound_synth.js`, `speaker_shape` in
+`native/synth.c`; the highest note in the 36 traces is 5013 Hz, so every
+fundamental stays intact).  This is a playback stage only: `renderInt16` stays
+the raw, hash-checked reference, and `test-sound` additionally asserts the
+10 kHz / 1 kHz gain of the filter.  The cutoff lives in one constant on each
+platform if it needs tuning.
+
 ## Priority / preemption
 
 `cc_sound_play(id)` in `wasm/sound.c` mirrors `0x1FBBF`:

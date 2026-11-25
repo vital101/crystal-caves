@@ -1,4 +1,4 @@
-// Pixel-exact Episode 2 static-level regression.
+// Pixel-exact per-episode static-level regression (CC_EP=ep2 by default).
 //
 // Renders each level with the SAME wasm build used for Episode 1, fed with the
 // portable Episode 2 assets, and compares against out/ep2/oracle_LNN.png (the
@@ -19,17 +19,18 @@ const path = require('path');
 
 const DIR = __dirname;
 const ROOT = path.join(DIR, '..');
-const ASSETS = path.join(ROOT, 'out', 'portable_ep2');
-const ORACLE = path.join(ROOT, 'out', 'ep2');
+const EP = process.env.CC_EP || 'ep2';
+const ASSETS = path.join(ROOT, 'out', 'portable_' + EP);
+const ORACLE = path.join(ROOT, 'out', EP);
 const LEVELS = 19;
 
 if (!fs.existsSync(path.join(ASSETS, 'levels.bin'))) {
-  console.log('SKIP test-render-ep2: out/portable_ep2/levels.bin missing (BYO data)');
+  console.log(`SKIP test-render-ep: out/portable_${EP}/levels.bin missing`);
   process.exit(0);
 }
 if (!fs.existsSync(path.join(ORACLE, 'oracle_L00.png'))) {
-  console.log('SKIP test-render-ep2: out/ep2/oracle_L*.png missing ' +
-              '(run tools/render_oracle.py --episode ep2)');
+  console.log(`SKIP test-render-ep: out/${EP}/oracle_L*.png missing ` +
+              `(run tools/render_oracle.py --episode ${EP})`);
   process.exit(0);
 }
 
@@ -63,7 +64,7 @@ for (let level = 0; level < LEVELS; level++) {
 
 fs.rmSync(tmp, { recursive: true, force: true });
 if (failures) {
-  console.error(`\n${failures} episode-2 level(s) differ from the oracle`);
+  console.error(`\n${failures} ${EP} level(s) differ from the oracle`);
   process.exit(1);
 }
-console.log('\nALL 19 EPISODE 2 LEVELS PIXEL-EXACT');
+console.log(`\nALL 19 ${EP.toUpperCase()} LEVELS PIXEL-EXACT`);

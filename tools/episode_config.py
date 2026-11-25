@@ -81,6 +81,7 @@ EPISODES = {
             "title_flip": 0x18074,
             "screens_bin": os.path.join(ROOT, "out", "portable", "screens.bin"),
         },
+        "ending_screens": 1,
         "levels": 19,
     },
     "ep2": {
@@ -143,6 +144,71 @@ EPISODES = {
             "title_flip": 0x17E2B,
             "screens_bin": os.path.join(ROOT, "out", "portable_ep2", "screens.bin"),
         },
+        "ending_screens": 1,
+        "levels": 19,
+    },
+    "ep3": {
+        "name": "ep3",
+        "prefix": "CC3",
+        "exe": os.path.join(ROOT, "extracted", "ep3", "CC3-UNLZ.EXE"),
+        "startup": 0xC3E,          # byte-identical to ep1/ep2
+        "loader": 0xB0CE,          # 0xB1A9 - 219
+        "load_end": 0xCD05,        # 0xCEEC - 487 (draw-map sequence)
+        "data_seg": 0x2E17,        # from the TP runtime prologue
+        "stack_seg": 0x3850,       # MZ header SS
+        "stack_ptr": 0x7D00,       # MZ header SP
+        "skip_segs": (0x29F9, 0x282F, 0x0FA6),
+        "blitter_seg": 0x29F9,
+        "rng_seg": 0x2CF9,
+        "rng_ip": 0x0980,
+        "spawn": 0x047D,
+        "draw_sites": (0x052B, 0x0560),
+        "handler_seg": 0x2104,      # ep1 offsets unchanged (0x1F9A + 0x16A)
+        "crystal_w7": (0x21, 0x24),  # ep3 crystals w7 0x21..0x24
+        "frame": {
+            "horiz": 0xDE2A, "jump": 0xE184, "contact": 0xE3EC,
+            "fire": 0xEA0B, "status": 0xE903, "objects": 0xD543,
+        },
+        "cell_event_linear": 0x1CE07,
+        "cell_event_seg": 0x0FA6,
+        "cell_event_off": 0xD3A7,
+        "play_sound": 0x21265,
+        "shell": {
+            "module": os.path.join(ROOT, "extracted", "ep3", "CC3-UNLZ.EXE"),
+            "seg": 0x0FA6,
+            "video_segs": (0x29F9, 0x282F),
+            "render_site": 0x102D7,
+            "render_sites": (0x102D7, 0x21B67),
+            "linebreak_site": 0x10749,
+            "menu_entry": 0x18964,
+            "menu_input": 0x18B29,
+            "menu_runs": (
+                (0x14D0A, ("ordering_episodes", "ordering_offer", "ordering_disk")),
+                (0x1A516, ("foreign", "foreign_au", "foreign_de", "foreign_uk")),
+                (0x1AE6E, ("bbs",)),
+                (0x1B205, ("about",)),
+                (0x18D78, ("menu_help",)),
+                (0x17201, ("menu_quit",)),
+            ),
+            "video_entry": 0x1BA70,
+            "video_site": 0x1BBA8,
+            "quit_entry": 0x112B1,
+            "quit_site": 0x112F4,
+            "story_intro": (0x139F5, 0x14000),
+            "story_finale": (0x114A6, 0x11B06, 0x122C9, 0x12494,
+                             0x12925, 0x12E5C, 0x131F3, 0x135B9),
+            "hiscore_defaults": 0x19788,
+            "hiscore_screen": 0x150C8,
+            "key_table": 0xFA9E,
+            "sound_seg": 0x2104,
+            "sound_play": 0x21F,
+            "title_entry_off": 0x9855,
+            "title_hold": 0x19374,
+            "title_draw": 0x19424,
+            "title_flip": 0x19474,
+            "screens_bin": os.path.join(ROOT, "out", "portable_ep3", "screens.bin"),
+        },
+        "ending_screens": 3,
         "levels": 19,
     },
 }
@@ -173,8 +239,12 @@ def apply(name):
     if main is not None and main not in targets and hasattr(main, "SKIP_SEGS"):
         targets.add(main)
 
+    with open(cfg["exe"], "rb") as fh:
+        mz_head = fh.read(0x40)
     attrs = {
         "EXE": cfg["exe"],
+        # LZEXE builds use different MZ header sizes (ep3 is 0x2000).
+        "HDR": int.from_bytes(mz_head[8:10], "little") * 16,
         "DATA_SEG": cfg["data_seg"],
         "STACK_SEG": cfg["stack_seg"],
         "STACK_PTR": cfg["stack_ptr"],

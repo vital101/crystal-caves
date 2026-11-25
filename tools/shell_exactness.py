@@ -87,9 +87,9 @@ def apply_episode(name):
     import episode_config
     episode_config.apply(name)
     cfg = episode_config.get(name)["shell"]
-    with open(cfg["module"], "rb") as fh:
-        data = fh.read()
-    MODULE = data[0x1E00:]
+    # Header size differs per LZEXE build (ep3 is 0x2000); load_module()
+    # strips the applied episode's MZ header.
+    MODULE = E.load_module()
     CS = cfg["seg"]
     BASE = CS << 4
     VIDEO_SEGS = tuple(cfg["video_segs"])

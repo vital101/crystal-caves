@@ -18,6 +18,7 @@
 #include "sound_ids.h"
 #include "shell_text_data.h"
 #include "shell_exact_data.h"
+#include "episode_data.h"
 
 #define MAX_PAGES 96
 #define PAGE_LINES 18
@@ -32,7 +33,8 @@ extern int g_shell_state;
 extern int g_timer;
 extern int g_return_state;
 extern int g_wait_sound;       /* finale ID 26: hold until [0x513F] clears */
-extern int g_pending_ending;   /* enter CC1.END after the ID 26 fanfare */
+extern int g_pending_ending;   /* enter the ending screen after the ID 26 fanfare */
+extern int g_ending_screen;    /* index within CC_EP_ENDING_SCREENS */
 extern int g_story_kind;       /* 0 none, 1 intro, 2 finale */
 extern int g_story_level;      /* -1 = no level background */
 extern int g_finale_pending;

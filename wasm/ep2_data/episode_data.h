@@ -12,4 +12,10 @@
 /* Segment stored in ObjectEntry.handler_seg for runtime spawns. */
 #define CC_EP_HANDLER_SEG 0x1F72
 
+/* Ending screens shown after the finale (CC1.END vs CC3-END1..3). */
+#define CC_EP_ENDING_SCREENS 1
+
+/* First ending screen index in screens.bin (APG, TTL, CDT, ...). */
+#define CC_EP_ENDING_SCREEN_BASE 3
+
 #endif

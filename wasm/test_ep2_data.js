@@ -1,4 +1,5 @@
-// Episode 2 compiled-data regression: render_ep2.wasm must reproduce the
+// Per-episode compiled-data regression (CC_EP=ep2 by default; ep3 also).
+// render_<EP>.wasm must reproduce the
 // original loader's object image, player/camera start state, cursor, cells and
 // key globals for every level.
 //
@@ -17,15 +18,18 @@ const path = require('path');
 
 const DIR = __dirname;
 const ROOT = path.join(DIR, '..');
-const WASM = path.join(DIR, 'render_ep2.wasm');
-const CATALOG = path.join(ROOT, 'notes', 'ep2', 'oracle_catalog.json');
-const STARTUP = path.join(ROOT, 'notes', 'ep2', 'startup.json');
-const ORACLE = path.join(ROOT, 'notes', 'ep2', 'oracle_objects.json');
-const CELLS = path.join(ROOT, 'out', 'portable_ep2', 'cells.bin');
+const EP = process.env.CC_EP || 'ep2';
+const WASM = path.join(DIR, `render_${EP}.wasm`);
+const CATALOG = path.join(ROOT, 'notes', EP, 'oracle_catalog.json');
+const STARTUP = path.join(ROOT, 'notes', EP, 'startup.json');
+const ORACLE = path.join(ROOT, 'notes', EP, 'oracle_objects.json');
+const CELLS = path.join(ROOT, 'out', 'portable_' + EP, 'cells.bin');
+const CRYSTAL_W7 = EP === 'ep2' ? [0x0d, 0x10]
+                 : EP === 'ep3' ? [0x21, 0x24] : [0x01, 0x04];
 
 for (const p of [WASM, CATALOG, STARTUP, ORACLE, CELLS]) {
   if (!fs.existsSync(p)) {
-    console.log(`SKIP test-ep2-data: missing ${path.relative(ROOT, p)} (BYO data)`);
+    console.log(`SKIP test-ep-data (${EP}): missing ${path.relative(ROOT, p)}`);
     process.exit(0);
   }
 }
@@ -118,11 +122,11 @@ const GLOBALS = [0x02b8, 0x5122, 0xa0be, 0xa0cc, 0x4611, 0x4613, 0x512e, 0x5130]
                  | (parseInt(grid[r][c].substr(26, 2), 16) << 8);
         const w7 = parseInt(grid[r][c].substr(28, 2), 16)
                  | (parseInt(grid[r][c].substr(30, 2), 16) << 8);
-        if (w6 === 0x0d && w7 >= 0x0d && w7 <= 0x10) crystal = { r, c };
+        if (w6 === 0x0d && w7 >= CRYSTAL_W7[0] && w7 <= CRYSTAL_W7[1]) crystal = { r, c };
       }
     }
     if (!crystal) {
-      bad(`L${lv}: no episode-2 crystal cell found in the oracle dump`);
+      bad(`L${lv}: no ${EP} crystal cell found in the oracle dump`);
       continue;
     }
     e.cc_objects_init(lv);
@@ -142,12 +146,12 @@ const GLOBALS = [0x02b8, 0x5122, 0xa0be, 0xa0cc, 0x4611, 0x4613, 0x512e, 0x5130]
     const w7 = e.cc_cell_byte(crystal.c, crystal.r, 0x0e)
              | (e.cc_cell_byte(crystal.c, crystal.r, 0x0f) << 8);
     if (w7 !== 0) bad(`L${lv} crystal pickup: cell w7=${w7}, expected 0`);
-    console.log(`ok  level ${lv} crystal pickup (ep2 rule 0x0D..0x10)`);
+    console.log(`ok  level ${lv} crystal pickup (${EP} rule ${CRYSTAL_W7[0].toString(16)}..${CRYSTAL_W7[1].toString(16)})`);
   }
 
   if (failures) {
-    console.error(`\n${failures} episode-2 data mismatch(es)`);
+    console.error(`\n${failures} ${EP} data mismatch(es)`);
     process.exit(1);
   }
-  console.log('\nALL 19 EPISODE 2 LEVELS: objects, start state and cells match the oracle');
+  console.log(`\nALL 19 ${EP.toUpperCase()} LEVELS: objects, start state and cells match the oracle`);
 })().catch((err) => { console.error(err); process.exit(1); });

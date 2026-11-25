@@ -158,7 +158,7 @@ function startServer() {
           'key legend shows the default bindings');
     check(chrome.actions.join('|') === 'Move|Jump|Fire|Help & key setup|Pause',
           'key legend groups the actions');
-    check(chrome.ep === 'Episode 1', 'episode button offers Episode 1');
+    check(chrome.ep === 'Episode 3', 'episode button offers Episode 3');
     await expectHash('logo');
 
     // ---- intro: compiled Episode 2 story pages -------------------------

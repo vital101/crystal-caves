@@ -1,0 +1,74 @@
+{
+ "defaults": {
+  "names": [
+   "Play all 3 episodes",
+   "of Crystal Caves.",
+   "Call 1-800-852-5659",
+   "and use Visa or MC.",
+   " ",
+   "I. Jones",
+   "B. Blaze",
+   "S. Logan",
+   "D. Nukem",
+   "J. Kirk"
+  ],
+  "scores": [
+   150000,
+   140000,
+   130000,
+   120000,
+   110000,
+   100000,
+   90000,
+   80000,
+   70000,
+   60000
+  ],
+  "threshold": 60000
+ },
+ "screen_lines": [
+  "   Top Intergalactic Traders",
+  " -----------------------------",
+  " ",
+  " Play all 3 episodes  150000",
+  " of Crystal Caves.    140000",
+  " Call 1-800-852-5659  130000",
+  " and use Visa or MC.  120000",
+  "                      110000",
+  " I. Jones             100000",
+  " B. Blaze             90000",
+  " S. Logan             80000",
+  " D. Nukem             70000",
+  " J. Kirk              60000",
+  " ",
+  " -----------------------------",
+  " ",
+  "         Press Any Key ^"
+ ],
+ "screen_fb_sha256": "20f33b68a9be7fc24efbd5ac2d9d7aad18271507e95f1ca181e82a61a47345e6",
+ "screen_fb_b64": "eNrt0LENACAMBDG6fJf9twWJDRBSGvs2uK4jyeJJ+eff5L/cnAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB+24hcAPY=",
+ "qualify_cases": [
+  {
+   "score": 59999,
+   "qualifies": false
+  },
+  {
+   "score": 60000,
+   "qualifies": false
+  },
+  {
+   "score": 60001,
+   "qualifies": true
+  },
+  {
+   "score": 150000,
+   "qualifies": true
+  },
+  {
+   "score": 150001,
+   "qualifies": true
+  }
+ ],
+ "tie_rule": "equal scores keep the existing entry first",
+ "name_max": 20
+}

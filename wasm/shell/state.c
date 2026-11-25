@@ -18,7 +18,8 @@ int g_shell_state;
 int g_timer;
 int g_return_state;
 int g_wait_sound;       /* finale ID 26: hold until [0x513F] clears */
-int g_pending_ending;   /* enter CC1.END after the ID 26 fanfare */
+int g_pending_ending;   /* enter the ending screen after the ID 26 fanfare */
+int g_ending_screen;    /* index within CC_EP_ENDING_SCREENS */
 int g_story_kind;       /* 0 none, 1 intro, 2 finale */
 int g_story_level;      /* -1 = no level background */
 int g_finale_pending;
@@ -117,6 +118,7 @@ void enter_high_score(void) {
 
 /* ID 0x20: CC1.END ending screen. */
 void enter_ending(void) {
+    g_ending_screen = 0;
     g_shell_state = CC_SHELL_ENDING;
     cc_sound_play(SND_FANFARE);
 }
@@ -144,6 +146,7 @@ void cc_shell_init(void) {
     g_scroll_ticks = 0;
     g_wait_sound = 0;
     g_pending_ending = 0;
+    g_ending_screen = 0;
     g_return_state = CC_SHELL_MENU;
     g_story_kind = 0;
     g_story_level = -1;

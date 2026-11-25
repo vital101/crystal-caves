@@ -48,7 +48,16 @@ from capstone import Cs, CS_ARCH_X86, CS_MODE_16, CS_OP_IMM
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 EXE = os.path.join(ROOT, "extracted", "CC1-UNLZ.EXE")
-HDR = 0x1E00
+
+
+def header_size(path):
+    """MZ header size in bytes from the e_cparhdr field (differs per build)."""
+    with open(path, "rb") as fh:
+        head = fh.read(0x40)
+    return int.from_bytes(head[8:10], "little") * 16
+
+
+HDR = header_size(EXE)
 NOTE = os.path.join(ROOT, "notes")
 
 LOADER = 0xB1A9

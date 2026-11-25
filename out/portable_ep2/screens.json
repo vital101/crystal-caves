@@ -3,28 +3,28 @@
   "screens": [
     {
       "id": "apogee",
-      "file": "APG",
+      "file": "CC2.APG",
       "offset": 0,
       "width": 320,
       "height": 200
     },
     {
       "id": "title",
-      "file": "TTL",
+      "file": "CC2.TTL",
       "offset": 64000,
       "width": 320,
       "height": 200
     },
     {
       "id": "credits",
-      "file": "CDT",
+      "file": "CC2.CDT",
       "offset": 128000,
       "width": 320,
       "height": 200
     },
     {
       "id": "ending",
-      "file": "END",
+      "file": "CC2.END",
       "offset": 192000,
       "width": 320,
       "height": 200

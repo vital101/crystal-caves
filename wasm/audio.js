@@ -67,7 +67,8 @@
       if (this.buffers[id]) return this.buffers[id];
       const s = this.byId[id];
       if (!s || !root.CCSynth) return null;
-      const pcm = root.CCSynth.renderFloat(s.trace, this.ctx.sampleRate);
+      const raw = root.CCSynth.renderFloat(s.trace, this.ctx.sampleRate);
+      const pcm = root.CCSynth.speakerShape(raw, this.ctx.sampleRate);
       const buf = this.ctx.createBuffer(1, pcm.length, this.ctx.sampleRate);
       buf.copyToChannel(pcm, 0);
       this.buffers[id] = buf;

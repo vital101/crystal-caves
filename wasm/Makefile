@@ -50,6 +50,7 @@ CFLAGS = $(CFLAGS_BASE) -I.
 # Episode 2 build: the generated data headers live in ep2_data/ and must win
 # over wasm/ for "startup_data.h" / "objects_data.h" / "cells_data.h".
 CFLAGS_EP2 = $(CFLAGS_BASE) -Iep2_data -I.
+CFLAGS_EP3 = $(CFLAGS_BASE) -Iep3_data -I.
 LDFLAGS = -Wl,--no-entry -Wl,--no-gc-sections -Wl,--stack-first \
 	  -Wl,--export-memory -Wl,--initial-memory=16777216 -Wl,-z,stack-size=65536 \
 	  $(foreach s,$(EXPORTS),-Wl,--export=$(s))
@@ -159,6 +160,86 @@ $(EP2_DATA)/cells_data.h: ../notes/ep2/oracle_objects.json
 	@mkdir -p $(EP2_DATA)
 	$(PYTHON) ../tools/make_cells_data.py --episode ep2 --out $@
 
+# --- Episode 3 build ------------------------------------------------------
+EP3_DATA = ep3_data
+EP3_OUT  = render_ep3.wasm
+EP3_OBJ  = $(addprefix obj_ep3/,$(SRC:.c=.o))
+
+ep3: $(EP3_OUT)
+
+$(EP3_OUT): $(EP3_OBJ)
+	@test -x "$(LLVM)/clang" || { echo "clang not found at $(LLVM)/clang"; \
+	  echo "Install Homebrew LLVM (brew install llvm) or pass LLVM=/path/to/bin"; exit 1; }
+	$(LLVM)/clang $(CFLAGS_EP3) $(LDFLAGS) -o $@ $(EP3_OBJ)
+
+obj_ep3/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(LLVM)/clang $(CFLAGS_EP3) -MMD -MP -c $< -o $@
+
+-include $(EP3_OBJ:.o=.d)
+
+$(EP3_OBJ): $(EP3_DATA)/startup_data.h $(EP3_DATA)/objects_data.h \
+	    $(EP3_DATA)/cells_data.h $(EP3_DATA)/episode_data.h \
+	    $(EP3_DATA)/shell_text_data.h $(EP3_DATA)/shell_exact_data.h
+
+$(EP3_DATA)/shell_text_data.h: ../extracted/ep3/CC3-UNLZ.EXE \
+	    ../notes/ep3/menu_fixtures.json
+	@mkdir -p $(EP3_DATA)
+	$(PYTHON) ../tools/export_shell_assets.py --episode ep3
+
+$(EP3_DATA)/shell_exact_data.h: ../notes/ep3/shell_exactness_fixtures.json
+	@mkdir -p $(EP3_DATA)
+	$(PYTHON) ../tools/make_shell_exact_data.py --episode ep3
+
+$(EP3_DATA)/startup_data.h: ../notes/ep3/startup.json
+	@mkdir -p $(EP3_DATA)
+	$(PYTHON) ../tools/make_startup_data.py --episode ep3 --out $@
+
+$(EP3_DATA)/episode_data.h:
+	@mkdir -p $(EP3_DATA)
+	$(PYTHON) ../tools/make_episode_data.py --episode ep3 --out $@
+
+$(EP3_DATA)/objects_data.h: ../notes/ep3/oracle_catalog.json
+	@mkdir -p $(EP3_DATA)
+	$(PYTHON) ../tools/make_objects_data.py --episode ep3 --out $@
+
+$(EP3_DATA)/cells_data.h: ../notes/ep3/oracle_objects.json
+	@mkdir -p $(EP3_DATA)
+	$(PYTHON) ../tools/make_cells_data.py --episode ep3 --out $@
+
+# Episode 3 browser asset pack (assets_ep3/).  Copy-only, like ep2; the sound
+# banks are byte-identical to Episode 1, so sound.json is reused.
+EP3_ASSETS = assets_ep3
+EP3_ASSET_FILES = gfx.bin levels.bin cells.bin level_overlay.bin \
+		  palette.json screens.bin mni_f1.bin mni_f2.bin \
+		  mni_spl.bin sound.json
+
+ep3-assets: $(addprefix $(EP3_ASSETS)/,$(EP3_ASSET_FILES))
+
+$(EP3_ASSETS)/%.bin: ../out/portable_ep3/%.bin
+	@mkdir -p $(EP3_ASSETS)
+	cp $< $@
+
+$(EP3_ASSETS)/palette.json: ../out/portable_ep3/palette.json
+	@mkdir -p $(EP3_ASSETS)
+	cp $< $@
+
+$(EP3_ASSETS)/sound.json: ../out/portable/sound.json
+	@mkdir -p $(EP3_ASSETS)
+	cp $< $@
+
+../out/portable_ep3/screens.bin: ../extracted/ep3/CC3-UNLZ.EXE \
+	    ../notes/ep3/menu_fixtures.json
+	$(PYTHON) ../tools/export_shell_assets.py --episode ep3
+
+../out/portable_ep3/level_overlay.bin: ../notes/ep3/loader_tags.json
+	$(PYTHON) ../tools/export_level_overlay.py --episode ep3
+
+# Sound banks are byte-identical across episodes; reuse Episode 1's export.
+../out/portable_ep3/sound.json: ../out/portable/sound.json
+	@mkdir -p ../out/portable_ep3
+	cp $< $@
+
 assets: assets/gfx.bin assets/levels.bin assets/palette.json assets/cells.bin assets/level_overlay.bin assets/screens.bin assets/mni_f1.bin assets/mni_f2.bin assets/mni_spl.bin assets/sound.json
 
 assets/gfx.bin: ../out/portable/gfx.bin
@@ -238,6 +319,34 @@ test-render-all: clang
 # Episode 2 static levels (skips when absent).
 test-render-ep2: clang
 	node test_render_all_ep2.js
+
+# --- Episode 3 checks -----------------------------------------------------
+test-render-ep3: clang
+	CC_EP=ep3 node test_render_all_ep2.js
+
+test-ep3-browser:
+	node test_ep3_browser.js
+
+# Transition overlay replay against the ep3 loader fixtures (~13 min Unicorn).
+test-ep3-transitions:
+	@if [ ! -f ../notes/ep3/loader_fixtures.json ]; then \
+	  echo "SKIP test-ep3-transitions: notes/ep3/loader_fixtures.json missing"; \
+	else \
+	  CC_WASM=render_ep3.wasm CC_CELLS=../out/portable_ep3/cells.bin \
+	  CC_OVERLAY=../out/portable_ep3/level_overlay.bin \
+	  node test_loader.js ../notes/ep3/loader_fixtures.json; \
+	fi
+
+# Episode 3 checks.  Skips cleanly when the data is not present.
+test-ep3:
+	@if [ ! -f ../extracted/ep3/CC3-UNLZ.EXE ] || \
+	    [ ! -f ../notes/ep3/oracle_objects.json ]; then \
+	  echo "SKIP test-ep3: Episode 3 data not present"; \
+	else \
+	  $(MAKE) ep3 ep3-assets && \
+	  $(MAKE) test-render-ep3 test-ep3-browser test-ep3-transitions && \
+	  CC_EP=ep3 node test_ep2_data.js; \
+	fi
 
 # Episode 2 checks.  Skips cleanly when the data is not present.
 test-ep2:
@@ -470,4 +579,4 @@ clean:
 	rm -f $(OUT) $(EP2_OUT) app.js app.wasm app.d out_wasm_level*.png oracle_level*.json
 	rm -rf obj obj_ep2 ep2_data
 
-.PHONY: clang emcc ep2 ep2-assets assets favicon social-card data startup test test-render-all test-render-ep2 test-ep2 test-ep2-browser test-ep2-transitions test-data test-exports test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-oracle-menus test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update test-digest test-digest-update test-render-digest render-digest-update lint lint-strict perf test-all clean
+.PHONY: clang emcc ep2 ep2-assets ep3 ep3-assets assets favicon social-card data startup test test-render-all test-render-ep2 test-ep2 test-ep2-browser test-ep2-transitions test-render-ep3 test-ep3 test-ep3-browser test-ep3-transitions test-data test-exports test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-oracle-menus test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update test-digest test-digest-update test-render-digest render-digest-update lint lint-strict perf test-all clean
