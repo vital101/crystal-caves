@@ -1,8 +1,8 @@
 # Episode 2 delta analysis (R0 spike)
 
 Status: **R0 complete.**  Data source: registered Episode 2 "Slugging It Out"
-files supplied by the developer (bring-your-own-data; staged in
-`extracted/ep2/`, which is git-ignored — never commit registered data).
+files, committed under `extracted/ep2/` in this private fork (deployment stays
+private).
 
 Reproduce:
 
@@ -192,7 +192,7 @@ Refined phases (the earlier R1-R5 sketch still holds; scope is much smaller):
   byte-identically, and `emulate_load.py` level 2 reproduces the committed
   objects/cells/spawns/cursor exactly.
 - Episode 2: startup plus all 19 loader runs complete in ~72 s (the same
-  runtime as Episode 1) and produce `notes/ep2/startup.json` (git-ignored).
+  runtime as Episode 1) and produce `notes/ep2/startup.json` (committed).
   The vertical displacement table is identical; the hub player spawn (32,64)
   matches, cave 1's spawn differs.
 - Object/cell dumps for the hub and cave 1 are sane: every handler offset
@@ -201,13 +201,13 @@ Refined phases (the earlier R1-R5 sketch still holds; scope is much smaller):
   31->33 spawns), as expected for new level data.
 - Fixed a latent JSON serialization bug in `emulate_load.py` (`tail_ref`
   deque) that blocked oracle-dump regeneration.
-- Episode 2 outputs stay under `notes/ep2/` (git-ignored).
+- Episode 2 outputs stay under `notes/ep2/` (committed).
 
 ## Episode 2 level data appendix
 
 All 19 loader levels run successfully.  Cell counts compare the Episode-2
-oracle dump against Episode 1 (1,000 cells per level); the full dumps stay in
-git-ignored `notes/ep2/oracle_objects.json`.
+oracle dump against Episode 1 (1,000 cells per level); the full dumps are committed in
+`notes/ep2/oracle_objects.json`.
 
 | Level | Spawns ep1 -> ep2 | Cells changed | Live objects |
 |---:|---:|---:|---:|
@@ -257,7 +257,7 @@ python3 tools/export_level_overlay.py --episode ep2
   gfx, fonts, levels, cells, commands) are byte-identical to `out/portable/`;
   `emulate_render.py` reproduces the committed cold-DS `out/emu_L02.png`, and
   the new startup-seeded mode reproduces `out/oracle_L02.png` bit-for-bit.
-- **Episode 2 portable set** (`out/portable_ep2/`, git-ignored): `cells.bin`
+- **Episode 2 portable set** (`out/portable_ep2/`, committed): `cells.bin`
   380,000 B = 19 x 1,000 x 20, `levels.bin` 114,000 B = 19 x 1,000 x 6 with
   zero cell->level projection mismatches, gfx/fonts/palette identical to
   Episode 1, `objects.json` `handler_segment` = `0x1F72`.  No `commands.json`:
@@ -273,7 +273,7 @@ python3 tools/export_level_overlay.py --episode ep2
 - **The unmodified wasm build already renders Episode 2:** fed with
   `out/portable_ep2/`, the same `render.wasm` reproduces all 19 ep2 oracle
   PNGs **pixel-exactly** (`make -C wasm test-render-ep2`, ~3 s; it skips when
-  the BYO data is absent).  No C or wasm changes were needed — the renderer is
+  the data is absent).  No C or wasm changes were needed — the renderer is
   entirely data-driven.
 - **Transition overlay:** `analyze_loader_tags.py --episode ep2` classifies every
   source-dependent write (no unclassified entries), and
@@ -281,8 +281,8 @@ python3 tools/export_level_overlay.py --episode ep2
   `CCLO` overlay for all 19 levels.  Its structure matches Episode 1's pattern
   (the hub record has the same 18,991 cell literals, 53 globals, 177 decor
   entries and 16 door entries).  End-to-end transition replay is exercised by
-  the R4 wasm tests; both the tags and the overlay stay in git-ignored
-  `notes/ep2/` and `out/portable_ep2/`.
+  the R4 wasm tests; both the tags and the overlay are committed
+  under `notes/ep2/` and `out/portable_ep2/`.
 - `emulate_render.py --startup` is new: it seeds DS from the real 0xC3E
   initializer, mirroring the wasm port's startup+loader sequence.
 - **Shell screens:** all four Episode 2 PCX files (`APG`, `TTL`, `CDT`, `END`)
@@ -349,26 +349,25 @@ runtime-loaded.
   2121.47 text) -> hub (32,64) -> save/restore under `cc2.*` -> config and
   high-score reload -> finale (4 pages) -> ending, with framebuffer hashes in
   `wasm/browser_expectations_ep2.json`.  All targets skip cleanly without the
-  bring-your-own data; Episode-1 browser/digest suites still pass.
+  data; Episode-1 browser/digest suites still pass.
 - **Native:** CMake builds `caves_ep2` from the same core compiled against
   `wasm/ep2_data` with `out/portable_ep2` embedded; config/high-score/save
   files use `cc2.*` names and the window title is episode-specific.
   `make -C native test-smoke-ep2` runs the headless SDL smoke (the target is
-  skipped at configure time when the BYO data is absent).
+  skipped at configure time when the data is absent).
 - **Transitions:** `tools/loader_fixtures.py --episode ep2` captured all 32
   poisoned hub<->cave transitions from the real loader; the C overlay replay
   (`test_loader.js` with `CC_WASM`/`CC_CELLS`/`CC_OVERLAY`, wired as
   `make test-ep2-transitions`) matches every cell, object, global, cursor and
-  RNG value.  The fixture stays in git-ignored `notes/ep2/` (13 min Unicorn
+  RNG value.  The fixture is committed under `notes/ep2/` (13 min Unicorn
   regeneration).
 
 ## Episode 3 (blocked: no data supplied)
 
-Episode 3 has not been started because no Episode 3 archive was provided.
-The pipeline is ready; the required steps are:
+Episode 3 data has been supplied and is staged under `extracted/ep3/`
+(committed in this private fork).  The pipeline is the same as Episode 2:
 
-1. Supply the registered Episode 3 files and stage them under
-   `extracted/ep3/` (git-ignored).  The trilogy is freeware.
+1. Stage the registered Episode 3 files under `extracted/ep3/`.
 2. `python3 tools/unlzexe.py extracted/ep3/CC3.EXE extracted/ep3/CC3-UNLZ.EXE`
 3. `python3 tools/episode_diff.py extracted/CC1-UNLZ.EXE
    extracted/ep3/CC3-UNLZ.EXE --assets-a extracted --assets-b extracted/ep3
@@ -407,7 +406,6 @@ The pipeline is ready; the required steps are:
 
 ## Data policy
 
-`extracted/ep2/` (and `extracted/ep3/`) are git-ignored.  Registered episode
-data has no shareware redistribution grant; only structural facts (offsets,
-sizes, hashes) are committed here.  Derived fixtures may need the same
-bring-your-own-data treatment — decide before R3.
+`extracted/ep2/` (and `extracted/ep3/`) and their derived fixtures are
+committed in this private fork; keep the deployment private and the public
+deployment Episode-1-only.

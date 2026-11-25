@@ -86,9 +86,9 @@ target_link_libraries(caves PRIVATE ccore SDL3::SDL3)
 add_executable(cc_digest digest.c sha256.c)
 target_link_libraries(cc_digest PRIVATE ccore)
 
-# ------------------------------------------------- Episode 2 (BYO data)
+# ------------------------------------------------------------- Episode 2
 # The same core compiled against the generated Episode 2 data headers and
-# Episode 2 embedded assets.  Skipped when the bring-your-own data has not
+# Episode 2 embedded assets.  Skipped when the data has not
 # been generated (make -C wasm ep2 && make -C wasm ep2-assets).
 set(PORTABLE_EP2 ${REPO}/out/portable_ep2)
 set(EP2_DATA ${WASM}/ep2_data)
@@ -126,5 +126,5 @@ if(EXISTS ${EP2_DATA}/startup_data.h AND EXISTS ${EP2_DATA}/objects_data.h
   target_compile_definitions(caves_ep2 PRIVATE CC_EPISODE=2)
   target_link_libraries(caves_ep2 PRIVATE ccore_ep2 SDL3::SDL3)
 else()
-  message(STATUS "Episode 2 data not found; caves_ep2 target skipped (BYO data)")
+  message(STATUS "Episode 2 data not found; caves_ep2 target skipped")
 endif()

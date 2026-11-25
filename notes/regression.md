@@ -44,10 +44,10 @@ are separate and need `tools/requirements.txt`.  Hosts with no local toolchain
 | Browser smoke | `test-browser` | `wasm/browser_expectations.json` + message trigger | `test_browser.js` (Playwright) | no (separate CI job) |
 | Frame budget / wasm size | `perf` | `wasm/perf_baseline.json` | `measure_perf.js` | no (CI summary) |
 
-## Episode 2 (bring-your-own registered data)
+## Episode 2
 
-`make -C wasm test-ep2` runs these; every row skips cleanly when the Episode 2
-data has not been staged/exported.
+`make -C wasm test-ep2` runs these; the data and fixtures are committed, and
+every row skips cleanly if they are removed.
 
 | Subsystem | Make target | Fixture / reference | Harness |
 |---|---|---|---|

@@ -6,8 +6,8 @@ another episode is applied.  Episode 2 values come from the R0 delta analysis
 in notes/ep2_diff.md (load offsets shift, segment bases move, code layout of
 the handler block and TP runtime is unchanged).
 
-Registered episode data is bring-your-own and stays out of git; point the
-tools at an unpacked image under extracted/ep2/ (git-ignored).
+Registered episode data is committed in this private fork; the tools read
+the image under extracted/ep2/ or extracted/ep3/.
 
 Usage:
     import episode_config

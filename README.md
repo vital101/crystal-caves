@@ -39,23 +39,27 @@ python3 -m http.server 8080
 The page fetches the wasm module and asset files, so it must be served over
 HTTP — opening `game.html` from `file://` will not work.
 
-### Play Episode 2 (bring-your-own registered data)
+### Play Episode 2
 
-Episode 2 uses the same engine but its registered data is not in this
-repository.  Stage the files yourself (the trilogy is freeware); the pipeline
-and derived artifacts are documented in `notes/ep2_diff.md`:
+Episode 2 uses the same engine and its registered data is committed in this
+private fork (deployment must stay private).  The
+built module and browser assets are committed too, so serving the checkout is
+enough:
 
 ```sh
-# extracted/ep2/: CC2.EXE, CC2.GFX, CC2-*.SND, CC2-*.MNI, CC2.TTL/.END/.APG/.CDT
-python3 tools/unlzexe.py extracted/ep2/CC2.EXE extracted/ep2/CC2-UNLZ.EXE
-make -C wasm ep2 ep2-assets         # render_ep2.wasm + assets_ep2/
 python3 -m http.server 8080 -d wasm # open /game.html?ep=2
 make -C wasm test-ep2               # render/data/transition/browser checks
 ```
 
+To rebuild from the committed sources (needed only after engine changes):
+
+```sh
+make -C wasm ep2 ep2-assets         # render_ep2.wasm + assets_ep2/
+```
+
 The browser stores Episode 2 config, high scores and saves under `cc2.*`,
-separate from Episode 1's `cc1.*`.  `extracted/ep2/`, `notes/ep2/`,
-`out/portable_ep2/` and `wasm/assets_ep2/` are git-ignored.
+separate from Episode 1's `cc1.*`.  The R0 delta analysis, address map and
+artifact inventory are documented in `notes/ep2_diff.md`.
 
 Nothing installed locally, or building on Windows?  Every command in this
 README also runs in the dev container — see
@@ -156,7 +160,7 @@ wasm build: `make -C native test-digest` runs the 929 SHA-256 snapshots from
 builds Windows/Linux/macOS binaries on every push and uploads them as
 artifacts.
 
-Episode 2 (bring-your-own registered data) builds the same way:
+Episode 2 builds the same way:
 
 ```sh
 make -C wasm ep2 ep2-assets        # generated data headers + assets_ep2/
