@@ -30,8 +30,8 @@ TAG_GLOBAL = 2
 TAG_MAP = {}
 
 
-def load_tags():
-    path = os.path.join(ROOT, "notes", "loader_tags.json")
+def load_tags(path=None):
+    path = path or os.path.join(ROOT, "notes", "loader_tags.json")
     if os.path.exists(path):
         return json.load(open(path))
     return {}
@@ -321,8 +321,21 @@ def load_source(level, module):
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser(description="Build the loader overlay asset")
+    ap.add_argument("--episode", default="ep1", help="ep1, ep2, ...")
+    ap.add_argument("--tags", default=None, help="loader tags JSON path")
+    ap.add_argument("--out", default=None, help="output binary path")
+    args = ap.parse_args()
+
+    import episode_config
+    episode_config.apply(args.episode)
+
     global TAG_MAP
-    TAG_MAP = load_tags()
+    tags_path = args.tags or (
+        os.path.join(ROOT, "notes", "loader_tags.json") if args.episode == "ep1"
+        else os.path.join(ROOT, "notes", args.episode, "loader_tags.json"))
+    TAG_MAP = load_tags(tags_path)
     module = E.load_module()
     hub_ds, hub_rng = load_source(2, module)
     cave_ds, cave_rng = load_source(3, module)
@@ -333,7 +346,10 @@ def main():
     print("building overlay for level 2 (from cave 3)", flush=True)
     levels[2] = build_level(2, 3, cave_ds, cave_rng)
     data = encode(levels)
-    out = os.path.join(ROOT, "out", "portable", "level_overlay.bin")
+    out = args.out or os.path.join(
+        ROOT, "out", "portable" if args.episode == "ep1"
+        else "portable_" + args.episode, "level_overlay.bin")
+    os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, "wb") as f:
         f.write(data)
     print("wrote", out, len(data), "bytes")

@@ -32,6 +32,7 @@ EPISODES = {
         "stack_seg": 0x370C,       # MZ header SS
         "stack_ptr": 0x4000,       # MZ header SP
         "skip_segs": (0x28B5, 0x26C5, 0x0FC5),  # TP library, draw, cell events
+        "blitter_seg": 0x28B5,      # EGA blitter code segment
         "rng_seg": 0x2BB5,         # TP RNG routine segment
         "rng_ip": 0x0980,
         "spawn": 0x047D,
@@ -50,6 +51,7 @@ EPISODES = {
         "stack_seg": 0x36CE,       # MZ header SS
         "stack_ptr": 0x7D00,       # MZ header SP
         "skip_segs": (0x2877, 0x269D, 0x0FBD),
+        "blitter_seg": 0x2877,
         "rng_seg": 0x2B77,
         "rng_ip": 0x0980,
         "spawn": 0x047D,
@@ -98,6 +100,7 @@ def apply(name):
         "DRAW_SITES": tuple(cfg["draw_sites"]),
         "RNG_SEG": cfg["rng_seg"],
         "RNG_IP": cfg["rng_ip"],
+        "BLITTER_SEG": cfg["blitter_seg"],
         "LEVEL_COUNT": cfg["levels"],
     }
     for module in targets:

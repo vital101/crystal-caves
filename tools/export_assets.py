@@ -39,6 +39,39 @@ EXTRACT = os.path.join(HERE, "extracted")
 N = lambda name: os.path.join(HERE, "notes", name)
 W, H = 40, 25
 
+# Per-episode export settings (rewritten by configure()).
+PREFIX = "CC1"
+ORACLE_PATH = N("oracle_objects.json")
+LEVELS = 19
+HANDLER_SEG = 0x1F9A
+GAME_NAME = "Crystal Caves v1.0a shareware (Episode 1)"
+WRITE_COMMANDS = True
+
+
+def configure(episode, out_dir=None, extract_dir=None, oracle_path=None):
+    """Point the exporter at an episode's data and output directory."""
+    global OUT, EXTRACT, PREFIX, ORACLE_PATH, LEVELS, HANDLER_SEG
+    global GAME_NAME, WRITE_COMMANDS
+    import episode_config
+    cfg = episode_config.get(episode)
+    OUT = out_dir or (os.path.join(HERE, "out", "portable") if episode == "ep1"
+                      else os.path.join(HERE, "out", "portable_" + episode))
+    EXTRACT = extract_dir or (os.path.join(HERE, "extracted") if episode == "ep1"
+                              else os.path.join(HERE, "extracted", episode))
+    ORACLE_PATH = oracle_path or (N("oracle_objects.json") if episode == "ep1"
+                                  else os.path.join(HERE, "notes", episode,
+                                                    "oracle_objects.json"))
+    PREFIX = cfg["prefix"]
+    LEVELS = cfg["levels"]
+    HANDLER_SEG = cfg["handler_seg"]
+    GAME_NAME = ("Crystal Caves v1.0a shareware (Episode 1)" if episode == "ep1"
+                 else "Crystal Caves %s (registered data)" % episode.upper())
+    # The decoded command tables describe the loader vocabulary, not the level
+    # content; they are only extracted for Episode 1 and unused at runtime.
+    WRITE_COMMANDS = episode == "ep1"
+    build_cells.ORACLE = ORACLE_PATH
+    return cfg
+
 
 def main():
     os.makedirs(OUT, exist_ok=True)
@@ -51,19 +84,19 @@ def main():
               open(os.path.join(OUT, "palette.json"), "w"), indent=0)
 
     # gfx
-    gfx = open(os.path.join(EXTRACT, "CC1.GFX"), "rb").read()
+    gfx = open(os.path.join(EXTRACT, PREFIX + ".GFX"), "rb").read()
     open(os.path.join(OUT, "gfx.bin"), "wb").write(gfx)
 
     # fonts: 3-byte MNI header + 50 glyphs of 40 bytes
-    for src, dst in (("CC1-F1.MNI", "mni_f1.bin"),
-                     ("CC1-F2.MNI", "mni_f2.bin"),
-                     ("CC1-SPL.MNI", "mni_spl.bin")):
+    for src, dst in ((PREFIX + "-F1.MNI", "mni_f1.bin"),
+                     (PREFIX + "-F2.MNI", "mni_f2.bin"),
+                     (PREFIX + "-SPL.MNI", "mni_spl.bin")):
         raw = open(os.path.join(EXTRACT, src), "rb").read()
         open(os.path.join(OUT, dst), "wb").write(raw[3:3 + 50 * 40])
 
     # levels: bake tile maps from the oracle cell dumps
     levels = []
-    for lvl in range(19):
+    for lvl in range(LEVELS):
         cells = build_cells.build_cells(lvl)
         grid = []
         for r in range(H):
@@ -84,19 +117,20 @@ def main():
     open(os.path.join(OUT, "levels.bin"), "wb").write(binmaps)
 
     # Full 20-byte runtime cell records (w0..w9).  Handlers mutate these.
-    oracle = json.load(open(N("oracle_objects.json")))
+    oracle = json.load(open(ORACLE_PATH))
     cellbytes = bytearray()
-    for lvl in range(19):
+    for lvl in range(LEVELS):
         grid = oracle[str(lvl)]["cells"]
         for row in range(H):
             for col in range(W):
                 cellbytes += bytes.fromhex(grid[row][col])
     open(os.path.join(OUT, "cells.bin"), "wb").write(cellbytes)
 
-    # command tables (faithful replay)
-    json.dump({"regular": json.load(open(N("regular_cmds.json"))),
-               "special": json.load(open(N("special_cmds.json")))},
-              open(os.path.join(OUT, "commands.json"), "w"))
+    # command tables (faithful replay; Episode 1 analysis artifact only)
+    if WRITE_COMMANDS:
+        json.dump({"regular": json.load(open(N("regular_cmds.json"))),
+                   "special": json.load(open(N("special_cmds.json")))},
+                  open(os.path.join(OUT, "commands.json"), "w"))
 
     # object system (see notes/objects.md)
     template = {
@@ -115,7 +149,7 @@ def main():
         "init_defaults": {"+0x00": 2, "+0x06": 0xFFD7, "+0x08": 0, "+0x0A": 0xFFD7,
                           "+0x0C": 0, "+0x10": 1, "+0x1C": 1, "+0x1E": 1,
                           "+0x20": 0, "+0x22": 2, "+0x28": 1},
-        "handler_segment": 0x1F9A,
+        "handler_segment": HANDLER_SEG,
         "handler_table": [
             0x1FB9, 0x1FC2, 0x2176, 0x2850, 0x2877, 0x298A, 0x2ACF, 0x2BD4,
             0x2D37, 0x2E25, 0x2F83, 0x323C, 0x32F6, 0x3416, 0x36B0, 0x3904,
@@ -125,13 +159,13 @@ def main():
             0x672B, 0x69D3, 0x6AFA, 0x6D31, 0x6FF6, 0x70E4,
         ],
         "note": "handler behaviour + update loop traced in Phase C3; "
-                "per-level spawns come from notes/oracle_objects.json",
+                "per-level spawns come from the oracle object dump",
     }
     json.dump(template, open(os.path.join(OUT, "objects.json"), "w"), indent=2)
 
     # manifest
-    json.dump({
-        "game": "Crystal Caves v1.0a shareware (Episode 1)",
+    manifest = {
+        "game": GAME_NAME,
         "gfx": {"file": "gfx.bin", "block_size": 8003, "block_count": 23,
                 "shapes_per_block": 50, "shape_size": 160, "shape_w": 16,
                 "shape_h": 16, "index_base": 1,
@@ -141,15 +175,17 @@ def main():
         "fonts": {"f1": "mni_f1.bin", "f2": "mni_f2.bin", "spl": "mni_spl.bin",
                   "glyph_size": 40, "glyph_w": 8, "glyph_h": 8, "count": 50,
                   "f1_range": [23, 72], "f2_range": [73, 122]},
-        "levels": {"file": "levels.json", "bin": "levels.bin", "count": 19,
+        "levels": {"file": "levels.json", "bin": "levels.bin", "count": LEVELS,
                    "width": W, "height": H, "bin_cell_bytes": 6,
                    "cell": "[block1,shape1,block2,shape2,block3,shape3] "
                            "(draw order 1,2,3; block 0 already substituted with 20)",
                    "full_cells": "cells.bin", "full_cell_bytes": 20},
         "palette": {"file": "palette.json", "entries": 16},
-        "commands": {"file": "commands.json"},
         "tile_space": "640x400 (40x25 cells of 16x16)",
-    }, open(os.path.join(OUT, "manifest.json"), "w"), indent=2)
+    }
+    if WRITE_COMMANDS:
+        manifest["commands"] = {"file": "commands.json"}
+    json.dump(manifest, open(os.path.join(OUT, "manifest.json"), "w"), indent=2)
 
     print("exported ->", OUT)
     for f in sorted(os.listdir(OUT)):
@@ -157,4 +193,12 @@ def main():
 
 
 if __name__ == "__main__":
+    import argparse
+    ap = argparse.ArgumentParser(description="Export portable episode assets")
+    ap.add_argument("--episode", default="ep1", help="ep1, ep2, ...")
+    ap.add_argument("--out", default=None, help="output directory")
+    ap.add_argument("--extract", default=None, help="episode data directory")
+    ap.add_argument("--oracle", default=None, help="oracle object dump path")
+    args = ap.parse_args()
+    configure(args.episode, args.out, args.extract, args.oracle)
     main()

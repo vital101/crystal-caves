@@ -239,6 +239,38 @@ Notes:
   other caves (960 changed = 24 of 25 rows), consistent with the shared-row
   rule and partly reused layouts.
 
+## R2: extraction and render parity
+
+The asset exporter and render harnesses now take `--episode`:
+
+```sh
+python3 tools/export_assets.py --episode ep2        # out/portable_ep2/
+python3 tools/render_oracle.py --episode ep2 $(seq 0 18)
+python3 tools/emulate_render.py --episode ep2 --startup 2 3
+python3 tools/analyze_loader_tags.py --episode ep2  # slow
+python3 tools/export_level_overlay.py --episode ep2
+```
+
+- **Episode 1 regression:** the files `export_assets.py` owns (palette,
+  gfx, fonts, levels, cells, commands) are byte-identical to `out/portable/`;
+  `emulate_render.py` reproduces the committed cold-DS `out/emu_L02.png`, and
+  the new startup-seeded mode reproduces `out/oracle_L02.png` bit-for-bit.
+- **Episode 2 portable set** (`out/portable_ep2/`, git-ignored): `cells.bin`
+  380,000 B = 19 x 1,000 x 20, `levels.bin` 114,000 B = 19 x 1,000 x 6 with
+  zero cell->level projection mismatches, gfx/fonts/palette identical to
+  Episode 1, `objects.json` `handler_segment` = `0x1F72`.  No `commands.json`:
+  the decoded command tables are an Episode-1 analysis artifact and are unused
+  at runtime.
+- **Static render parity:** the real EGA blitter executing CC2
+  (`emulate_render.py --episode ep2 --startup`) produces PNGs **bit-identical**
+  to the independent Python renderer (`render_oracle.py --episode ep2`) for the
+  hub (L02) and cave 1 (L03).  Cave renders also match in cold-DS mode; the
+  hub only matches when startup-seeded because its decorations depend on the
+  RNG state the 0xC3E initializer establishes (this was already true for
+  Episode 1).
+- `emulate_render.py --startup` is new: it seeds DS from the real 0xC3E
+  initializer, mirroring the wasm port's startup+loader sequence.
+
 ## Open questions
 
 1. Identify the `0x273AE` handler-tail cluster (function at CC1 `0x27390`) and

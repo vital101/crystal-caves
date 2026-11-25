@@ -23,6 +23,8 @@ wasm/obj/
 wasm/out_wasm_level*.png
 wasm/oracle_level*.json
 native/build/
+out/ep2/
+out/portable_ep2/
 
 # Debug artifacts
 out/block20_strip.png

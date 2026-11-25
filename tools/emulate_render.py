@@ -45,17 +45,37 @@ import emulate_load as E          # noqa: E402  (reuses its constants/helpers)
 EXE = E.EXE
 GFX = os.path.join(ROOT, "extracted", "CC1.GFX")
 
+# EGA blitter code segment (episode config rewrites the derived addresses).
+BLITTER_SEG = 0x28B5
 GFX_BUF_SEG = 0x4000              # first segment used for the 23 block buffers
 GFX_BLOCK_PARAS = (8003 + 15) // 16   # one paragraph-aligned segment per block
-STRIDE_ADDR = (0x28B5 << 4) + 0x60    # cs:[0x60] bytes-per-row
-BANK_ADDR = (0x28B5 << 4) + 0xB8      # cs:[0xb8] bank selector
+STRIDE_ADDR = (BLITTER_SEG << 4) + 0x60    # cs:[0x60] bytes-per-row
+BANK_ADDR = (BLITTER_SEG << 4) + 0xB8      # cs:[0xb8] bank selector
 
 # Calls into SKIP_SEGS segments are stubbed out -- except these three
 # blitters, which must run for real (that is the whole point of this
-# harness).  Everything else in 0x28B5 is video-mode / palette / sprite
-# machinery we do not model (e.g. 0x25D does `int 10h` and is called at
-# loader entry, 0xB1B4).
-KEEP_REAL = {(0x28B5, 0x039B), (0x28B5, 0x29C5), (0x28B5, 0x2EA1)}
+# harness).  Everything else in the blitter segment is video-mode / palette /
+# sprite machinery we do not model (e.g. 0x25D does `int 10h` and is called
+# at loader entry, 0xB1B4).
+KEEP_REAL = {(BLITTER_SEG, 0x039B), (BLITTER_SEG, 0x29C5), (BLITTER_SEG, 0x2EA1)}
+
+
+def configure(episode, out_dir=None, gfx=None):
+    """Point the renderer at an episode's binary, blitter and output dir."""
+    global EXE, GFX, BLITTER_SEG, STRIDE_ADDR, BANK_ADDR, KEEP_REAL
+    import episode_config
+    cfg = episode_config.apply(episode)
+    EXE = E.EXE
+    BLITTER_SEG = cfg["blitter_seg"]
+    STRIDE_ADDR = (BLITTER_SEG << 4) + 0x60
+    BANK_ADDR = (BLITTER_SEG << 4) + 0xB8
+    KEEP_REAL = {(BLITTER_SEG, 0x039B), (BLITTER_SEG, 0x29C5),
+                 (BLITTER_SEG, 0x2EA1)}
+    GFX = gfx or (os.path.join(ROOT, "extracted", "CC1.GFX")
+                  if episode == "ep1" else
+                  os.path.join(ROOT, "extracted", episode,
+                               cfg["prefix"] + ".GFX"))
+    return cfg
 
 VGA_BASE = 0xA0000
 VGA_SIZE = 0x10000
@@ -113,11 +133,19 @@ def planes_to_rgb(planes):
     return rgb
 
 
-def run_level(level, verbose=True):
+def run_level(level, verbose=True, startup=False):
     module = E.load_module()
     mu = Uc(UC_ARCH_X86, UC_MODE_16)
     mu.mem_map(0, 0x110000)
     mu.mem_write(0, module)
+
+    # Optional: seed the DS image from the real new-game initializer (0xC3E).
+    # The committed emu_L*.png renders use the cold-DS path; the startup path
+    # is what the wasm port does and what the hub's RNG decorations assume.
+    if startup:
+        import emulate_startup as _S
+        ds0, _g = _S.run_startup()
+        mu.mem_write(E.DATA_SEG << 4, ds0)
 
     # GFX table exactly as the game builds it: GetMem(table[i], 8003) then a
     # block read, for i = 1..23.  table[0] stays 0:0 (the startup init).
@@ -232,7 +260,7 @@ def run_level(level, verbose=True):
 
     def hook_code(uc, address, size, user):
         stats["steps"] += 1
-        if DEBUG_BLIT and address == (0x28B5 << 4) + 0x29C5:
+        if DEBUG_BLIT and address == (BLITTER_SEG << 4) + 0x29C5:
             y = E.u16(mu, E.STACK_SEG, (uc.reg_read(UC_X86_REG_SP) + 6) & 0xFFFF)
             x = E.u16(mu, E.STACK_SEG, (uc.reg_read(UC_X86_REG_SP) + 8) & 0xFFFF)
             print("  opaque blit y=%3d x=%3d bm=%02X mm=%02X"
@@ -304,11 +332,25 @@ def run_level(level, verbose=True):
 
 
 def main():
-    levels = [int(a) for a in sys.argv[1:] or ["0"]]
-    for level in levels:
-        planes, stats = run_level(level)
+    import argparse
+    ap = argparse.ArgumentParser(description="Full-fidelity level render")
+    ap.add_argument("levels", nargs="*", type=int, help="level numbers")
+    ap.add_argument("--episode", default="ep1", help="ep1, ep2, ...")
+    ap.add_argument("--out-dir", default=None)
+    ap.add_argument("--gfx", default=None)
+    ap.add_argument("--startup", action="store_true",
+                    help="seed DS from the 0xC3E initializer (wasm parity mode)")
+    args = ap.parse_args()
+
+    out_dir = args.out_dir or (os.path.join(ROOT, "out") if args.episode == "ep1"
+                               else os.path.join(ROOT, "out", args.episode))
+    os.makedirs(out_dir, exist_ok=True)
+    configure(args.episode, out_dir, args.gfx)
+
+    for level in args.levels or [0]:
+        planes, stats = run_level(level, startup=args.startup)
         rgb = planes_to_rgb([bytes(p[:MAP_BYTES]) for p in planes])
-        out = os.path.join(ROOT, "out", "emu_L%02d.png" % level)
+        out = os.path.join(out_dir, "emu_L%02d.png" % level)
         write_png(out, 640, 400, rgb)
         print("wrote", out)
         if stats["stopped"] not in ("load_end", "ret"):
