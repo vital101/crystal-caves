@@ -39,6 +39,28 @@ python3 -m http.server 8080
 The page fetches the wasm module and asset files, so it must be served over
 HTTP — opening `game.html` from `file://` will not work.
 
+### Play Episode 2
+
+Episode 2 uses the same engine and its registered data is committed in this
+private fork (deployment must stay private).  The
+built module and browser assets are committed too, so serving the checkout is
+enough:
+
+```sh
+python3 -m http.server 8080 -d wasm # open /game.html?ep=2
+make -C wasm test-ep2               # render/data/transition/browser checks
+```
+
+To rebuild from the committed sources (needed only after engine changes):
+
+```sh
+make -C wasm ep2 ep2-assets         # render_ep2.wasm + assets_ep2/
+```
+
+The browser stores Episode 2 config, high scores and saves under `cc2.*`,
+separate from Episode 1's `cc1.*`.  The R0 delta analysis, address map and
+artifact inventory are documented in `notes/ep2_diff.md`.
+
 Nothing installed locally, or building on Windows?  Every command in this
 README also runs in the dev container — see
 [Develop in Docker](#develop-in-docker-any-platform).
@@ -137,6 +159,17 @@ wasm build: `make -C native test-digest` runs the 929 SHA-256 snapshots from
 `notes/refactor_digests.json` inside the native binary and must match.  CI
 builds Windows/Linux/macOS binaries on every push and uploads them as
 artifacts.
+
+Episode 2 builds the same way:
+
+```sh
+make -C wasm ep2 ep2-assets        # generated data headers + assets_ep2/
+make -C native test-smoke-ep2      # builds/runs native/build/caves_ep2 headless
+```
+
+`caves_ep2` embeds `out/portable_ep2`, sets an episode-specific window title
+and keeps its config, high scores and save slots in `cc2.*` files next to the
+Episode 1 `cc1.*` files.
 
 ## Controls
 

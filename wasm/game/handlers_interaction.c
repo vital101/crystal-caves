@@ -292,7 +292,7 @@ void h_slash_update(ObjectEntry *o, int idx, int16_t x, int16_t y) {
         cell_byte_cur(col2, row2, CELL_FLAG_SOLID) != 0) {
         o->kind = 0x2B;
         o->handler = HDL_DUG_BLOCK;
-        o->handler_seg = 0x1F9A;
+        o->handler_seg = CC_EP_HANDLER_SEG;
         o->phase = 0;
         dig_cell(col, row);
         dig_cell(col2, row2);

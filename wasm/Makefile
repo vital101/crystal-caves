@@ -43,9 +43,13 @@ RENDER_SRC = $(sort $(wildcard render/*.c))
 DATA_SRC   = $(wildcard startup_data.c shell_text_data.c shell_exact_data.c)
 SRC = $(RENDER_SRC) $(GAME_SRC) $(TEXT_SRC) $(SHELL_SRC) sound.c $(DATA_SRC)
 
-CFLAGS = --target=wasm32 -Oz -nostdlib -ffreestanding -fno-builtin -I. \
+CFLAGS_BASE = --target=wasm32 -Oz -nostdlib -ffreestanding -fno-builtin \
 	 -Werror=implicit-function-declaration -Werror=incompatible-pointer-types \
 	 -Werror=return-type
+CFLAGS = $(CFLAGS_BASE) -I.
+# Episode 2 build: the generated data headers live in ep2_data/ and must win
+# over wasm/ for "startup_data.h" / "objects_data.h" / "cells_data.h".
+CFLAGS_EP2 = $(CFLAGS_BASE) -Iep2_data -I.
 LDFLAGS = -Wl,--no-entry -Wl,--no-gc-sections -Wl,--stack-first \
 	  -Wl,--export-memory -Wl,--initial-memory=16777216 -Wl,-z,stack-size=65536 \
 	  $(foreach s,$(EXPORTS),-Wl,--export=$(s))
@@ -66,6 +70,94 @@ obj/%.o: %.c
 	$(LLVM)/clang $(CFLAGS) -MMD -MP -c $< -o $@
 
 -include $(OBJ:.o=.d)
+
+# --- Episode 2 build ------------------------------------------------------
+# Same sources compiled against the generated Episode 2 data headers.  The
+# portable assets (levels/cells/gfx/overlay/screens) stay runtime-loaded; the
+# ep2 asset set is fed to the harnesses from ../out/portable_ep2.
+EP2_DATA = ep2_data
+EP2_OUT  = render_ep2.wasm
+EP2_OBJ  = $(addprefix obj_ep2/,$(SRC:.c=.o))
+
+ep2: $(EP2_OUT)
+
+$(EP2_OUT): $(EP2_OBJ)
+	@test -x "$(LLVM)/clang" || { echo "clang not found at $(LLVM)/clang"; \
+	  echo "Install Homebrew LLVM (brew install llvm) or pass LLVM=/path/to/bin"; exit 1; }
+	$(LLVM)/clang $(CFLAGS_EP2) $(LDFLAGS) -o $@ $(EP2_OBJ)
+
+obj_ep2/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(LLVM)/clang $(CFLAGS_EP2) -MMD -MP -c $< -o $@
+
+-include $(EP2_OBJ:.o=.d)
+
+$(EP2_OBJ): $(EP2_DATA)/startup_data.h $(EP2_DATA)/objects_data.h \
+	    $(EP2_DATA)/cells_data.h $(EP2_DATA)/episode_data.h \
+	    $(EP2_DATA)/shell_text_data.h $(EP2_DATA)/shell_exact_data.h
+
+$(EP2_DATA)/shell_text_data.h: ../extracted/ep2/CC2-UNLZ.EXE \
+	    ../notes/ep2/menu_fixtures.json
+	@mkdir -p $(EP2_DATA)
+	$(PYTHON) ../tools/export_shell_assets.py --episode ep2
+
+$(EP2_DATA)/shell_exact_data.h: ../notes/ep2/shell_exactness_fixtures.json
+	@mkdir -p $(EP2_DATA)
+	$(PYTHON) ../tools/make_shell_exact_data.py --episode ep2
+
+# Episode 2 browser asset pack (assets_ep2/).  Copy-only: the portable set is
+# produced by the tools/ ep2 pipeline (see notes/ep2_diff.md).
+EP2_ASSETS = assets_ep2
+EP2_ASSET_FILES = gfx.bin levels.bin cells.bin level_overlay.bin \
+		  palette.json screens.bin mni_f1.bin mni_f2.bin \
+		  mni_spl.bin sound.json
+
+ep2-assets: $(addprefix $(EP2_ASSETS)/,$(EP2_ASSET_FILES))
+
+$(EP2_ASSETS)/%.bin: ../out/portable_ep2/%.bin
+	@mkdir -p $(EP2_ASSETS)
+	cp $< $@
+
+$(EP2_ASSETS)/palette.json: ../out/portable_ep2/palette.json
+	@mkdir -p $(EP2_ASSETS)
+	cp $< $@
+
+$(EP2_ASSETS)/sound.json: ../out/portable/sound.json
+	@mkdir -p $(EP2_ASSETS)
+	cp $< $@
+
+# Regenerators for the ep2 portable artifacts the copies depend on.
+../out/portable_ep2/screens.bin: ../extracted/ep2/CC2-UNLZ.EXE \
+	    ../notes/ep2/menu_fixtures.json
+	$(PYTHON) ../tools/export_shell_assets.py --episode ep2
+
+../out/portable_ep2/level_overlay.bin: ../notes/ep2/loader_tags.json
+	$(PYTHON) ../tools/export_level_overlay.py --episode ep2
+
+# The sound banks are byte-identical between the episodes; export_sound.py is
+# Episode-1-only, so the ep2 portable set reuses the same sound.json.
+../out/portable_ep2/sound.json: ../out/portable/sound.json
+	@mkdir -p ../out/portable_ep2
+	cp $< $@
+
+$(EP2_DATA)/startup_data.h: ../notes/ep2/startup.json
+	@mkdir -p $(EP2_DATA)
+	$(PYTHON) ../tools/make_startup_data.py --episode ep2 --out $@
+
+$(EP2_DATA)/episode_data.h:
+	@mkdir -p $(EP2_DATA)
+	$(PYTHON) ../tools/make_episode_data.py --episode ep2 --out $@
+
+../notes/ep2/oracle_catalog.json: ../notes/ep2/oracle_objects.json
+	$(PYTHON) ../tools/build_oracle_catalog.py --episode ep2
+
+$(EP2_DATA)/objects_data.h: ../notes/ep2/oracle_catalog.json
+	@mkdir -p $(EP2_DATA)
+	$(PYTHON) ../tools/make_objects_data.py --episode ep2 --out $@
+
+$(EP2_DATA)/cells_data.h: ../notes/ep2/oracle_objects.json
+	@mkdir -p $(EP2_DATA)
+	$(PYTHON) ../tools/make_cells_data.py --episode ep2 --out $@
 
 assets: assets/gfx.bin assets/levels.bin assets/palette.json assets/cells.bin assets/level_overlay.bin assets/screens.bin assets/mni_f1.bin assets/mni_f2.bin assets/mni_spl.bin assets/sound.json
 
@@ -112,6 +204,7 @@ social-card:
 # Regenerate the portable intermediate from the committed extracted assets.
 data:
 	$(PYTHON) ../tools/make_startup_data.py
+	$(PYTHON) ../tools/make_episode_data.py
 	$(PYTHON) ../tools/export_assets.py
 	$(PYTHON) ../tools/export_shell_assets.py
 	$(PYTHON) ../tools/make_shell_exact_data.py
@@ -141,6 +234,36 @@ test: clang
 # Pixel-exact comparison against the checked-in oracle renders (all 19 levels).
 test-render-all: clang
 	node test_render_all.js
+
+# Episode 2 static levels (skips when absent).
+test-render-ep2: clang
+	node test_render_all_ep2.js
+
+# Episode 2 checks.  Skips cleanly when the data is not present.
+test-ep2:
+	@if [ ! -f ../extracted/ep2/CC2-UNLZ.EXE ] || \
+	    [ ! -f ../notes/ep2/oracle_objects.json ]; then \
+	  echo "SKIP test-ep2: Episode 2 data not present"; \
+	else \
+	  $(MAKE) ep2 ep2-assets && \
+	  $(MAKE) test-render-ep2 test-ep2-browser test-ep2-transitions && \
+	  node test_ep2_data.js; \
+	fi
+
+test-ep2-browser:
+	node test_ep2_browser.js
+
+# Transition overlay replay against the ep2 loader fixtures.  The fixture is
+# generated by tools/loader_fixtures.py --episode ep2 (~13 min, Unicorn) and
+# is committed under notes/ep2/; skip when it is absent.
+test-ep2-transitions:
+	@if [ ! -f ../notes/ep2/loader_fixtures.json ]; then \
+	  echo "SKIP test-ep2-transitions: notes/ep2/loader_fixtures.json missing"; \
+	else \
+	  CC_WASM=render_ep2.wasm CC_CELLS=../out/portable_ep2/cells.bin \
+	  CC_OVERLAY=../out/portable_ep2/level_overlay.bin \
+	  node test_loader.js ../notes/ep2/loader_fixtures.json; \
+	fi
 
 test-data:
 	$(PYTHON) ../tools/check_oracle.py
@@ -344,7 +467,7 @@ test-all: test-data test-exports test-render-all test-view test-objects test-gam
 # NOTE: test-keymap is already run by test-exactness; keep it as its own target.
 
 clean:
-	rm -f $(OUT) app.js app.wasm app.d out_wasm_level*.png oracle_level*.json
-	rm -rf obj
+	rm -f $(OUT) $(EP2_OUT) app.js app.wasm app.d out_wasm_level*.png oracle_level*.json
+	rm -rf obj obj_ep2 ep2_data
 
-.PHONY: clang emcc assets favicon social-card data startup test test-render-all test-data test-exports test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-oracle-menus test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update test-digest test-digest-update test-render-digest render-digest-update lint lint-strict perf test-all clean
+.PHONY: clang emcc ep2 ep2-assets assets favicon social-card data startup test test-render-all test-render-ep2 test-ep2 test-ep2-browser test-ep2-transitions test-data test-exports test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-oracle-menus test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update test-digest test-digest-update test-render-digest render-digest-update lint lint-strict perf test-all clean

@@ -113,7 +113,7 @@ static void cell_pick_gravity(CellEventCtx *c) {    /* w6=0x0C, w7=0x26 */
     g_state.power_timer = g_state.gravity_timer_preset;
     g_state.power_subtimer = 0;
 }
-static void cell_pick_crystal(CellEventCtx *c) {    /* w6=0x0D, w7=1..4 */
+static void cell_pick_crystal(CellEventCtx *c) {    /* w6=0x0D, ep1 w7=1..4, ep2 0xD..0x10 */
     g_state.crystals_remaining = (uint16_t)(g_state.crystals_remaining - 1);
     play_sound(g_state.crystals_remaining == 0 ? SND_FANFARE : SND_CRYSTAL);
     score_add(SCORE_CRYSTAL, 0);
@@ -227,7 +227,7 @@ static const CellPickupRule g_cell_pickup_rules[] = {
     { 0x06, 0x31, 0x31, cell_pick_ammo },
     { 0x06, 0x32, 0x32, cell_pick_power_shot },
     { 0x0C, 0x26, 0x26, cell_pick_gravity },
-    { 0x0D, 0x01, 0x04, cell_pick_crystal },
+    { 0x0D, CC_EP_CRYSTAL_W7_LO, CC_EP_CRYSTAL_W7_HI, cell_pick_crystal },
     { 0x01, 0x0B, 0x0B, cell_pick_item_800 },
     { 0x01, 0x04, 0x04, cell_pick_item_1000 },
     { 0x01, 0x09, 0x09, cell_pick_item_5000 },
@@ -549,7 +549,7 @@ after_hazards:
         if (g_state.obj_cursor < OBJ_MAX) g_state.obj[g_state.obj_cursor].state = 0x63;
         {
             SpawnArgs a;
-            a.handler = HDL_CRYSTAL_BOB; a.handler_seg = 0x1F9A;
+            a.handler = HDL_CRYSTAL_BOB; a.handler_seg = CC_EP_HANDLER_SEG;
             a.phase = 0; a.speed = 2; a.anim_last = 1;
             a.anim_shape_b = 0x25; a.anim_shape_a = 0x25;
             a.vy = 0xFFFF; a.vx = 0;
@@ -565,7 +565,7 @@ after_hazards:
     {
         SpawnArgs a;
         int shape = w3;
-        a.handler = HDL_PICKUP_RISE; a.handler_seg = 0x1F9A;
+        a.handler = HDL_PICKUP_RISE; a.handler_seg = CC_EP_HANDLER_SEG;
         a.phase = 0; a.speed = 1; a.anim_last = 1;
         a.anim_shape_b = (uint16_t)shape; a.anim_shape_a = (uint16_t)shape;
         a.vy = 0xFFFF; a.vx = 0;

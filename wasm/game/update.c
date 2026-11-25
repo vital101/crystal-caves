@@ -110,7 +110,8 @@ int count_crystal_cells(void) {
         for (int c = 0; c < CELL_COLS; c++) {
             int w6 = cell_word_cur(c, r, CELL_W6);
             int w7 = cell_word_cur(c, r, CELL_W7);
-            if (w6 == 0x0D && w7 >= 1 && w7 <= 4) n++;
+            if (w6 == 0x0D && w7 >= CC_EP_CRYSTAL_W7_LO
+                    && w7 <= CC_EP_CRYSTAL_W7_HI) n++;
         }
     }
     return n;
@@ -263,7 +264,7 @@ void cc_fire(void) {
     a->state = 0;
     a->phase = 0;
     a->handler = HDL_ATTACK_GATE;
-    a->handler_seg = 0x1F9A;
+    a->handler_seg = CC_EP_HANDLER_SEG;
     a->block = 6;
     g_state.impulse = g_state.fire_impulse;
 }

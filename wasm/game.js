@@ -10,7 +10,22 @@
   'use strict';
 
   const W = CCGameRender.W, H = CCGameRender.H;
-  const TEST_MODE = new URLSearchParams(location.search).has('test');
+  const PARAMS = new URLSearchParams(location.search);
+  const EPISODE = PARAMS.get('ep') === '2' ? 2 : 1;
+  const ASSET = EPISODE === 2 ? 'assets_ep2/' : 'assets/';
+  const WASM_FILE = EPISODE === 2 ? 'render_ep2.wasm' : 'render.wasm';
+  const TEST_MODE = PARAMS.has('test');
+  CCPersist.setNamespace(EPISODE === 2 ? 'cc2' : 'cc1');
+  if (EPISODE === 2) {
+    document.title = 'Crystal Caves Ep.2 — Slugging It Out';
+  }
+  const epBtn = document.getElementById('epBtn');
+  if (epBtn) {
+    epBtn.textContent = EPISODE === 2 ? 'Episode 1' : 'Episode 2';
+    epBtn.addEventListener('click', () => {
+      location.href = EPISODE === 2 ? 'game.html' : 'game.html?ep=2';
+    });
+  }
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
   const diag = document.getElementById('diag');
@@ -37,12 +52,12 @@
     const load = (p) => fetch(p + '?v=' + Date.now()).then(r => r.arrayBuffer());
     const [wasm, gfx, levels, cells, overlay, screens, f1, f2, spl, pal, snd] =
       await Promise.all([
-        load('render.wasm'), load('assets/gfx.bin'), load('assets/levels.bin'),
-        load('assets/cells.bin'), load('assets/level_overlay.bin'),
-        load('assets/screens.bin'), load('assets/mni_f1.bin'),
-        load('assets/mni_f2.bin'), load('assets/mni_spl.bin'),
-        fetch('assets/palette.json').then(r => r.json()),
-        fetch('assets/sound.json').then(r => r.json()),
+        load(WASM_FILE), load(ASSET + 'gfx.bin'), load(ASSET + 'levels.bin'),
+        load(ASSET + 'cells.bin'), load(ASSET + 'level_overlay.bin'),
+        load(ASSET + 'screens.bin'), load(ASSET + 'mni_f1.bin'),
+        load(ASSET + 'mni_f2.bin'), load(ASSET + 'mni_spl.bin'),
+        fetch(ASSET + 'palette.json').then(r => r.json()),
+        fetch(ASSET + 'sound.json').then(r => r.json()),
       ]);
 
     const { instance } = await WebAssembly.instantiate(wasm, {});

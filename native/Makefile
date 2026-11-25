@@ -8,7 +8,7 @@ GROUPS  = static_render gameplay transitions warp shell save_round_trip
 DIGEST_DIR = $(BUILD)/digest
 FIXTURE = ../notes/refactor_digests.json
 
-.PHONY: all build test-digest test-smoke clean
+.PHONY: all build test-digest test-smoke test-smoke-ep2 clean
 
 all: build
 
@@ -19,6 +19,9 @@ $(BUILD)/Makefile: CMakeLists.txt ../tools/embed_assets.py
 
 $(BUILD)/caves $(BUILD)/cc_digest: $(BUILD)/Makefile
 	$(CMAKE) --build $(BUILD)
+
+$(BUILD)/caves_ep2: $(BUILD)/Makefile
+	$(CMAKE) --build $(BUILD) --target caves_ep2
 
 # Run every digest group in a fresh process (fresh static state, like the JS
 # harness's fresh WebAssembly.Instance) and compare against the wasm fixture.
@@ -32,6 +35,9 @@ test-digest: $(BUILD)/cc_digest
 # Headless smoke test of the full SDL host path (dummy video/audio drivers).
 test-smoke: $(BUILD)/caves
 	SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./$(BUILD)/caves --smoke 120
+
+test-smoke-ep2: $(BUILD)/caves_ep2
+	SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./$(BUILD)/caves_ep2 --smoke 120
 
 clean:
 	rm -rf $(BUILD)

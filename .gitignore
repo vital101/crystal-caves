@@ -8,6 +8,14 @@ __pycache__/
 *.egg-info/
 .venv/
 
+# Episode 2/3 registered data is committed in this private fork; deployment
+# stays private (see notes/ep2_diff.md).  Only oracle debug logs and
+# per-episode object files stay out.
+notes/ep2/*.log
+notes/ep3/*.log
+wasm/obj_ep2/
+wasm/obj_ep3/
+
 # Generated build/test outputs
 wasm/render.wasm
 wasm/assets/

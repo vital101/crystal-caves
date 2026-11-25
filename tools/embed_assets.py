@@ -5,14 +5,15 @@ Generates assets_embed.c / assets_embed.h consumed by native/CMakeLists.txt.
 The wasm build loads the same files over HTTP; the native build links them
 into the executable so the binary is a single self-contained file.
 
-  python3 tools/embed_assets.py <out.c> <out.h>
+  python3 tools/embed_assets.py <out.c> <out.h> [asset-dir]
 """
 import json
 import os
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PORTABLE = os.path.join(ROOT, 'out', 'portable')
+PORTABLE = (sys.argv[3] if len(sys.argv) > 3
+            else os.path.join(ROOT, 'out', 'portable'))
 
 BIN_ASSETS = [
     ('gfx', 'gfx.bin'),

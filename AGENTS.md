@@ -32,6 +32,10 @@ different thing.  See the README section *Develop in Docker (any platform)*.
 | `make lint` | Source-size/function-length report (0 failures since Phase 3) |
 | `make lint-strict` | Same report, exit 1 on violations (what CI runs) |
 | `make test-render-all` | Pixel-diff every level against `out/oracle_L*.png` |
+| `make test-render-ep2` | Pixel-diff all ep2 levels against `out/ep2/oracle_L*.png` (skips if absent) |
+| `make -C wasm ep2` | Build `render_ep2.wasm` from generated Episode 2 data (`make test-ep2` runs the checks) |
+| `make -C wasm ep2-assets` | Build `assets_ep2/` for `game.html?ep=2` |
+| `make -C wasm test-ep2` | Episode 2 render + compiled-data + transition + browser checks (skips if absent) |
 | `make test-data` | Run `../tools/check_oracle.py` (structural oracle assertions) |
 | `make test-exports` | Built wasm exports must match the Makefile `EXPORTS` list |
 | `make test-view` | 320x200 viewport crop regression |
@@ -58,6 +62,7 @@ different thing.  See the README section *Develop in Docker (any platform)*.
 | `make -C native build` | Native desktop build (CMake/SDL3): `native/build/caves` + `cc_digest` |
 | `make -C native test-digest` | Native golden-master digests vs `notes/refactor_digests.json` (929 snapshots) |
 | `make -C native test-smoke` | Headless SDL host run (`--smoke 120`, dummy drivers) |
+| `make -C native test-smoke-ep2` | Same for the native Episode 2 binary |
 | `make test-browser-update` | Regenerate `wasm/browser_expectations.json` framebuffer hashes |
 | `make perf` | wasm size + per-frame timing against the 57.1 ms game budget |
 | `make test-oracle-sound` | Regenerate the Unicorn sound trace, then compare |
@@ -103,6 +108,12 @@ the container misreads a CRLF `wasm/Makefile`.
 `extracted/` and `out/portable/` are committed, so builds/tests do not need the
 original archive. To regenerate raw extraction you must supply `CCSW10A.SHR`
 (not in repo), then run `python3 tools/extract_shr.py`.
+
+Registered Episode 2/3 data is committed in this private fork (deployment
+stays private).  Episode 2 is staged under `extracted/ep2/`, Episode 3 under
+`extracted/ep3/`; see `notes/ep2_diff.md` for the R0 delta analysis and
+address maps.  The oracle tools accept `--episode ep2|ep3`; per-episode
+constants live in `tools/episode_config.py`.
 
 1. `python3 tools/unlzexe.py` — `extracted/CC1-UNLZ.EXE` (184,288-byte load module)
 2. `python3 tools/emulate_startup.py` — captures `0xC3E` startup + loader state to `notes/startup.json`
@@ -354,6 +365,21 @@ The authoritative target list is the table at the top of this file.
   draw state is non-zero, never while walking), ID 2 is an unused bank
   entry with a negative test, the logo plays ID 32, the attract loop is
   silent and menu accept plays ID 33.
+- Episode 2 (registered data committed here) port: the engine is the
+  same binary with new level/shell data.  All 19 static levels render
+  pixel-exactly in the unmodified wasm (`make test-render-ep2`), the
+  per-episode build (`make -C wasm ep2`) reproduces the loader's objects,
+  start state and cells for every level against the Unicorn oracle
+  (`make test-ep2`), and 60-120 frame gameplay fixtures match the emulator.
+  Shell content is generated per episode (story pages, menus, high scores via
+  `shell_exactness.py --episode`), and `game.html?ep=2` serves the episode
+  from `render_ep2.wasm` + `assets_ep2/` with a `cc2.*` storage namespace;
+  the browser smoke covers title -> intro -> hub -> save/restore -> finale.
+  Two data-driven deltas are handled (crystal `w7` range, `handler_seg`
+  `0x1F72`), and the ep2 fixtures exposed a latent formation-mover bug now
+  fixed.  The native build also has a `caves_ep2` target (same core, ep2 data
+  and embedded assets, `cc2.*` save files; `make -C native test-smoke-ep2`).
+  Remaining: Episode 3 (data staged in extracted/ep3/); see `notes/ep2_diff.md`.
 
 ## Tooling Entrypoints
 
@@ -371,6 +397,9 @@ The authoritative target list is the table at the top of this file.
 | `tools/emulate_game.py` | Full update-loop + handler oracle (video/sound stubbed) |
 | `tools/handler_fixtures.py` / `notes/handler_fixtures.json` | Per-handler oracle fixtures (`make test-handlers`) |
 | `tools/loader_fixtures.py` / `notes/loader_fixtures.json` | Exact transition fixtures (`make test-loader`) |
+| `tools/episode_diff.py` / `notes/ep2_diff.md` | Compare two unpacked episode EXEs/data sets (R0 episode-delta analysis) |
+| `tools/episode_config.py` | Per-episode oracle constants (`--episode ep1\|ep2`) |
+| `tools/make_episode_data.py` | Generate per-episode `episode_data.h` (crystal rule, handler segment) |
 | `tools/export_level_overlay.py` / `out/portable/level_overlay.bin` | Loader occupancy overlay asset (v2: decor + door recipes) |
 | `tools/analyze_loader_tags.py` / `notes/loader_tags.json` | Regenerate source-dependent loader tags |
 | `tools/cave_fixtures.py` / `notes/cave_fixtures.json` | All-cave full-frame fixtures (`make test-caves`) |
@@ -421,6 +450,8 @@ The authoritative target list is the table at the top of this file.
 - `notes/refactor_baseline.md` — Phase 0 size/perf/test/export baseline
 - `notes/refactor_digests.json` — Phase 0 golden-master SHA-256 digests (`make test-digest`)
 - `notes/refactor_render_digests.json` — Phase 2 render/text/scroll digests (`make test-render-digest`)
+- `notes/ep2_diff.md`, `notes/ep2_diff.json` — Episode 2 R0 delta analysis and address map
+  (`tools/episode_diff.py`; registered data is committed here)
 - `wasm/test_render_digest.js` — Phase 2 render-surface characterization harness
 - `wasm/test_refactor_digest.js` — Phase 0 characterization harness
 - `tools/check_source_limits.py` — Phase 0 file/function size guardrail (`make lint`)
@@ -440,6 +471,10 @@ The authoritative target list is the table at the top of this file.
 - `wasm/text.c/h`, `wasm/shell.c/h`, `wasm/render.h` — Phase 5 code
 - `wasm/sound.c/h`, `wasm/sound_data.h`, `wasm/sound_synth.js`, `wasm/audio.js` — Phase 6 sound
 - `wasm/test_browser.js` / `wasm/browser_expectations.json` — Phase 8 headless browser smoke
+- `wasm/test_render_all_ep2.js` — Episode 2 static-level pixel check (`make test-render-ep2`)
+- `wasm/test_ep2_data.js` — Episode 2 compiled-data/oracle check (`make test-ep2`)
+- `wasm/test_ep2_browser.js` / `wasm/browser_expectations_ep2.json` — Episode 2 browser smoke hashes (`make test-ep2-browser`)
+- `wasm/episode_data.h` — generated per-episode cell-rule/segment constants
 - `wasm/measure_perf.js` / `wasm/perf_baseline.json` — Phase 8 frame-budget/size checks
 - `notes/regression.md` — Phase 8 coverage matrix (target → fixture → harness)
 - `compose.yaml` + `docker/Dockerfile.dev` (+ `Dockerfile.dev.dockerignore`,

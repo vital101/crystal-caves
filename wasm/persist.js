@@ -15,10 +15,11 @@
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.CCPersist = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
-  const CFG_KEY = 'cc1.config.v2';
-  const OLD_CFG_KEY = 'cc1.config.v1';
-  const HS_KEY = 'cc1.hiscores.v1';
-  const SAVE_PREFIX = 'cc1.save.';
+  let NS = 'cc1';
+  let CFG_KEY = NS + '.config.v2';
+  let OLD_CFG_KEY = NS + '.config.v1';
+  let HS_KEY = NS + '.hiscores.v1';
+  let SAVE_PREFIX = NS + '.save.';
   const HS_COUNT = 10;
   const HS_NAME_MAX = 20;
 
@@ -38,6 +39,15 @@
     if (v === false) return 0;
     if (v === 0 || v === 1) return v;
     return dflt;
+  }
+
+  /** Select the storage namespace (`cc1`, `cc2`, ...). */
+  function setNamespace(ns) {
+    NS = String(ns || 'cc1');
+    CFG_KEY = NS + '.config.v2';
+    OLD_CFG_KEY = NS + '.config.v1';
+    HS_KEY = NS + '.hiscores.v1';
+    SAVE_PREFIX = NS + '.save.';
   }
 
   /** @returns {object} the original CC1.CFG-equivalent defaults. */
@@ -243,10 +253,13 @@
   }
 
   return {
-    CFG_KEY: CFG_KEY,
-    OLD_CFG_KEY: OLD_CFG_KEY,
-    HS_KEY: HS_KEY,
-    SAVE_PREFIX: SAVE_PREFIX,
+    setNamespace: setNamespace,
+    namespace: function () { return NS; },
+    /* Live getters: setNamespace() rewrites the active keys. */
+    get CFG_KEY() { return CFG_KEY; },
+    get OLD_CFG_KEY() { return OLD_CFG_KEY; },
+    get HS_KEY() { return HS_KEY; },
+    get SAVE_PREFIX() { return SAVE_PREFIX; },
     HS_COUNT: HS_COUNT,
     HS_NAME_MAX: HS_NAME_MAX,
     DEFAULT_KEYS: DEFAULT_KEYS.slice(),

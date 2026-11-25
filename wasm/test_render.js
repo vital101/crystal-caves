@@ -2,12 +2,16 @@
 //   node test_render.js [level]
 // Loads render.wasm + ../out/portable/{gfx.bin,levels.bin,palette.json},
 // renders, reports non-black %, and writes out_wasm_levelNN.png (Node zlib).
+// CC_RENDER_ASSETS / CC_RENDER_OUT override the asset directory and output
+// path (used by test_render_all_ep2.js for the bring-your-own ep2 data).
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 
 const DIR = __dirname;
-const PORT = path.join(DIR, '..', 'out', 'portable');
+const PORT = process.env.CC_RENDER_ASSETS
+  ? path.resolve(process.env.CC_RENDER_ASSETS)
+  : path.join(DIR, '..', 'out', 'portable');
 const W = 640, H = 400;
 
 function writePng(file, rgba) {
@@ -78,7 +82,9 @@ function crc32(buf) {
 
   let nz = 0;
   for (let i = 0; i < W * H * 4; i += 4) if (rgba[i] | rgba[i + 1] | rgba[i + 2]) nz++;
-  const out = path.join(DIR, `out_wasm_level${String(level).padStart(2, '0')}.png`);
+  const out = process.env.CC_RENDER_OUT
+    ? path.resolve(process.env.CC_RENDER_OUT)
+    : path.join(DIR, `out_wasm_level${String(level).padStart(2, '0')}.png`);
   writePng(out, rgba);
   console.log(`wasm level ${level}: nonblack ${(100 * nz / (W * H)).toFixed(1)}% -> ${path.basename(out)}`);
 })().catch((err) => { console.error(err); process.exit(1); });

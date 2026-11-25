@@ -16,10 +16,13 @@ const fields = [
 ];
 
 (async () => {
+  const wasmPath = process.env.CC_WASM || path.join(DIR, "render.wasm");
+  const cellsPath = process.env.CC_CELLS
+    || path.join(DIR, "..", "out", "portable", "cells.bin");
   const { instance } = await WebAssembly.instantiate(
-    fs.readFileSync(path.join(DIR, "render.wasm")), {});
+    fs.readFileSync(wasmPath), {});
   const e = instance.exports;
-  const cells = fs.readFileSync(path.join(DIR, "..", "out", "portable", "cells.bin"));
+  const cells = fs.readFileSync(cellsPath);
   const cp = e.cc_alloc(cells.length);
   new Uint8Array(e.memory.buffer, cp, cells.length).set(cells);
   e.cc_set_cells(cp);

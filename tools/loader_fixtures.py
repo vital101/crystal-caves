@@ -41,6 +41,15 @@ def mutate(mu):
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser(description="Generate transition fixtures")
+    ap.add_argument("--episode", default="ep1", help="ep1, ep2, ...")
+    ap.add_argument("--out", default=None)
+    opts = ap.parse_args()
+
+    import episode_config
+    episode_config.apply(opts.episode)
+
     scenarios = []
     for dest in range(3, 19):
         r = E.run_transition(2, dest, prefill=True, mutate=mutate,
@@ -68,7 +77,11 @@ def main():
                     if n in C_GLOBALS],
         "scenarios": scenarios,
     }
-    out = os.path.join(ROOT, "notes", "loader_fixtures.json")
+    out = opts.out or (
+        os.path.join(ROOT, "notes", "loader_fixtures.json")
+        if opts.episode == "ep1"
+        else os.path.join(ROOT, "notes", opts.episode, "loader_fixtures.json"))
+    os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, "w") as f:
         json.dump(payload, f, separators=(",", ":"))
     print("wrote", out, "scenarios:", len(scenarios))

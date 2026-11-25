@@ -37,11 +37,86 @@ from unicorn.x86_const import (  # noqa: E402
     UC_X86_INS_IN,
 )
 
+# Episode-dependent shell addresses (ep1 defaults; apply_episode rewrites).
 CS = 0x0FC5
 BASE = CS << 4
 RET = 0xFFF0
 VIDEO_SEGS = (0x28B5, 0x26C5)
 MODULE = E.load_module()
+RENDER_SITE = 0x104C7
+RENDER_SITES = (0x104C7, 0x204C7)
+LINEBREAK_SITE = 0x10939
+MENU_ENTRY = 0x17564
+MENU_INPUT = 0x17729
+MENU_PAGE_RUNS = (
+    (0x1390A, ("ordering_episodes", "ordering_offer", "ordering_disk")),
+    (0x19130, ("foreign", "foreign_au", "foreign_de", "foreign_uk")),
+    (0x19A88, ("bbs",)),
+    (0x19E1F, ("about",)),
+    (0x17978, ("menu_help",)),
+    (0x15E01, ("menu_quit",)),
+)
+VIDEO_SETUP = 0x1A688
+VIDEO_SITE = 0x1A7C0
+QUIT_CONFIRM = 0x114A1
+QUIT_SITE = 0x114E4
+STORY_INTRO = (0x123F8, 0x12BE2)
+STORY_FINALE = (0x11DE8, 0x116C2, 0x119A8)
+HISCORE_DEFAULTS = 0x18388
+HISCORE_SCREEN = 0x13CC8
+KEY_TABLE = 0xFC8E
+SOUND_SEG = 0x1F9A
+SOUND_PLAY = 0x21F
+TITLE_ENTRY = 0x8265
+TITLE_HOLD = 0x17F74
+TITLE_DRAW = 0x18024
+TITLE_FLIP_HOLD = 0x18074
+TITLE_MENU = 0x17564
+SCREENS_BIN = os.path.join(ROOT, "out", "portable", "screens.bin")
+
+
+def apply_episode(name):
+    """Rewrite the shell capture addresses for an episode."""
+    global CS, BASE, VIDEO_SEGS, MODULE, RENDER_SITE, LINEBREAK_SITE
+    global RENDER_SITES
+    global MENU_ENTRY, MENU_INPUT, MENU_PAGE_RUNS, VIDEO_SETUP, VIDEO_SITE
+    global QUIT_CONFIRM, QUIT_SITE, STORY_INTRO, STORY_FINALE
+    global HISCORE_DEFAULTS, HISCORE_SCREEN, KEY_TABLE, SOUND_SEG, SOUND_PLAY
+    global TITLE_ENTRY, TITLE_HOLD, TITLE_DRAW, TITLE_FLIP_HOLD, TITLE_MENU
+    global SCREENS_BIN
+    import episode_config
+    episode_config.apply(name)
+    cfg = episode_config.get(name)["shell"]
+    with open(cfg["module"], "rb") as fh:
+        data = fh.read()
+    MODULE = data[0x1E00:]
+    CS = cfg["seg"]
+    BASE = CS << 4
+    VIDEO_SEGS = tuple(cfg["video_segs"])
+    RENDER_SITE = cfg["render_site"]
+    RENDER_SITES = tuple(cfg["render_sites"])
+    LINEBREAK_SITE = cfg["linebreak_site"]
+    MENU_ENTRY = cfg["menu_entry"]
+    MENU_INPUT = cfg["menu_input"]
+    MENU_PAGE_RUNS = tuple(cfg["menu_runs"])
+    VIDEO_SETUP = cfg["video_entry"]
+    VIDEO_SITE = cfg["video_site"]
+    QUIT_CONFIRM = cfg["quit_entry"]
+    QUIT_SITE = cfg["quit_site"]
+    STORY_INTRO = tuple(cfg["story_intro"])
+    STORY_FINALE = tuple(cfg["story_finale"])
+    HISCORE_DEFAULTS = cfg["hiscore_defaults"]
+    HISCORE_SCREEN = cfg["hiscore_screen"]
+    KEY_TABLE = cfg["key_table"]
+    SOUND_SEG = cfg["sound_seg"]
+    SOUND_PLAY = cfg["sound_play"]
+    TITLE_ENTRY = cfg["title_entry_off"]
+    TITLE_HOLD = cfg["title_hold"]
+    TITLE_DRAW = cfg["title_draw"]
+    TITLE_FLIP_HOLD = cfg["title_flip"]
+    TITLE_MENU = cfg["menu_entry"]
+    SCREENS_BIN = cfg["screens_bin"]
+
 
 FILES = {}
 NEXT_HANDLE = [5]
@@ -227,74 +302,47 @@ def _read_text_lines(mu):
 MENU_ENTRY = 0x17564
 MENU_INPUT = 0x17729          # menu key read (after the text is built)
 
-MENU_PAGE_SITES = {
-    # ordering: episodes -> offer -> disk
-    0x13AEE: "ordering_episodes",
-    0x1377A: "ordering_offer",
-    0x13415: "ordering_disk",
-    # foreign: intro -> Australia -> Germany -> UK
-    0x19329: "foreign",
-    0x19526: "foreign_au",
-    0x19714: "foreign_de",
-    0x19902: "foreign_uk",
-    # single-page screens
-    0x19C81: "bbs",
-    0x1A018: "about",
-    0x17BDE: "menu_help",
-    0x15EFE: "menu_quit",
-}
-MENU_PAGE_ENTRY = {
-    "ordering_episodes": 0x1390A, "ordering_offer": 0x1390A,
-    "ordering_disk": 0x1390A,
-    "foreign": 0x19130, "foreign_au": 0x19130, "foreign_de": 0x19130,
-    "foreign_uk": 0x19130,
-    "bbs": 0x19A88, "about": 0x19E1F,
-    "menu_help": 0x17978, "menu_quit": 0x15E01,
-}
-VIDEO_SETUP = 0x1A688          # text + Y/N prompt; sets [0xA0EC]
-QUIT_CONFIRM = 0x114A1         # "Quit to DOS (Y-N)"; sets [0x3396]
-
-
 def _capture_menu_pages():
-    """Run each information handler and snapshot its line buffer per page."""
+    """Run each information handler and snapshot each rendered page in order.
+
+    The page renderer is one shared routine (RENDER_SITE); hooking its entry
+    avoids depending on the per-handler call sites, which move with the text
+    data between episodes.
+    """
     pages = {}
 
-    def run(entry, sites):
+    def run(entry, names):
         mu, _ = _machine()
         KEYS.clear()
         KEYS.extend([0x1C] * 80)   # Enter advances every "Press Any Key"
-        seen = set()
+        count = [0]
+        last_lines = [None]
 
         def code(uc, addr, size, user):
-            ip = uc.reg_read(UC_X86_REG_IP)
-            load = (uc.reg_read(UC_X86_REG_CS) << 4) + ip
-            name = sites.get(load)
-            if name is None:
+            if addr not in RENDER_SITES:
                 return
-            if name not in pages:
-                pages[name] = _read_text_lines(mu)
-            seen.add(name)
-            if len(seen) >= len(sites):
+            idx = count[0]
+            lines = _read_text_lines(mu)
+            if idx == 0 or lines != last_lines[0]:
+                if idx < len(names):
+                    pages[names[idx]] = lines
+                count[0] += 1
+                last_lines[0] = lines
+            # Return from the renderer without drawing/waiting: at its entry
+            # the return address is on the stack.
+            ss = uc.reg_read(UC_X86_REG_SS)
+            sp = uc.reg_read(UC_X86_REG_SP)
+            ret = int.from_bytes(uc.mem_read((ss << 4) + sp, 2), "little")
+            uc.reg_write(UC_X86_REG_SP, (sp + 2) & 0xFFFF)
+            uc.reg_write(UC_X86_REG_IP, ret & 0xFFFF)
+            if count[0] >= len(names):
                 uc.emu_stop()
-                return
-            # Skip the render/wait call so the handler continues to the next
-            # page instead of blocking on a key.
-            uc.reg_write(UC_X86_REG_IP, (ip + 3) & 0xFFFF)
 
         mu.hook_add(UC_HOOK_CODE, code)
         _far(mu, entry, [])
 
-    # Ordering pages are reached through one handler chain.
-    run(MENU_PAGE_ENTRY["ordering_episodes"],
-        {s: n for s, n in MENU_PAGE_SITES.items()
-         if n.startswith("ordering")})
-    # Foreign pages are inline in one handler.
-    run(MENU_PAGE_ENTRY["foreign"],
-        {s: n for s, n in MENU_PAGE_SITES.items()
-         if n.startswith("foreign")})
-    for name in ("bbs", "about", "menu_help", "menu_quit"):
-        run(MENU_PAGE_ENTRY[name],
-            {s: n for s, n in MENU_PAGE_SITES.items() if n == name})
+    for entry, names in MENU_PAGE_RUNS:
+        run(entry, names)
 
     # Main menu text (built before the first key read).
     mu, _ = _machine()
@@ -316,8 +364,8 @@ def _capture_menu_pages():
     # Video compatibility screen (Y/N prompt) and the quit-to-DOS confirm.
     # The page is complete just before the input call; snapshot there instead
     # of running the modal wait loop.
-    for name, entry, site in (("menu_video", VIDEO_SETUP, 0x1A7C0),
-                              ("menu_quit_dos", QUIT_CONFIRM, 0x114E4)):
+    for name, entry, site in (("menu_video", VIDEO_SETUP, VIDEO_SITE),
+                              ("menu_quit_dos", QUIT_CONFIRM, QUIT_SITE)):
         mu, _ = _machine()
         KEYS.clear()
         grabbed = [False]
@@ -345,12 +393,12 @@ def menu_fixture():
                   "line buffers captured after each page is built",
         "entry_points": {
             "menu": MENU_ENTRY,
-            "ordering": 0x1390A,
-            "foreign": 0x19130,
-            "bbs": 0x19A88,
-            "about": 0x19E1F,
-            "help": 0x17978,
-            "quit_menu": 0x15E01,
+            "ordering": MENU_PAGE_RUNS[0][0],
+            "foreign": MENU_PAGE_RUNS[1][0],
+            "bbs": MENU_PAGE_RUNS[2][0],
+            "about": MENU_PAGE_RUNS[3][0],
+            "help": MENU_PAGE_RUNS[4][0],
+            "quit_menu": MENU_PAGE_RUNS[5][0],
             "video": VIDEO_SETUP,
             "quit": QUIT_CONFIRM,
         },
@@ -370,7 +418,7 @@ def menu_fixture():
 
 def highscore_defaults():
     mu, _ = _machine()
-    _far(mu, BASE + 0x8738, [])
+    _far(mu, HISCORE_DEFAULTS, [])
     names, scores = [], []
     for i in range(1, 11):
         off = 0x230 + i * 0x100
@@ -389,11 +437,11 @@ def highscore_defaults():
 
 def highscore_screen(defaults):
     mu, _ = _machine()
-    _far(mu, BASE + 0x8738, [])
+    _far(mu, HISCORE_DEFAULTS, [])
     captured = []
 
     def code(uc, addr, size, user):
-        if addr == 0x104C7:
+        if addr == RENDER_SITE:
             captured.append(_read_text_lines(uc))
             uc.emu_stop()
             return
@@ -412,7 +460,7 @@ def highscore_screen(defaults):
     mu.hook_add(UC_HOOK_CODE, code)
     for off in (0x512E, 0x5130, 0x2B5C, 0x2B40, 0x2B41):
         E.w16(mu, E.DATA_SEG, off, 0)
-    _far(mu, BASE + 0x4078, [])
+    _far(mu, HISCORE_SCREEN, [])
     if not captured:
         raise RuntimeError("high-score screen did not reach the window renderer")
     return captured[0]
@@ -423,7 +471,7 @@ def story_pages(entry):
     pages = []
 
     def code(uc, addr, size, user):
-        if addr == 0x104C7:
+        if addr == RENDER_SITE:
             pages.append(_read_text_lines(uc))
             # Skip the renderer; the wrapper continues to the next page.
             sp = uc.reg_read(UC_X86_REG_SP)
@@ -433,7 +481,7 @@ def story_pages(entry):
             uc.reg_write(UC_X86_REG_SP, (sp + 2) & 0xFFFF)
             uc.reg_write(UC_X86_REG_IP, ret)
             return
-        if addr == BASE + 0x0CE9:
+        if addr == LINEBREAK_SITE:
             E.w16(mu, E.DATA_SEG, 0x2B5E, 0x81)
         if uc.mem_read(addr, 1)[0] == 0x9A:
             raw = uc.mem_read(addr, 5)
@@ -471,11 +519,7 @@ def story_pages(entry):
 # is the real control flow: hold lengths, row order, direction flips and the
 # key path into the menu.
 
-TITLE_ENTRY = 0x8265        # 0x0FC5:0x8265, linear 0x17EB5
-TITLE_HOLD = 0x17F74        # initial hold spin
-TITLE_DRAW = 0x18024        # direction test + 0x28B5:0x11F call
-TITLE_FLIP_HOLD = 0x18074   # hold spin after a direction flip
-TITLE_MENU = 0x17564        # main menu entry (near call at 0x17F8A)
+# TITLE_ENTRY/HOLD/DRAW/FLIP/MENU come from apply_episode above.
 HOLD_LIMIT = 0x1B0          # 432; loop exits when [0x2B60] > 432
 SCROLL_ROWS = 0xC8          # 200
 TITLE_KEY = 0x1C            # Enter (a make code in the {1..128} set)
@@ -513,12 +557,12 @@ def _flow_machine():
             b = uc.mem_read(addr, 5)
             off = int.from_bytes(b[1:3], "little")
             seg = int.from_bytes(b[3:5], "little")
-            if seg == 0x1F9A and off == 0x21F:
+            if seg == SOUND_SEG and off == SOUND_PLAY:
                 sp = uc.reg_read(UC_X86_REG_SP)
                 state["sound"].append(E.u16(mu, E.STACK_SEG, sp))
                 _skip_far(uc, addr, seg, off)
                 return
-            if seg in (0x28B5, 0x26C5, 0x1D6E):
+            if seg in VIDEO_SEGS or seg == 0x1D6E:
                 sp = uc.reg_read(UC_X86_REG_SP)
                 args = [E.u16(mu, E.STACK_SEG, (sp + 2 * i) & 0xFFFF)
                         for i in range(4)]
@@ -582,7 +626,7 @@ def title_flow(key=None, max_draws=460):
 def _screen_rows():
     """Decode rows of the exported screens.bin for the composite fixture."""
     import struct
-    src = os.path.join(ROOT, "out", "portable", "screens.bin")
+    src = SCREENS_BIN
     data = open(src, "rb").read()
     size = 320 * 200
     title = data[1 * size:2 * size]
@@ -593,8 +637,7 @@ def _screen_rows():
         return hashlib.sha256(stack[row * 320:(row + 1) * 320]).hexdigest()
 
     return {
-        "source": "out/portable/screens.bin (CC1.TTL rows 0..199, "
-                  "CC1.CDT rows 200..399)",
+        "source": "portable screens.bin (TTL rows 0..199, CDT rows 200..399)",
         "title_sha256": hashlib.sha256(title).hexdigest(),
         "credits_sha256": hashlib.sha256(credits).hexdigest(),
         "row_sha256": [row_sha(r) for r in range(SCROLL_ROWS + 1)],
@@ -655,9 +698,8 @@ def title_flow_fixture():
 
 def key_names():
     """Parse the original packed scan-code -> label table at CS:0x3E."""
-    table = bytearray(open(
-        os.path.join(ROOT, "extracted", "CC1-UNLZ.EXE"), "rb").read())[0x1E00:]
-    p = 0xFC8E
+    table = bytearray(MODULE)
+    p = KEY_TABLE
     seq = (list(range(0x02, 0x0C)) + list(range(0x11, 0x19)) +
            [0x1C, 0x1D] + list(range(0x1E, 0x23)) +
            list(range(0x24, 0x27)) + list(range(0x2C, 0x36)) +
@@ -670,7 +712,27 @@ def key_names():
         p += 1 + n
     return {str(k): names.get(k, "NULL") for k in range(0x80)}
 
+def _opt(name, default=None):
+    argv = sys.argv[1:]
+    for i, a in enumerate(argv):
+        if a.startswith(name + "="):
+            return a.split("=", 1)[1]
+        if a == name and i + 1 < len(argv):
+            return argv[i + 1]
+    return default
+
+
 def main():
+    episode = _opt("--episode", "ep1")
+    apply_episode(episode)
+    out_override = _opt("--out")
+    notes_dir = os.path.join(ROOT, "notes", episode)
+
+    def default_path(name):
+        if episode == "ep1":
+            return os.path.join(ROOT, "notes", name)
+        return os.path.join(notes_dir, name)
+
     if "--menus" in sys.argv:
         print("menu information screens")
         fixture = menu_fixture()
@@ -678,7 +740,8 @@ def main():
             print("  %-20s %d lines" % (name, len(lines)))
         print("  video prompt", fixture["video_prompt"])
         print("  quit prompt", fixture["quit_prompt"])
-        out = os.path.join(ROOT, "notes", "menu_fixtures.json")
+        out = out_override or default_path("menu_fixtures.json")
+        os.makedirs(os.path.dirname(out), exist_ok=True)
         with open(out, "w") as f:
             json.dump(fixture, f, indent=1)
         print("wrote", out)
@@ -686,7 +749,8 @@ def main():
     if "--flow" in sys.argv:
         print("title/credits flow")
         flow = title_flow_fixture()
-        out = os.path.join(ROOT, "notes", "shell_flow_fixtures.json")
+        out = out_override or default_path("shell_flow_fixtures.json")
+        os.makedirs(os.path.dirname(out), exist_ok=True)
         with open(out, "w") as f:
             json.dump(flow, f, indent=1)
         print("  hold", flow["timing"]["hold_ticks"],
@@ -710,12 +774,12 @@ def main():
     fb_b64 = base64.b64encode(zlib.compress(fb, 9)).decode("ascii")
     print("story pages")
     intro = []
-    for entry in (0x123F8, 0x12BE2):
+    for entry in STORY_INTRO:
         pages = story_pages(entry)
         print("  %#x -> %d pages" % (entry, len(pages)))
         intro.extend(pages)
     finale = []
-    for entry in (0x11DE8, 0x116C2, 0x119A8):
+    for entry in STORY_FINALE:
         pages = story_pages(entry)
         print("  %#x -> %d pages" % (entry, len(pages)))
         finale.extend(pages)
@@ -738,6 +802,15 @@ def main():
         "finale_pages": finale,
         "highscore_screen_lines": screen,
     }
+    if episode != "ep1":
+        # The attract loop and title timing are engine constants (the scroll
+        # mechanism and CDT image are shared); reuse the Episode-1 capture.
+        base_path = os.path.join(ROOT, "notes", "shell_exactness_fixtures.json")
+        if os.path.exists(base_path):
+            base = json.load(open(base_path))["flow"]
+            flow["timing_ticks"] = base["timing_ticks"]
+            flow["screens"] = base["screens"]
+            flow["ending_order"] = base["ending_order"]
     hi = {
         "defaults": defaults,
         "screen_lines": screen,
@@ -761,11 +834,12 @@ def main():
         "confirmation": "N restarts; any other key accepts",
     }
     for path, data in (
-        (os.path.join(ROOT, "notes", "shell_exactness_fixtures.json"),
+        (out_override or default_path("shell_exactness_fixtures.json"),
          {"flow": flow, "highscore": hi, "keymap": keys}),
-        (os.path.join(ROOT, "notes", "hiscore_fixtures.json"), hi),
-        (os.path.join(ROOT, "notes", "keymap_fixtures.json"), keys),
+        (default_path("hiscore_fixtures.json"), hi),
+        (default_path("keymap_fixtures.json"), keys),
     ):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as f:
             json.dump(data, f, indent=1)
         print("wrote", path)

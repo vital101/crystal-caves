@@ -38,6 +38,7 @@ LOADER = 0xB1A9
 LOAD_END = 0xCEEC
 RET_SENTINEL = 0xFFF0
 SKIP_SEGS = (0x28B5, 0x26C5, 0x0FC5)
+LEVEL_COUNT = 19
 
 # Named gameplay globals captured after startup and after each level load.
 # (name, DS offset, width) -- width is 1 or 2.
@@ -293,7 +294,7 @@ def run_all(include_ds=False):
     ds0, startup_globals = run_startup()
     levels = {}
     last = None
-    for level in range(19):
+    for level in range(LEVEL_COUNT):
         mu, module = _make_machine()
         mu.mem_write(E.DATA_SEG << 4, ds0)
         _load_one(mu, module, level)
@@ -315,7 +316,19 @@ def run_all(include_ds=False):
 
 
 def main():
-    out = os.path.join(ROOT, "notes", "startup.json")
+    import argparse
+    ap = argparse.ArgumentParser(description="Capture startup/level-start data")
+    ap.add_argument("--episode", default="ep1",
+                    help="episode constants to apply (ep1, ep2)")
+    ap.add_argument("--out", default=os.path.join(ROOT, "notes", "startup.json"),
+                    help="output JSON path")
+    args = ap.parse_args()
+
+    import episode_config
+    episode_config.apply(args.episode)
+
+    out = args.out
+    os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     data = run_all()
     tmp = out + ".tmp"
     with open(tmp, "w") as f:

@@ -132,5 +132,25 @@ def render(level, out=None, block0_sub=20):
 
 
 if __name__ == "__main__":
-    for a in sys.argv[1:] or ["0"]:
-        render(int(a))
+    import argparse
+    ap = argparse.ArgumentParser(description="Render levels from oracle cells")
+    ap.add_argument("levels", nargs="*", type=int,
+                    help="level numbers (default: 0)")
+    ap.add_argument("--episode", default="ep1", help="ep1, ep2, ...")
+    ap.add_argument("--oracle", default=None)
+    ap.add_argument("--gfx", default=None)
+    ap.add_argument("--out-dir", default=None)
+    args = ap.parse_args()
+
+    import episode_config
+    cfg = episode_config.get(args.episode)
+    if args.episode != "ep1":
+        ORACLE = args.oracle or os.path.join(HERE, "notes", args.episode,
+                                             "oracle_objects.json")
+        GFX = args.gfx or os.path.join(HERE, "extracted", args.episode,
+                                       cfg["prefix"] + ".GFX")
+    out_dir = args.out_dir or (os.path.join(HERE, "out") if args.episode == "ep1"
+                               else os.path.join(HERE, "out", args.episode))
+    os.makedirs(out_dir, exist_ok=True)
+    for level in args.levels or [0]:
+        render(level, os.path.join(out_dir, "oracle_L%02d.png" % level))

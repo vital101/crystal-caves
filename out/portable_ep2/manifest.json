@@ -1,0 +1,78 @@
+{
+  "game": "Crystal Caves EP2 (registered data)",
+  "gfx": {
+    "file": "gfx.bin",
+    "block_size": 8003,
+    "block_count": 23,
+    "shapes_per_block": 50,
+    "shape_size": 160,
+    "shape_w": 16,
+    "shape_h": 16,
+    "index_base": 1,
+    "format": "16 rows x 2 groups x 5 bytes [mask][plane0..plane3]; mask bit set = opaque; colour = p0 + 2*p1 + 4*p2 + 8*p3; MSB = leftmost"
+  },
+  "fonts": {
+    "f1": "mni_f1.bin",
+    "f2": "mni_f2.bin",
+    "spl": "mni_spl.bin",
+    "glyph_size": 40,
+    "glyph_w": 8,
+    "glyph_h": 8,
+    "count": 50,
+    "format": "8 rows x 5 bytes [mask][plane0..plane3]; MSB=leftmost"
+  },
+  "levels": {
+    "file": "levels.json",
+    "bin": "levels.bin",
+    "count": 19,
+    "width": 40,
+    "height": 25,
+    "bin_cell_bytes": 6,
+    "cell": "[block1,shape1,block2,shape2,block3,shape3] (draw order 1,2,3; block 0 already substituted with 20)",
+    "full_cells": "cells.bin",
+    "full_cell_bytes": 20
+  },
+  "palette": {
+    "file": "palette.json",
+    "entries": 16
+  },
+  "tile_space": "640x400 (40x25 cells of 16x16)",
+  "screens": {
+    "file": "screens.bin",
+    "bytes_per_screen": 64000,
+    "screens": [
+      {
+        "id": "apogee",
+        "file": "APG",
+        "offset": 0,
+        "width": 320,
+        "height": 200
+      },
+      {
+        "id": "title",
+        "file": "TTL",
+        "offset": 64000,
+        "width": 320,
+        "height": 200
+      },
+      {
+        "id": "credits",
+        "file": "CDT",
+        "offset": 128000,
+        "width": 320,
+        "height": 200
+      },
+      {
+        "id": "ending",
+        "file": "END",
+        "offset": 192000,
+        "width": 320,
+        "height": 200
+      }
+    ]
+  },
+  "shell_text": {
+    "file": "shell_text.json",
+    "blocks": 51
+  }
+}
