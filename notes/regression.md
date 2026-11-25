@@ -57,6 +57,19 @@ every row skips cleanly if they are removed.
 | Shell text / story / high scores | `test-ep2` | `notes/ep2/shell_exactness_fixtures.json`, `menu_fixtures.json` | exported headers + browser |
 | Browser flow | `test-ep2-browser` | `wasm/browser_expectations_ep2.json` | `test_ep2_browser.js` (Playwright) |
 | Native binary smoke | `make -C native test-smoke-ep2` | — (dummy drivers, fb hash) | `native/caves_ep2 --smoke` |
+
+## Episode 3
+
+`make -C wasm test-ep3` runs these; data and fixtures are committed.
+
+| Subsystem | Make target | Fixture / reference | Harness |
+|---|---|---|---|
+| Static rendering, all 19 levels | `test-render-ep3` | `out/ep3/oracle_L*.png` | `test_render_all_ep2.js` (`CC_EP=ep3`) |
+| Compiled data + crystal rule | `test-ep3` | `notes/ep3/{startup,oracle_catalog,oracle_objects}.json` | `test_ep2_data.js` (`CC_EP=ep3`) |
+| Hub<->cave transitions | `test-ep3-transitions` | `notes/ep3/loader_fixtures.json` | `test_loader.js` |
+| Shell text / story / three-screen ending | `test-ep3` | `notes/ep3/shell_exactness_fixtures.json`, `menu_fixtures.json` | exported headers + browser |
+| Browser flow | `test-ep3-browser` | `wasm/browser_expectations_ep3.json` | `test_ep3_browser.js` (Playwright) |
+| Native binary smoke | `make -C native test-smoke-ep3` | — (dummy drivers, fb hash) | `native/caves_ep3 --smoke` |
 Oracle regeneration (not part of `test-all`; requires `tools/requirements.txt`):
 
 `test-oracle-objects`, `test-oracle-physics`, `test-oracle-combat`,

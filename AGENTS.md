@@ -33,9 +33,13 @@ different thing.  See the README section *Develop in Docker (any platform)*.
 | `make lint-strict` | Same report, exit 1 on violations (what CI runs) |
 | `make test-render-all` | Pixel-diff every level against `out/oracle_L*.png` |
 | `make test-render-ep2` | Pixel-diff all ep2 levels against `out/ep2/oracle_L*.png` (skips if absent) |
+| `make test-render-ep3` | Pixel-diff all ep3 levels against `out/ep3/oracle_L*.png` (skips if absent) |
 | `make -C wasm ep2` | Build `render_ep2.wasm` from generated Episode 2 data (`make test-ep2` runs the checks) |
 | `make -C wasm ep2-assets` | Build `assets_ep2/` for `game.html?ep=2` |
 | `make -C wasm test-ep2` | Episode 2 render + compiled-data + transition + browser checks (skips if absent) |
+| `make -C wasm ep3` | Build `render_ep3.wasm` from generated Episode 3 data |
+| `make -C wasm ep3-assets` | Build `assets_ep3/` for `game.html?ep=3` |
+| `make -C wasm test-ep3` | Episode 3 render + compiled-data + transition + browser checks (skips if absent) |
 | `make test-data` | Run `../tools/check_oracle.py` (structural oracle assertions) |
 | `make test-exports` | Built wasm exports must match the Makefile `EXPORTS` list |
 | `make test-view` | 320x200 viewport crop regression |
@@ -63,6 +67,7 @@ different thing.  See the README section *Develop in Docker (any platform)*.
 | `make -C native test-digest` | Native golden-master digests vs `notes/refactor_digests.json` (929 snapshots) |
 | `make -C native test-smoke` | Headless SDL host run (`--smoke 120`, dummy drivers) |
 | `make -C native test-smoke-ep2` | Same for the native Episode 2 binary |
+| `make -C native test-smoke-ep3` | Same for the native Episode 3 binary |
 | `make test-browser-update` | Regenerate `wasm/browser_expectations.json` framebuffer hashes |
 | `make perf` | wasm size + per-frame timing against the 57.1 ms game budget |
 | `make test-oracle-sound` | Regenerate the Unicorn sound trace, then compare |
@@ -379,7 +384,11 @@ The authoritative target list is the table at the top of this file.
   `0x1F72`), and the ep2 fixtures exposed a latent formation-mover bug now
   fixed.  The native build also has a `caves_ep2` target (same core, ep2 data
   and embedded assets, `cc2.*` save files; `make -C native test-smoke-ep2`).
-  Remaining: Episode 3 (data staged in extracted/ep3/); see `notes/ep2_diff.md`.
+  Episode 3 (registered data committed here) is also complete: a 0x2000-header
+  relink with handler segment 0x2104 (offsets unchanged), crystal `w7`
+  0x21..0x24, and a three-screen ending (`CC3-END1..3`).  All 19 levels
+  render pixel-exactly, the compiled data matches the loader oracle, 32/32
+  transitions and the browser/native flows pass; see `notes/ep3_diff.md`.
 
 ## Tooling Entrypoints
 
@@ -474,6 +483,8 @@ The authoritative target list is the table at the top of this file.
 - `wasm/test_render_all_ep2.js` — Episode 2 static-level pixel check (`make test-render-ep2`)
 - `wasm/test_ep2_data.js` — Episode 2 compiled-data/oracle check (`make test-ep2`)
 - `wasm/test_ep2_browser.js` / `wasm/browser_expectations_ep2.json` — Episode 2 browser smoke hashes (`make test-ep2-browser`)
+- `wasm/test_ep3_browser.js` / `wasm/browser_expectations_ep3.json` — Episode 3 browser smoke hashes (`make test-ep3-browser`)
+- `notes/ep3_diff.md` — Episode 3 delta analysis, three-screen ending and port results
 - `wasm/episode_data.h` — generated per-episode cell-rule/segment constants
 - `wasm/measure_perf.js` / `wasm/perf_baseline.json` — Phase 8 frame-budget/size checks
 - `notes/regression.md` — Phase 8 coverage matrix (target → fixture → harness)
