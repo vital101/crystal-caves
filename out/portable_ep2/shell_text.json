@@ -1,0 +1,762 @@
+{
+ "blocks": [
+  {
+   "id": "story_twibbles",
+   "start": 70999,
+   "lines": [
+    "You finally collect enough",
+    "of the hard to get crystals",
+    "to invest in the medicinal",
+    "         slug farm.",
+    "You head towards the local",
+    " Galactic Trading Post...",
+    "       Press Any Key ^"
+   ]
+  },
+  {
+   "id": "story_twibbles2",
+   "start": 71505,
+   "lines": [
+    "            Later...",
+    " At first, Mylo thought he had",
+    "finally discovered the get rich",
+    "scheme he@d been searching for",
+    "         all his life.",
+    "His plan was to sell the giant,",
+    "full body slugs to the Galactic",
+    "  Medical Conglomeration for",
+    "       medical purposes.",
+    "        Press Any Key ^"
+   ]
+  },
+  {
+   "id": "story_finale",
+   "start": 73041,
+   "lines": [
+    "After yet another failure, Mylo",
+    "is more determined than ever to",
+    "        strike it rich.",
+    "In the final episode, you@ll go",
+    " back to the crystal caves to",
+    "get enough crystals for Mylo@s",
+    "   most ambitious scheme yet.",
+    "Can he pass the deadly aliens,",
+    "traps and puzzles once again?",
+    "   Only one way to find out!",
+    "  Play Mylo@s adventure today!",
+    "        Press Any Key ^"
+   ]
+  },
+  {
+   "id": "story_log1",
+   "start": 73900,
+   "lines": [
+    " SHIP@S LOG - STARDATE 2121.47",
+    " -----------------------------",
+    "Personal Entry - Record Mode On:",
+    "I sold my twibble farm for a",
+    "loss, but I have enough money",
+    "to buy gas to fly the Millennium",
+    "Kiwi back to the crystal caves.",
+    "I need enough crystals to buy an",
+    "Organian slug farm. The Galactic",
+    "Medical Conglomeration is in",
+    "dire need of medicinal slugs due",
+    "to the Mule War on Irata 6.",
+    "         Press Any Key ^"
+   ]
+  },
+  {
+   "id": "story_encyclopedia1",
+   "start": 75558,
+   "lines": [
+    "       GALACTIC ENCYCLOPEDIA",
+    "       ---------------------",
+    "ENTRY # 981,231,783,813,651",
+    "NAME:  Mylo Steamwitz",
+    "RACE:  Human",
+    "SSN:   496-WZ-3452",
+    "OCCUPATION:  Space Trader",
+    "Mylo scours the universe in",
+    "search of anything he can sell",
+    "that will make him a buck and",
+    "keep him from joining his uncle@s",
+    "Yorp herding business.",
+    "         Press Any Key ^"
+   ]
+  },
+  {
+   "id": "message_pause",
+   "start": 77246,
+   "lines": [
+    "  Game paused",
+    " ",
+    "Press any key ^"
+   ]
+  },
+  {
+   "id": "ordering_disk",
+   "start": 77450,
+   "lines": [
+    "ORDER ALL THREE AMAZING EPISODES!",
+    "",
+    "    Please specify disk size:",
+    "         5.25\"  or  3.5\"",
+    "",
+    "   To order send $33, check or",
+    "   money order (USA funds) to:",
+    "",
+    "         Apogee Software",
+    "         P.O. Box 476386",
+    "     Garland, TX 75043  (USA)",
+    "",
+    "     Or CALL NOW toll free:",
+    "         1-800-852-5659",
+    "      (Visa and MasterCard)",
+    "",
+    "         Press Any Key ^"
+   ]
+  },
+  {
+   "id": "hiscore_title",
+   "start": 80410,
+   "lines": [
+    "   Top Intergalactic Traders",
+    " -----------------------------",
+    " ",
+    "         Press Any Key ^"
+   ]
+  },
+  {
+   "id": "hiscore_name",
+   "start": 81006,
+   "lines": [
+    " Your score is in the top ten! ",
+    " Enter your name: ^",
+    " ",
+    "   ^"
+   ]
+  },
+  {
+   "id": "instructions_1",
+   "start": 81321,
+   "lines": [
+    "         INSTRUCTIONS",
+    " ",
+    "The goal in Crystal Caves is to",
+    "  collect all the crystals in",
+    " each cave you encounter. Once",
+    "accomplished,  you may exit the",
+    " cave through the main airlock.",
+    "You begin your adventure in the",
+    "main mineshaft,  where 16 doors",
+    "    lead to the inner caves.",
+    "You must complete all 16 caves,",
+    "   in any order you choose.",
+    "        Press Any Key ^"
+   ]
+  },
+  {
+   "id": "instructions_2",
+   "start": 81693,
+   "lines": [
+    "You@ll encounter many dangerous",
+    "  alien creatures and hazards.",
+    " You can avoid these creatures,",
+    " or blast them with your rocket",
+    "   pistol. Some creatures may",
+    "  require several shots, while",
+    "  others might need a special",
+    "      weapon you@ll find.",
+    "To pass through a colored door,",
+    "you will need to pull the lever",
+    "    with the matching color.",
+    "        MYLO@S HEALTH",
+    "Mylo is given three lives per",
+    "every new mine he enters.  In",
+    "other words, Mylo can be hurt",
+    "twice by enemies or hazards,",
+    "and on the third injury, Mylo",
+    " will be required to restart",
+    "the level from the beginning.",
+    "Upon starting each new level,",
+    "Mylo@s three lives are shown",
+    " as three red hearts on the",
+    "        status line.",
+    "       Press Any Key ^"
+   ]
+  },
+  {
+   "id": "instructions_3",
+   "start": 82391,
+   "lines": [
+    "         TIMED EVENTS",
+    "Certain actions within the game",
+    "are activated for a short span",
+    " of time, indicated by a timer",
+    "   on the status line at the",
+    "     bottom of the screen.",
+    "For example, grabbing the power",
+    "pill will turn Mylo@s gun into",
+    "a super gun for a short length",
+    "of time.  This is indicated on",
+    " the status line between two",
+    "asterisk characters, i.e. *12*."
+   ]
+  },
+  {
+   "id": "instructions_3_2",
+   "start": 82391,
+   "lines": [
+    "        PLAYER CONTROLS",
+    "The keyboard controls may be",
+    "changed by pressing F1 during",
+    "the game.  The defaults are:",
+    "Walk Right  - Right Arrow",
+    "Walk Left   - Left Arrow",
+    "Jump        - Ctrl",
+    "Fire Pistol - Alt",
+    "Action Key  - Alt",
+    "The Action key is used to pull",
+    "levers and flip switches, if",
+    "you are in front of them."
+   ]
+  },
+  {
+   "id": "instructions_3_3",
+   "start": 82391,
+   "lines": [
+    "       HINTS AND SECRETS",
+    " Bump your head into certain",
+    "platforms to find hidden gems.",
+    " Most enemies have a weakness",
+    "that allows you to defeat them.",
+    " Save your game regularly. You",
+    "have infinite men in this game.",
+    " Switches and levers are very",
+    " important.  Pay attention to",
+    "         what they do."
+   ]
+  },
+  {
+   "id": "instructions_3_4",
+   "start": 82391,
+   "lines": [
+    "       HINTS AND SECRETS ",
+    "  Clear colored blocks can be",
+    " shot away. Look for these, as",
+    "sometimes they block your path.",
+    " Some caves can have different",
+    " amounts of gravity, and many",
+    " caves have reversed gravity!",
+    " Many times you can save shots",
+    "  by jumping over creatures.",
+    "  Different colored mushrooms",
+    "have different effects on Mylo."
+   ]
+  },
+  {
+   "id": "message_last_crystal",
+   "start": 87347,
+   "lines": [
+    "The last crystal is collected.",
+    "  You may leave this level.",
+    " ",
+    "        Press ESCAPE ^"
+   ]
+  },
+  {
+   "id": "message_stunned",
+   "start": 87638,
+   "lines": [
+    "The creatures are stunned for",
+    "  a short time, but you can",
+    "         still move!",
+    " ",
+    "        Press ESCAPE ^"
+   ]
+  },
+  {
+   "id": "message_more_crystals",
+   "start": 87979,
+   "lines": [
+    "Don@t give up now Mylo, there",
+    "are more crystals to collect.",
+    " ",
+    "       Press ESCAPE ^"
+   ]
+  },
+  {
+   "id": "message_file_error",
+   "start": 88270,
+   "lines": [
+    "  File Error",
+    " ",
+    "Press Any Key ^"
+   ]
+  },
+  {
+   "id": "menu_quit",
+   "start": 88962,
+   "lines": [
+    "Quit to: ^",
+    " ",
+    " D)os",
+    " T)itle",
+    " M)ain Level"
+   ]
+  },
+  {
+   "id": "message_joystick_calibrate",
+   "start": 89372,
+   "lines": [
+    "  Set your joystick so that",
+    "it is in the middle position.",
+    " ",
+    "   Press SPACE when this is",
+    " done, and the joystick will",
+    "       be calibrated.",
+    "This step is not necessary if",
+    " your joystick is set in the",
+    " middle when the game loads.",
+    "Press Escape if your joystick",
+    "         is not on.",
+    "              ^"
+   ]
+  },
+  {
+   "id": "message_red_mushroom",
+   "start": 90239,
+   "lines": [
+    "After eating the red mushroom,",
+    "      you feel stronger!",
+    " ",
+    "        Press ESCAPE ^"
+   ]
+  },
+  {
+   "id": "message_lever",
+   "start": 90467,
+   "lines": [
+    "Use the fire key to",
+    "activate a lever.",
+    " ",
+    "  Press ESCAPE ^"
+   ]
+  },
+  {
+   "id": "message_power_shot",
+   "start": 90876,
+   "lines": [
+    "Your pistol can kill any",
+    "enemy for a limited time!",
+    " ",
+    "      Press ESCAPE ^"
+   ]
+  },
+  {
+   "id": "message_poison",
+   "start": 91097,
+   "lines": [
+    "Whoops...you ate a poison",
+    "green mushroom, you feel",
+    "dizzy--your surroundings",
+    "    fade to black... ",
+    " ",
+    "     Press ESCAPE ^"
+   ]
+  },
+  {
+   "id": "message_cheat",
+   "start": 91402,
+   "lines": [
+    "Cheat mode is now",
+    "      -OFF-",
+    "      -ON-",
+    " ",
+    "  Press ESCAPE ^"
+   ]
+  },
+  {
+   "id": "message_saved",
+   "start": 91637,
+   "lines": [
+    " Game saved.",
+    "",
+    "",
+    "Press ESCAPE ^"
+   ]
+  },
+  {
+   "id": "message_save_hub_only",
+   "start": 92080,
+   "lines": [
+    " You can only save the",
+    "game from the main level",
+    " ",
+    "    Press any key ^"
+   ]
+  },
+  {
+   "id": "message_air_generator",
+   "start": 92362,
+   "lines": [
+    "You hit an air generator!",
+    "  The vacuum rushes in.",
+    " ",
+    "      Press ESCAPE ^"
+   ]
+  },
+  {
+   "id": "message_restore_hub_only",
+   "start": 92827,
+   "lines": [
+    "You can only restore the",
+    "game from the main level.",
+    " ",
+    "      Press ESCAPE ^"
+   ]
+  },
+  {
+   "id": "message_key_redefine",
+   "start": 93108,
+   "lines": [
+    "LEFT  - ",
+    "RIGHT - ",
+    "JUMP  - ",
+    "FIRE  - ",
+    "KEYBOARD REDEFINED",
+    "Are these selections ok (Y-N): ^"
+   ]
+  },
+  {
+   "id": "menu_key_unavailable",
+   "start": 93608,
+   "lines": [
+    "Sorry, that key is unavailable.",
+    "  Press any key to continue.",
+    "               ^"
+   ]
+  },
+  {
+   "id": "menu_key_redefine",
+   "start": 93812,
+   "lines": [
+    "KEYBOARD REDEFINE",
+    "Select key to move left: ^"
+   ]
+  },
+  {
+   "id": "menu_main",
+   "start": 94740,
+   "lines": [
+    "    Please select an option",
+    "    -----------------------",
+    " ",
+    "N)ew Game         I)nstructions",
+    "R)estore Game     S)tory",
+    "O)rdering Info.   H)igh Scores",
+    "F)oreign Orders   C)all our BBS",
+    "V)ideo Support    A)bout Apogee",
+    "",
+    "         Q)uit to DOS",
+    "",
+    "               ^"
+   ]
+  },
+  {
+   "id": "menu_help",
+   "start": 95772,
+   "lines": [
+    "CRYSTAL CAVES HELP MENU",
+    "-----------------------",
+    " ",
+    " I)nstructions",
+    " T)oggle Sound On-Off",
+    " J)oystick Toggle",
+    " C)alibrate Joystick",
+    " V)ideo Card Support",
+    " K)eyboard Redefine",
+    " R)estore Old Game",
+    " S)ave Current Game",
+    " Q)uit Current Game",
+    "",
+    " ESC - Return to game",
+    "",
+    "           ^"
+   ]
+  },
+  {
+   "id": "foreign",
+   "start": 100942,
+   "lines": [
+    "       FOREIGN CUSTOMERS",
+    "       -----------------",
+    "",
+    "The following screens list our",
+    "  dealers outside the United",
+    "States, for Australia, Germany,",
+    "   and the United Kingdom.",
+    "",
+    "  These are official Apogee",
+    "   dealers with the latest",
+    "      games and updates.",
+    "",
+    "If your country is not listed,",
+    " you may order directly from",
+    "Apogee by phone or USA check.",
+    "",
+    "        Press Any Key ^"
+   ]
+  },
+  {
+   "id": "bbs",
+   "start": 104109,
+   "lines": [
+    "   THE OFFICIAL APOGEE BBS",
+    "   -----------------------",
+    "",
+    "The SOFTWARE CREATIONS BBS is",
+    " the home BBS for the latest",
+    " Apogee games.  Check out our",
+    "FREE \"Apogee\" file section for",
+    "  new releases and updates.",
+    "",
+    "       BBS phone lines:",
+    "(508) 365-2359  2400 baud",
+    "(508) 365-9825  9600 baud",
+    "(508) 365-9668  14.4k dual HST",
+    "",
+    "  Many node lines available!",
+    "",
+    "        Press Any Key ^"
+   ]
+  },
+  {
+   "id": "about",
+   "start": 105004,
+   "lines": [
+    "     About Apogee Software",
+    "",
+    "Our goal is to establish Apogee",
+    "  as the leader in commercial",
+    " quality shareware games. With",
+    " enthusiasm and dedication we",
+    "think our goal can be achieved.",
+    "",
+    "However,  we need your support.",
+    "Shareware is not free software.",
+    "",
+    "  We thank you in advance for",
+    "   your contribution to the",
+    "  growing shareware community.",
+    "      Your honesty pays...",
+    "",
+    "        Press any key ^"
+   ]
+  },
+  {
+   "id": "message_gravity",
+   "start": 105923,
+   "lines": [
+    "    Whoa!  Look out Mylo.",
+    "Your gravity will be reversed",
+    "for a short time.  Watch the",
+    "     status bar below.",
+    "",
+    "        Press ESCAPE ^"
+   ]
+  },
+  {
+   "id": "message_perfect_health",
+   "start": 106318,
+   "lines": [
+    "Perfect health! $50,000!",
+    " ",
+    "     Press ESCAPE ^"
+   ]
+  },
+  {
+   "id": "menu_warp",
+   "start": 106542,
+   "lines": [
+    "Warp To Level (1-16):",
+    "- ^"
+   ]
+  },
+  {
+   "id": "menu_video",
+   "start": 107126,
+   "lines": [
+    "    VIDEO BOARD COMPATIBILITY",
+    "",
+    "    Some SuperVGA boards have",
+    "   compatibility problems that",
+    "  cause the screen to jerk when",
+    "scrolling, or perform unreliably.",
+    "",
+    " This is the fault of the video",
+    " board makers not producing 100%",
+    "   compatible graphics cards.",
+    "",
+    " We have tried to support all the",
+    "boards we know of, but if you have",
+    "    problems, then toggle this",
+    "   setting and see if it helps.",
+    "",
+    "  Alternate video setting (Y-N) ^ "
+   ]
+  },
+  {
+   "id": "message_steering",
+   "start": 107941,
+   "lines": [
+    "\"Well, there goes the Kiwi@s",
+    "steering system again!\"",
+    "        Press Any Key ^"
+   ]
+  },
+  {
+   "id": "message_surprise",
+   "start": 108143,
+   "lines": [
+    "\"Whew, stopped this time!\"",
+    "      Press Any Key ^"
+   ]
+  },
+  {
+   "id": "message_landed",
+   "start": 108298,
+   "lines": [
+    "\"Made it again!  Now I",
+    "need to collect enough",
+    "crystals to trade at the",
+    "Galactic Trading Post.\"",
+    "    Press Any Key ^"
+   ]
+  },
+  {
+   "id": "ordering_episodes",
+   "start": 2097197,
+   "lines": [
+    "   HOW TO ORDER CRYSTAL CAVES!",
+    "",
+    " Crystal Caves consists of three",
+    "original and incredible episodes:",
+    "",
+    "  1) Troubles with Twibbles",
+    "  2) Slugging it Out",
+    "  3) Mylo vs. the Supernova",
+    "",
+    " You may order the entire series",
+    " for only $30, plus $3 shipping.",
+    "",
+    " Each episode is set on a unique",
+    "planet, with all-new dangers, new",
+    " levels, and all-new challenges.",
+    "",
+    "          Press Any Key ^"
+   ]
+  },
+  {
+   "id": "ordering_offer",
+   "start": 2097198,
+   "lines": [
+    "   HOW TO ORDER CRYSTAL CAVES!",
+    "",
+    "     Order now and receive:",
+    "",
+    "  * All three amazing episodes",
+    "  * The hints and tricks sheet",
+    "  * The secret cheat code",
+    "  * Exciting new bonus games",
+    "",
+    "    To order, call toll free:",
+    "         1-800-852-5659",
+    "      (Visa and MasterCard)",
+    "",
+    " Foreign orders:  Please look at",
+    "    the \"FOREIGN ORDERS\" menu.",
+    "",
+    "    Continued...Press Any Key"
+   ]
+  },
+  {
+   "id": "foreign_au",
+   "start": 2097199,
+   "lines": [
+    "      AUSTRALIAN CUSTOMERS",
+    "",
+    "Please order from Apogee@s",
+    "official Australian dealer:",
+    "",
+    "PRICE: $45 + $5 shipping.",
+    "",
+    "Manaccom",
+    "9 Camford Str.",
+    "Milton, Qld. 4064",
+    "",
+    "Phone: (07) 368-2366",
+    "Fax:   (07) 369-7589",
+    "",
+    "Use MasterCard, Visa, Bankcard,",
+    "American Express, or cheques.",
+    "",
+    "        Press Any Key ^"
+   ]
+  },
+  {
+   "id": "foreign_de",
+   "start": 2097200,
+   "lines": [
+    "        GERMAN CUSTOMERS",
+    "",
+    "Price: 49,-- DM plus 10,-- DM",
+    "Total: 59,-- DM (Deutsche Mark)",
+    "",
+    "CDV-Software",
+    "Ettlingerstr. 5",
+    "7500 Karlsruhe 1  GERMANY",
+    "",
+    "Phone:  0721-22295",
+    "Fax:    0721-21314",
+    "",
+    "Use Visa, MasterCard, EuroCard,",
+    "American Express, cheque, money",
+    "order, or C.O.D.",
+    "",
+    "        Press Any Key ^"
+   ]
+  },
+  {
+   "id": "foreign_uk",
+   "start": 2097201,
+   "lines": [
+    "    UNITED KINGDOM CUSTOMERS",
+    "",
+    "Price: /30 + /5 shipping",
+    "",
+    "Precision Software Applications",
+    "Tarnwood",
+    "10 High Str.",
+    "Tadlow, Near Royston",
+    "Harts. SG8 0ES  UK",
+    "",
+    "Phone: +44 (0) 767 233 02",
+    "",
+    "Credit cards, Access, cheques,",
+    "postal & Bankers orders.",
+    "Make cheques payable to PSA.",
+    "",
+    "        Press Any Key ^"
+   ]
+  },
+  {
+   "id": "menu_quit_dos",
+   "start": 2097202,
+   "lines": [
+    "Quit to DOS (Y-N) ^"
+   ]
+  }
+ ]
+}

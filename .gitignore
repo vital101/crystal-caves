@@ -8,27 +8,22 @@ __pycache__/
 *.egg-info/
 .venv/
 
-# User-supplied registered episode data (Episodes 2/3) - never committed.
-# See notes/ep2_diff.md for the bring-your-own-data workflow.
-extracted/ep2/
-extracted/ep3/
-notes/ep2/
-notes/ep3/
+# Episode 2/3 registered data is committed in this private fork; deployment
+# stays private (see notes/ep2_diff.md).  Only oracle debug logs and
+# per-episode object files stay out.
+notes/ep2/*.log
+notes/ep3/*.log
+wasm/obj_ep2/
+wasm/obj_ep3/
 
 # Generated build/test outputs
 wasm/render.wasm
-wasm/render_ep2.wasm
-wasm/ep2_data/
-wasm/obj_ep2/
 wasm/assets/
-wasm/assets_ep2/
 wasm/node_modules/
 wasm/obj/
 wasm/out_wasm_level*.png
 wasm/oracle_level*.json
 native/build/
-out/ep2/
-out/portable_ep2/
 
 # Debug artifacts
 out/block20_strip.png
