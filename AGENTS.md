@@ -63,11 +63,14 @@ different thing.  See the README section *Develop in Docker (any platform)*.
 | `make test-keymap` | Browser physical-key → DOS scan-code mapping |
 | `make test-sound` | Sound driver, trace asset, JS synth and shell sound fixtures |
 | `make test-browser` | Headless Chromium smoke test of `game.html` (Playwright; skips if absent) |
+| `make -C wasm bundle-web` | Package the complete three-episode site into `wasm/dist/crystal-caves-web.tar.gz` (CI web-bundle job) |
 | `make -C native build` | Native desktop build (CMake/SDL3): `native/build/caves` + `cc_digest` |
 | `make -C native test-digest` | Native golden-master digests vs `notes/refactor_digests.json` (929 snapshots) |
 | `make -C native test-smoke` | Headless SDL host run (`--smoke 120`, dummy drivers) |
 | `make -C native test-smoke-ep2` | Same for the native Episode 2 binary |
 | `make -C native test-smoke-ep3` | Same for the native Episode 3 binary |
+| `make -C native test-menu` | Headless launcher-picker check (`caves --menu-smoke`) |
+| `make -C native test-persist-isolation` | Per-episode save namespaces must not clobber each other |
 | `make test-browser-update` | Regenerate `wasm/browser_expectations.json` framebuffer hashes |
 | `make perf` | wasm size + per-frame timing against the 57.1 ms game budget |
 | `make test-oracle-sound` | Regenerate the Unicorn sound trace, then compare |
@@ -107,6 +110,13 @@ against the Makefile's `?=` defaults, so no target needs `LLVM=...`. Node
 matches CI (22) and Chromium is baked in, so `make test-browser` runs instead of
 SKIPping. `.gitattributes` pins makefiles/shell scripts to LF because GNU make in
 the container misreads a CRLF `wasm/Makefile`.
+
+**CI triggers:** pushes to main and PRs run the fast test jobs (build +
+`test-all` + lint + perf, browser smoke).  Version **tags** additionally run
+the release builds: the native matrix (Ubuntu/Windows/macOS) compiles
+`caves`/`caves_ep2`/`caves_ep3`, runs the digests + smokes + launcher-menu and
+save-isolation checks and uploads per-OS artifacts, and a web-bundle job
+packages the complete three-episode site (`make -C wasm bundle-web`).
 
 ## Data Pipeline
 
@@ -389,6 +399,23 @@ The authoritative target list is the table at the top of this file.
   0x21..0x24, and a three-screen ending (`CC3-END1..3`).  All 19 levels
   render pixel-exactly, the compiled data matches the loader oracle, 32/32
   transitions and the browser/native flows pass; see `notes/ep3_diff.md`.
+- Launch picker: the browser serves `wasm/select.html` at `/` (nginx index)
+  with the three episodes linked to `game.html?ep=N` (thumbnails committed
+  as copies of the oracle renders via `make shots`); the production
+  Dockerfile builds and ships all three episodes.  The native `caves` binary
+  shows the same picker (`native/launcher.c`, drawn with the core text
+  renderer) and executes the `caves_ep2`/`caves_ep3` siblings when they sit
+  next to it; `--ep N` skips the picker, smoke/dump flags bypass it.
+- Save-file isolation is guaranteed and tested on both platforms: browser
+  `cc1.*`/`cc2.*`/`cc3.*` localStorage namespaces (`test_persist.js`
+  namespace-switch round-trip) and native per-`CC_EPISODE` file names
+  (`make -C native test-persist-isolation`, also a CI step).  The
+  touch-controls toggle is the shared device pref `cc.touch.v1` (legacy
+  `cc1.touch.v1` still read).
+- CI split: pushes/PRs run the deterministic + browser suites; version tags
+  additionally build all three episodes on Ubuntu/Windows/macOS (digests,
+  smokes, launcher and isolation checks, per-OS binary artifacts) and
+  package the complete web bundle (`make -C wasm bundle-web`).
 
 ## Tooling Entrypoints
 
@@ -469,6 +496,7 @@ The authoritative target list is the table at the top of this file.
 - `notes/sound_shell_fixtures.json` — recovered shell sound call sites
 - `notes/sound.md` — Phase 6 driver/format/browser notes
 - `wasm/game.html` — shell page markup and script tags
+- `wasm/select.html` — launch picker served at `/` (all three episodes)
 - `wasm/game.js`, `wasm/game/{render,input,requests}.js` — browser boot/frame loop,
   rendering, save/restore handshake and input wiring
 - `wasm/test_helpers.js` — shared Node test load/asset/state/assertion helpers

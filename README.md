@@ -1,25 +1,35 @@
-# Crystal Caves Episode 1 — C / WebAssembly port
+# Crystal Caves — all three episodes in C / WebAssembly
 
 A clean-room, decompilation-driven port of the 1991 shareware **Crystal Caves
-Episode 1** (Apogee Software) to freestanding C and WebAssembly.  There is no
+trilogy** (Apogee Software) to freestanding C and WebAssembly.  There is no
 DOSBox and no emulator in the loop: the original EXE was disassembled, the game
 logic was re-implemented in C, and every subsystem is verified **frame-for-frame**
 against the real binary running under a Unicorn-based oracle.
 
+All three episodes are here and playable:
+
+- **Episode 1 — Trouble in Twin Planetoids** (the shareware episode)
+- **Episode 2 — Slugging It Out**
+- **Episode 3 — Mylo vs. the Supernova** (with the original three-screen ending)
+
 > [!TIP]
 > **Play it now in your browser:** <https://crystal-caves.re-cycledair.com>
+> — the launch page shows all three episodes to pick from.
 
 ![The mineshaft hub](out/oracle_L02.png)
 ![A crystal cave](out/oracle_L06.png)
 
 The goal is fidelity, not a remake:
 
-- static level rendering is **pixel-exact on all 19 levels**;
+- static level rendering is **pixel-exact on all 19 levels of every episode**
+  (see the Episode 2 and 3 shots below);
 - player physics, combat, cell events, all 46 handler behaviours and level
   transitions are verified frame-for-frame against the original EXE;
 - the HUD, text windows, shell flow, high scores, save format, key handling and
   all 36 sound effects follow the original routines;
-- saves, high scores, key bindings and config use `localStorage`.
+- saves, high scores, key bindings and config use `localStorage` — each
+  episode keeps its own `cc1.*` / `cc2.*` / `cc3.*` namespace, so saves,
+  high scores and settings never clobber another episode's.
 
 The original game binary and shareware data are not downloadable here.
 `extracted/` and `out/portable/` are committed, so a fresh checkout builds and
@@ -33,21 +43,25 @@ cd wasm
 make                    # copies assets and builds render.wasm (~155 KB)
 
 python3 -m http.server 8080
-# open http://localhost:8080/game.html
+# open http://localhost:8080/select.html — the episode picker
 ```
 
 The page fetches the wasm module and asset files, so it must be served over
-HTTP — opening `game.html` from `file://` will not work.
+HTTP — opening `game.html` from `file://` will not work.  `game.html` is the
+direct link into an episode (`game.html?ep=2`, `game.html?ep=3`); a small
+"Episode N" button in the toolbar switches without losing your place.
 
 ### Play Episode 2
 
 Episode 2 uses the same engine and its registered data is committed in this
-private fork (deployment must stay private).  The
-built module and browser assets are committed too, so serving the checkout is
-enough:
+private fork.  The built module and browser assets are committed too, so
+serving the checkout is enough:
+
+![Episode 2 — the mineshaft hub](out/ep2/oracle_L02.png)
+![Episode 2 — a crystal cave](out/ep2/oracle_L06.png)
 
 ```sh
-python3 -m http.server 8080 -d wasm # open /game.html?ep=2
+python3 -m http.server 8080 -d wasm # open /select.html and pick Episode 2
 make -C wasm test-ep2               # render/data/transition/browser checks
 ```
 
@@ -65,8 +79,11 @@ artifact inventory are documented in `notes/ep2_diff.md`.
 
 Episode 3 ("Mylo vs. the Supernova") is committed the same way:
 
+![Episode 3 — the mineshaft hub](out/ep3/oracle_L02.png)
+![Episode 3 — a crystal cave](out/ep3/oracle_L06.png)
+
 ```sh
-python3 -m http.server 8080 -d wasm # open /game.html?ep=3
+python3 -m http.server 8080 -d wasm # open /select.html and pick Episode 3
 make -C wasm test-ep3               # render/data/transition/browser checks
 ```
 
@@ -167,11 +184,17 @@ cmake --build native/build
 ./native/build/caves        # single self-contained binary, assets embedded
 ```
 
+Launching `caves` shows the **episode picker first** (drawn with the original
+in-game text renderer).  Episode 1 boots in place; Episode 2/3 entries appear
+when the `caves_ep2` / `caves_ep3` binaries sit next to it and selecting one
+starts them.  `caves --ep N` skips the picker and boots an episode directly.
+
 The native build is verified against the same golden-master digests as the
 wasm build: `make -C native test-digest` runs the 929 SHA-256 snapshots from
 `notes/refactor_digests.json` inside the native binary and must match.  CI
-builds Windows/Linux/macOS binaries on every push and uploads them as
-artifacts.
+builds the three Windows/Linux/macOS binaries **on every version tag** and
+uploads them as artifacts (one archive per OS with `caves`, `caves_ep2` and
+`caves_ep3`), together with the complete web bundle.
 
 Episode 2 builds the same way:
 
@@ -182,9 +205,11 @@ make -C native test-smoke-ep2      # builds/runs native/build/caves_ep2 headless
 
 `caves_ep2` embeds `out/portable_ep2`, sets an episode-specific window title
 and keeps its config, high scores and save slots in `cc2.*` files next to the
-Episode 1 `cc1.*` files.  `caves_ep3` is built the same way
-(`make -C wasm ep3 ep3-assets`, then `make -C native test-smoke-ep3`) and keeps
-its data in `cc3.*` files.
+Episode 1 `cc1.*` files — all three binaries share one pref directory and the
+per-episode file namespaces keep the saves apart (`make -C native
+test-persist-isolation` proves it).  `caves_ep3` is built the same way
+(`make -C wasm ep3 ep3-assets`, then `make -C native test-smoke-ep3`) and
+keeps its data in `cc3.*` files.
 
 ## Controls
 
@@ -238,16 +263,19 @@ therefore completely stateless — all player progress stays in the browser.
 
 ## Deploy with Dokku
 
-The repo ships a `Dockerfile` that builds the wasm module with Debian
-`clang`/`lld` and serves it from `nginx:alpine`.  This is the **production**
-image — small, no toolchain, no test data; `docker/Dockerfile.dev` is the
-separate development toolchain image described in
-[Develop in Docker](#develop-in-docker-any-platform).  Only `game.html`, its
-browser scripts (`game.js` plus `game/*.js` and the small adapters), the
-favicon set, the link-preview card, `render.wasm` and `assets/` are copied into
-the runtime image; no toolchain, test data or original EXE is present in the
-result.  That is about 1.6 MB of game files on top of `nginx:alpine` (≈65 MB
-total).
+The repo ships a `Dockerfile` that builds the wasm modules of **all three
+episodes** with Debian `clang`/`lld` and serves them from `nginx:alpine`.
+This is the **production** image — small, no toolchain, no test data;
+`docker/Dockerfile.dev` is the separate development toolchain image described
+in [Develop in Docker](#develop-in-docker-any-platform).  Only `select.html`
+(the launch picker), `game.html`, their browser scripts (`game.js` plus
+`game/*.js` and the small adapters), the favicon set, the link-preview card,
+the episode screenshots, the three wasm modules and the three asset packs are
+copied into the runtime image; no toolchain, test data or original EXE is
+present in the result.  That is about 5 MB of game files on top of
+`nginx:alpine` (≈70 MB total).  The picker is what `/` serves, so a fresh
+visit starts with the episode choice; registered Episode 2/3 data is
+committed in this private fork and deployed deliberately.
 
 Dokku auto-detects the root `Dockerfile` and needs no ports configured: the
 image exposes `80`, so the host's nginx proxies straight to it.
@@ -355,19 +383,30 @@ that directory, so nothing runs on github.com).  Actions are loaded from
 `permissions:` block — Forgejo ignores it and grants capabilities through
 Authorized Integrations, while the jobs only need the default read token:
 
+**On every push to main / every PR** — the fast regression jobs:
+
 - **build + deterministic suite** — apt `clang`/`lld`, `make clang`,
   `make test-all`, `make lint-strict`, then wasm size and frame budget in the
   job summary;
 - **headless browser smoke** — `npm ci`, Playwright Chromium,
-  `make test-browser`;
+  `make test-browser` (which also checks the launch picker at `/`).
+
+**On every version tag** (and `workflow_dispatch`) — the release builds of
+**all three episodes**:
+
 - **native build** — matrix over Ubuntu/Windows/macOS: a bootstrap step
   installs CMake/compiler/Python/git when a runner image lacks them, CMake
-  builds `native/` (SDL3 via package or FetchContent), the 929 golden-master
-  digests re-run inside the native binary against
-  `notes/refactor_digests.json`, a headless SDL smoke run follows, and the
-  executables are uploaded as artifacts through Forgejo's
-  `forgejo/upload-artifact` fork (the upstream `actions/upload-artifact@v4`
-  refuses any non-github.com server);
+  builds `caves`, `caves_ep2` and `caves_ep3` (SDL3 via package or
+  FetchContent), the 929 golden-master digests re-run inside the native
+  binary against `notes/refactor_digests.json`, headless SDL smoke runs
+  cover all three episodes, the launcher picker and the per-episode
+  save-isolation check run, and the executables are uploaded as artifacts
+  through Forgejo's `forgejo/upload-artifact` fork (the upstream
+  `actions/upload-artifact@v4` refuses any non-github.com server);
+- **web bundle** — `make -C wasm bundle-web` builds all three wasm modules
+  and asset packs and packages the complete site (launch picker, game pages,
+  `render.wasm` / `render_ep2.wasm` / `render_ep3.wasm` and the asset
+  directories) into one downloadable tarball artifact;
 - **oracle regeneration** — manual `workflow_dispatch` job with
   capstone/unicorn for re-verifying fixtures.
 
@@ -375,18 +414,18 @@ Authorized Integrations, while the jobs only need the default read token:
 
 | Path | Contents |
 |---|---|
-| `wasm/` | C port, build, page shell, JS adapters and tests |
-| `native/` | SDL3 desktop host (Windows/macOS/Linux) + native digest harness |
+| `wasm/` | C port, build, launch picker (`select.html`), page shell, JS adapters and tests |
+| `native/` | SDL3 desktop host (Windows/macOS/Linux) + episode launcher + digest/isolation harnesses |
 | `notes/` | Recovered routine notes, oracle fixtures and format docs |
 | `tools/` | Extraction, oracle emulation, fixture generation and asset export |
 | `out/portable/` | Build inputs: levels, GFX, cells, screens, fonts, sound |
-| `out/oracle_L*.png` | Committed static render references (19 levels) |
+| `out/oracle_L*.png` | Committed static render references (19 levels × 3 episodes) |
 | `extracted/` | Unpacked original EXE and assets |
 | `refactor/` | Phased C/WASM refactoring plan |
-| `Dockerfile` | Multi-stage wasm build + nginx runtime image (**production**) |
+| `Dockerfile` | Multi-stage wasm build (all three episodes) + nginx runtime image (**production**) |
 | `docker/Dockerfile.dev`, `compose.yaml` | Development toolchain container: clang/lld, Node 22, capstone/unicorn venv, Playwright Chromium |
 | `.gitattributes` | LF pin for makefiles/shell scripts, needed by GNU make in that container |
-| `deploy/nginx.conf` | Static host config (MIME, gzip, cache) |
+| `deploy/nginx.conf` | Static host config (picker at `/`, MIME, gzip, cache) |
 
 Useful notes: `notes/physics.md` (timing/input), `notes/gameplay.md`
 (update loop/handlers), `notes/shell.md` (HUD/text/menu), `notes/persist.md`

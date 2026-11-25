@@ -643,5 +643,66 @@ function applyConfig(e, cfg) {
     }
   }
 
+  // ---- per-episode namespaces never clobber each other --------------------
+  /* The browser picker boots game.html with ?ep=1/2/3 and game.js selects the
+   * storage namespace before any load; the same bytes must stay isolated
+   * when the namespace switches (config, high scores and every save slot). */
+  {
+    const store = makeStorage();
+    const inst = await makeInstance();
+    toGame(inst.e);
+    inst.e.cc_global_set(0x50A5, 111);
+    drive(inst.e, 10, 0);
+    const ep1State = stateBytes(inst);
+    const ep1Cfg = buildConfig(inst.e);
+
+    CCPersist.setNamespace('cc1');
+    assert(CCPersist.namespace() === 'cc1' &&
+           CCPersist.SAVE_PREFIX === 'cc1.save.' &&
+           CCPersist.CFG_KEY === 'cc1.config.v2' &&
+           CCPersist.HS_KEY === 'cc1.hiscores.v1',
+           'cc1 namespace selects the cc1.* keys');
+    assert(CCPersist.saveSlot(store, 3, inst.e, inst.stateP,
+                              inst.stateSize, inst.mem) === true,
+           'cc1 slot 3 saves');
+    const ep1Slot = store.getItem('cc1.save.3');
+    assert(CCPersist.saveConfig(store, ep1Cfg) === true, 'cc1 config saves');
+
+    CCPersist.setNamespace('cc2');
+    assert(CCPersist.SAVE_PREFIX === 'cc2.save.' &&
+           CCPersist.CFG_KEY === 'cc2.config.v2' &&
+           CCPersist.HS_KEY === 'cc2.hiscores.v1',
+           'cc2 namespace selects the cc2.* keys');
+    assert(store.getItem(CCPersist.SAVE_PREFIX + '3') === null,
+           'cc2 slot 3 starts empty');
+    const inst2 = await makeInstance();
+    inst2.e.cc_objects_init(2);
+    drive(inst2.e, 25, 0);
+    assert(CCPersist.saveSlot(store, 3, inst2.e, inst2.stateP,
+                              inst2.stateSize, inst2.mem) === true,
+           'cc2 slot 3 saves');
+    const ep2Slot = store.getItem(CCPersist.SAVE_PREFIX + '3');
+    assert(ep2Slot !== null && ep2Slot !== ep1Slot,
+           'cc1 and cc2 slots hold distinct bytes');
+
+    CCPersist.setNamespace('cc3');
+    assert(CCPersist.loadSlot(store, 3, inst2.e, inst2.stateP,
+                              inst2.stateSize, inst2.mem, true) === false,
+           'cc3 has no slot 3');
+
+    CCPersist.setNamespace('cc1');
+    assert(store.getItem('cc1.save.3') === ep1Slot,
+           'cc1 slot is untouched by the cc2/cc3 writes');
+    const inst3 = await makeInstance();
+    assert(CCPersist.loadSlot(store, 3, inst3.e, inst3.stateP,
+                              inst3.stateSize, inst3.mem, true) === true,
+           'cc1 slot still loads');
+    assert(bytesEqual(stateBytes(inst3), ep1State),
+           'cc1 state round-trips unchanged');
+    assert(JSON.stringify(CCPersist.loadConfig(store)) ===
+           JSON.stringify(CCPersist.normalizeConfig(ep1Cfg)),
+           'cc1 config is untouched by the cc2/cc3 writes');
+  }
+
   asserts.finish('Phase 7 persistence, high-score and config checks');
 })();

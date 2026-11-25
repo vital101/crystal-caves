@@ -35,6 +35,16 @@ void cc_persist_init(void) {
     }
 }
 
+/* Test hook (persist_test): pin the directory instead of SDL_GetPrefPath so
+ * all three episode binaries can share one temp dir in the isolation test.
+ * Mirrors the SDL convention of a trailing separator on the directory. */
+void cc_persist_set_dir_for_test(const char *dir) {
+    int n = snprintf(g_dir, sizeof(g_dir), "%s", dir);
+    if (n > 0 && (size_t)n < sizeof(g_dir) - 1 &&
+        g_dir[n - 1] != '/' && g_dir[n - 1] != '\\')
+        g_dir[n] = '/', g_dir[n + 1] = 0;
+}
+
 /* ---------------------------------------------------------------- files */
 
 static char *read_file(const char *name, long *out_len) {

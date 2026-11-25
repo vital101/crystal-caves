@@ -1,7 +1,7 @@
 {
-  "name": "Crystal Caves Ep.1",
+  "name": "Crystal Caves",
   "short_name": "Crystal Caves",
-  "description": "The 1993 Apogee shareware classic, decompiled and running in WebAssembly. All 16 caves, original graphics and sound, saves and high scores.",
+  "description": "All three Crystal Caves episodes, decompiled and running in WebAssembly. Pick an episode and play: original graphics and sound, saves and high scores.",
   "start_url": ".",
   "display": "standalone",
   "orientation": "landscape",

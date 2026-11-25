@@ -19,6 +19,7 @@ wasm/obj_ep3/
 # Generated build/test outputs
 wasm/render.wasm
 wasm/assets/
+wasm/dist/
 wasm/node_modules/
 wasm/obj/
 wasm/out_wasm_level*.png

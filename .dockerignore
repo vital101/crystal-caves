@@ -13,13 +13,17 @@ extracted
 notes
 tools
 
-# Keep out/portable/ only; drop the reference renders and scratch output.
+# Keep the portable asset trees; drop the reference renders and scratch output.
 out/*
 !out/portable
+!out/portable_ep2
+!out/portable_ep3
 
 # Locally built/generated outputs are rebuilt inside the image.
 wasm/node_modules
 wasm/assets
+wasm/assets_ep2
+wasm/assets_ep3
 wasm/render.wasm
 wasm/app.js
 wasm/app.wasm

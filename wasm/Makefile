@@ -273,6 +273,52 @@ assets/sound.json: ../out/portable/sound.json
 	@mkdir -p assets
 	cp $< $@
 
+# Episode screenshots for the launch picker (select.html).  Copy-only from
+# the committed oracle renders: hub (L02) and cave (L06) per episode.
+SHOTS = shots/ep1_hub.png shots/ep1_cave.png \
+	shots/ep2_hub.png shots/ep2_cave.png \
+	shots/ep3_hub.png shots/ep3_cave.png
+
+shots: $(SHOTS)
+
+shots/ep1_hub.png: ../out/oracle_L02.png
+	@mkdir -p shots
+	cp $< $@
+shots/ep1_cave.png: ../out/oracle_L06.png
+	@mkdir -p shots
+	cp $< $@
+shots/ep2_hub.png: ../out/ep2/oracle_L02.png
+	@mkdir -p shots
+	cp $< $@
+shots/ep2_cave.png: ../out/ep2/oracle_L06.png
+	@mkdir -p shots
+	cp $< $@
+shots/ep3_hub.png: ../out/ep3/oracle_L02.png
+	@mkdir -p shots
+	cp $< $@
+shots/ep3_cave.png: ../out/ep3/oracle_L06.png
+	@mkdir -p shots
+	cp $< $@
+
+# Complete web deployment bundle: the launch picker, the game pages and all
+# three episodes' modules and asset packs — exactly what the production
+# image serves.  CI uploads dist/crystal-caves-web.tar.gz on tag builds.
+WEB_FILES = select.html game.html game.js keymap.js legend.js persist.js \
+	    sound_synth.js audio.js touch.js manifest.webmanifest \
+	    favicon.ico favicon.svg favicon-16.png favicon-32.png \
+	    favicon-192.png favicon-512.png apple-touch-icon.png \
+	    social-card.png
+
+bundle-web: $(OUT) $(EP2_OUT) $(EP3_OUT) ep2-assets ep3-assets shots
+	rm -rf dist
+	mkdir -p dist/site
+	cp $(WEB_FILES) dist/site/
+	cp -R game dist/site/game
+	cp $(OUT) $(EP2_OUT) $(EP3_OUT) dist/site/
+	cp -R assets assets_ep2 assets_ep3 dist/site/
+	tar -czf dist/crystal-caves-web.tar.gz -C dist/site .
+	@echo "bundle: dist/crystal-caves-web.tar.gz"
+
 # Milo favicon set, decoded straight from the committed GFX asset.
 # Only rerun when the sprite source changes; the icons are committed.
 favicon:
@@ -577,6 +623,6 @@ test-all: test-data test-exports test-render-all test-view test-objects test-gam
 
 clean:
 	rm -f $(OUT) $(EP2_OUT) app.js app.wasm app.d out_wasm_level*.png oracle_level*.json
-	rm -rf obj obj_ep2 ep2_data
+	rm -rf obj obj_ep2 ep2_data shots dist
 
-.PHONY: clang emcc ep2 ep2-assets ep3 ep3-assets assets favicon social-card data startup test test-render-all test-render-ep2 test-ep2 test-ep2-browser test-ep2-transitions test-render-ep3 test-ep3 test-ep3-browser test-ep3-transitions test-data test-exports test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-oracle-menus test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update test-digest test-digest-update test-render-digest render-digest-update lint lint-strict perf test-all clean
+.PHONY: clang emcc ep2 ep2-assets ep3 ep3-assets assets shots bundle-web favicon social-card data startup test test-render-all test-render-ep2 test-ep2 test-ep2-browser test-ep2-transitions test-render-ep3 test-ep3 test-ep3-browser test-ep3-transitions test-data test-exports test-objects test-gameplay test-integration test-view test-physics test-combat test-handlers test-loader test-caves test-cells test-hud test-messages test-text test-menus test-shell test-persist test-exactness test-keymap test-cursor test-sound test-oracle-sound test-oracle-exactness test-oracle-shell test-oracle-shell-flow test-oracle-menus test-save test-hiscore test-oracle-cells test-oracle-physics test-oracle-combat test-oracle-handlers test-oracle-loader test-oracle-caves test-oracle-objects test-browser test-browser-update test-digest test-digest-update test-render-digest render-digest-update lint lint-strict perf test-all clean

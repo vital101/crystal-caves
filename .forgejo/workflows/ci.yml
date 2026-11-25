@@ -3,6 +3,7 @@ name: ci
 on:
   push:
     branches: [main, master]
+    tags: ['v*', '[0-9]*']
   pull_request:
   workflow_dispatch:
     inputs:
@@ -18,6 +19,13 @@ on:
 # No `permissions:` block: Forgejo ignores it (capabilities are granted
 # through Authorized Integrations) and these jobs only need the default
 # read token.
+#
+# Pushes to main and PRs run the fast test jobs.  Version tags (v1.0.0 or
+# 1.0.0) additionally run the release builds: the native matrix
+# (Ubuntu/Windows/macOS) compiles `caves`/`caves_ep2`/`caves_ep3`, runs the
+# digests + smokes + launcher-menu and save-isolation checks and uploads
+# per-OS artifacts, and a web-bundle job packages the complete
+# three-episode site (`make -C wasm bundle-web`).
 
 jobs:
   deterministic:
@@ -89,6 +97,7 @@ jobs:
 
   native:
     name: native build (${{ matrix.os }}) + digest
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     strategy:
       fail-fast: false
       matrix:
@@ -122,8 +131,11 @@ jobs:
       - name: Configure
         run: cmake -S native -B native/build -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build
-        run: cmake --build native/build --config Release
+      # All three episodes: the launcher (caves) plus the per-episode
+      # binaries, and cc_digest for the golden-master step below.  The
+      # committed generated data makes each build offline.
+      - name: Build all episodes + digest harness
+        run: cmake --build native/build --config Release --target cc_digest caves caves_ep2 caves_ep3 persist_test_ep1 persist_test_ep2 persist_test_ep3
 
       # Same golden-master SHA-256 fixture as the wasm digest test: each
       # scenario group runs in a fresh process and must hash identically.
@@ -136,10 +148,31 @@ jobs:
           done
           node native/compare_digests.js notes/refactor_digests.json native/build/digest/*.json
 
-      - name: Headless host smoke (dummy video/audio)
+      - name: Headless host smoke, all episodes (dummy video/audio)
         shell: bash
         run: |
           SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./native/build/caves --smoke 120
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./native/build/caves_ep2 --smoke 120
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy ./native/build/caves_ep3 --smoke 120
+
+      # The launcher picker (caves only) must render and respond to input:
+      # the scripted Down+Enter lands on Episode 2 (all siblings are built).
+      - name: Launcher picker smoke
+        shell: bash
+        run: |
+          SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy \
+            ./native/build/caves --menu-smoke | grep -q "MENU OK: selected 2 of 3"
+
+      # Save isolation: all three episode variants write into one shared
+      # directory and may only touch their own cc<N>.* files (each binary
+      # asserts the others' bytes stayed identical).
+      - name: Save-file isolation (per-episode namespaces)
+        shell: bash
+        run: |
+          dir=$(mktemp -d)
+          ./native/build/persist_test_ep1 "$dir"
+          ./native/build/persist_test_ep2 "$dir"
+          ./native/build/persist_test_ep3 "$dir"
 
       # Forgejo's fork of upload-artifact: the upstream v4 action refuses to
       # run against any server that is not github.com (GHESNotSupportedError).
@@ -149,6 +182,38 @@ jobs:
           path: |
             native/build/caves
             native/build/caves.exe
+            native/build/caves_ep2
+            native/build/caves_ep2.exe
+            native/build/caves_ep3
+            native/build/caves_ep3.exe
+          if-no-files-found: error
+
+  web-bundle:
+    name: web bundle (all episodes)
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@v4
+
+      - name: Install LLVM toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld
+          llvm_dir=$(dirname "$(readlink -f "$(command -v clang)")")
+          echo "LLVM=$llvm_dir" >> "$GITHUB_ENV"
+
+      # The complete site: launch picker, game pages and all three episodes'
+      # modules and asset packs — the same file set the production image
+      # serves (see wasm/Makefile bundle-web).
+      - name: Build and package the web bundle
+        run: |
+          make -C wasm bundle-web LLVM="$LLVM"
+          tar -tzf wasm/dist/crystal-caves-web.tar.gz | head -5
+
+      - uses: https://data.forgejo.org/forgejo/upload-artifact@v4
+        with:
+          name: crystal-caves-web-${{ github.ref_name }}
+          path: wasm/dist/crystal-caves-web.tar.gz
           if-no-files-found: error
 
   oracle:

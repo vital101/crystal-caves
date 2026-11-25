@@ -7,7 +7,12 @@
  * event pump.  Persistence lives in the SDL pref dir instead of
  * localStorage (see persist.c).  Assets are embedded (assets_embed.c).
  *
- * Usage: caves [--smoke N]   (--smoke runs N headless frames, dummy drivers)
+ * Usage: caves [--ep 1|2|3]  (pick the episode; no --ep shows the picker
+ *                             menu, which can also start caves_ep2/caves_ep3
+ *                             when those binaries sit next to this one)
+ *        caves --smoke N      (--smoke runs N headless frames, dummy drivers)
+ *        caves --menu-smoke   (headless picker check: scripted Down+Enter;
+ *                             Episode 1 binary only)
  *        caves --dump-sound ID OUT.wav [--rate HZ]
  *                             (write one effect's exact playback PCM; the
  *                              default rate is the output device's native rate)
@@ -36,6 +41,9 @@
 #define CC_WINDOW_TITLE "Crystal Caves Episode 3 - Mylo vs. the Supernova"
 #else
 #define CC_WINDOW_TITLE "Crystal Caves Episode 1"
+#endif
+#if CC_EPISODE == 1
+#include "launcher.h"
 #endif
 #include "synth.h"
 
@@ -327,7 +335,7 @@ static int write_wav(const char *path, const int16_t *pcm, int frames, int rate)
 /* ------------------------------------------------------------ main loop */
 
 int main(int argc, char **argv) {
-    int smoke = 0, dump_id = -1, dump_rate = 0;
+    int smoke = 0, dump_id = -1, dump_rate = 0, menu_smoke = 0, want_ep = 0;
     const char *dump_path = NULL;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--smoke") && i + 1 < argc) {
@@ -337,9 +345,13 @@ int main(int argc, char **argv) {
             dump_path = argv[++i];
         } else if (!strcmp(argv[i], "--rate") && i + 1 < argc) {
             dump_rate = atoi(argv[++i]);
+        } else if (!strcmp(argv[i], "--ep") && i + 1 < argc) {
+            want_ep = atoi(argv[++i]);
+        } else if (!strcmp(argv[i], "--menu-smoke")) {
+            menu_smoke = 1;
         }
     }
-    if (smoke > 0) {
+    if (smoke > 0 || menu_smoke) {
 #ifdef _WIN32
         _putenv_s("SDL_VIDEODRIVER", "dummy");
         _putenv_s("SDL_AUDIODRIVER", "dummy");
@@ -348,6 +360,28 @@ int main(int argc, char **argv) {
         setenv("SDL_AUDIODRIVER", "dummy", 1);
 #endif
     }
+
+    /* Flag validation.  --ep selects an episode (1..3); the picker and the
+     * sibling execution live in the Episode 1 binary only, so on an episode
+     * binary a mismatched --ep or --menu-smoke is an error rather than a
+     * silently ignored (or worse, never-terminating) flag. */
+    if (want_ep != 0 && (want_ep < 1 || want_ep > 3)) {
+        fprintf(stderr, "--ep: expected 1, 2 or 3\n");
+        return 2;
+    }
+#if CC_EPISODE != 1
+    if (menu_smoke) {
+        fprintf(stderr,
+                "--menu-smoke: the episode picker is only in the Episode 1 "
+                "binary (caves)\n");
+        return 2;
+    }
+    if (want_ep != 0 && want_ep != CC_EPISODE) {
+        fprintf(stderr, "--ep %d: this binary is Episode %d\n",
+                want_ep, CC_EPISODE);
+        return 2;
+    }
+#endif
 
     if (dump_id >= 0) {
         if (!SDL_Init(SDL_INIT_AUDIO)) {
@@ -385,6 +419,28 @@ int main(int argc, char **argv) {
         return 1;
     }
     cc_keymap_init();
+
+#if CC_EPISODE == 1
+    /* The Episode 1 binary is the launcher: `--menu-smoke` checks the menu
+     * headless, `--ep 2|3` jumps straight to the sibling binary, and a plain
+     * interactive start shows the picker first.  Smoke/sound-dump runs skip
+     * the picker so CI stays deterministic. */
+    if (menu_smoke) {
+        int picked = cc_launcher_pick(1);
+        SDL_Quit();
+        return picked >= 1 ? 0 : 1;
+    }
+    if (want_ep == 2 || want_ep == 3) {
+        cc_launcher_spawn(want_ep);   /* exits this process */
+        return 1;
+    }
+    if (!smoke && dump_id < 0 && !want_ep) {
+        if (cc_launcher_pick(0) != 1) {
+            SDL_Quit();
+            return 0;
+        }
+    }
+#endif
 
     g_window = SDL_CreateWindow(CC_WINDOW_TITLE,
                                 W * 3, H * 3, SDL_WINDOW_RESIZABLE);

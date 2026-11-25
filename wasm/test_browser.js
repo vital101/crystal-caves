@@ -48,7 +48,7 @@ const seen = {};
 function startServer() {
   const server = http.createServer((req, res) => {
     let rel = decodeURIComponent(new URL(req.url, 'http://x').pathname);
-    if (rel === '/') rel = '/game.html';
+    if (rel === '/') rel = '/select.html';
     const file = path.join(ROOT, rel);
     if (!file.startsWith(ROOT + path.sep)) {
       res.writeHead(403);
@@ -146,6 +146,22 @@ function startServer() {
   }
 
   try {
+    // ---- launch picker ---------------------------------------------------
+    // '/' serves the episode selection page; every episode must be linked.
+    await page.goto(base + '/', { waitUntil: 'load' });
+    const picker = await page.evaluate(() => ({
+      links: [...document.querySelectorAll('a.episode-link')]
+        .map((a) => a.getAttribute('href')),
+      shots: [...document.querySelectorAll('a.episode-link img')]
+        .filter((img) => img.complete && img.naturalWidth > 0).length,
+    }));
+    check(picker.links.length === 3 &&
+          picker.links[0] === 'game.html' &&
+          picker.links[1] === 'game.html?ep=2' &&
+          picker.links[2] === 'game.html?ep=3',
+          'launch picker links all three episodes');
+    check(picker.shots === 3, 'launch picker shows an episode screenshot each');
+
     await boot(true);                           // clean localStorage
 
     // ---- page chrome ----------------------------------------------------

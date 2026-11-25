@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Crystal Caves — pick an episode</title>
+<meta name="description" content="All three Crystal Caves episodes, decompiled to C and running in WebAssembly. Pick an episode to play: Trouble in Twin Planetoids, Slugging It Out, or Mylo vs. the Supernova.">
+<meta name="theme-color" content="#111111">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; background: #111; color: #ddd;
+               font-family: monospace; }
+  body { min-height: 100vh; min-height: 100dvh;
+         display: flex; flex-direction: column; align-items: center;
+         padding: 24px 16px 32px; box-sizing: border-box;
+         overscroll-behavior: none; }
+  header { text-align: center; margin-bottom: 20px; }
+  h1 { font-size: 28px; letter-spacing: 4px; margin: 8px 0 4px;
+       color: #7ec8ff; text-shadow: 2px 2px 0 #123; }
+  header p { margin: 0; font-size: 13px; color: #999; }
+  #cards { display: flex; gap: 20px; flex-wrap: wrap;
+           justify-content: center; max-width: 1080px; }
+  a.episode-link { display: flex; flex-direction: column; width: 300px;
+                   max-width: 92vw; background: #1a1a1a;
+                   border: 1px solid #444; border-bottom-width: 3px;
+                   border-radius: 6px; overflow: hidden; color: inherit;
+                   text-decoration: none; }
+  a.episode-link:hover, a.episode-link:focus-visible {
+    border-color: #7ec8ff; background: #20262c; outline: none; }
+  a.episode-link img { width: 100%; aspect-ratio: 8/5; object-fit: cover;
+                       image-rendering: pixelated; background: #000;
+                       border-bottom: 1px solid #444; }
+  a.episode-link .txt { padding: 10px 12px 12px; }
+  a.episode-link h2 { margin: 0 0 4px; font-size: 15px; color: #ffd75e; }
+  a.episode-link p { margin: 0; font-size: 12px; line-height: 1.5; color: #9a9a9a; }
+  a.episode-link .play { display: inline-block; margin-top: 10px;
+                         font-size: 12px; color: #7ec8ff; }
+  footer { margin-top: 22px; font-size: 11px; color: #666;
+           text-align: center; max-width: 720px; line-height: 1.6; }
+  .key { color: #aaa; border: 1px solid #555; border-radius: 3px;
+         padding: 0 5px; background: #222; }
+</style>
+</head>
+<body>
+<header>
+  <h1>CRYSTAL CAVES</h1>
+  <p>The 1991 Apogee trilogy, decompiled to C and running in WebAssembly.</p>
+</header>
+
+<div id="cards">
+  <a class="episode-link" href="game.html">
+    <img src="shots/ep1_hub.png" alt="Episode 1 mineshaft hub">
+    <div class="txt">
+      <h2>Episode 1 — Trouble in Twin Planetoids</h2>
+      <p>Milo the miner crash-lands in the mineshaft. 16 caves of crystals,
+         slugs and dragons.</p>
+      <span class="play">Play Episode 1 &rarr; <span class="key">1</span></span>
+    </div>
+  </a>
+  <a class="episode-link" href="game.html?ep=2">
+    <img src="shots/ep2_hub.png" alt="Episode 2 mineshaft hub">
+    <div class="txt">
+      <h2>Episode 2 — Slugging It Out</h2>
+      <p>The hunt for the magic crystals continues through 16 new caves.</p>
+      <span class="play">Play Episode 2 &rarr; <span class="key">2</span></span>
+    </div>
+  </a>
+  <a class="episode-link" href="game.html?ep=3">
+    <img src="shots/ep3_hub.png" alt="Episode 3 mineshaft hub">
+    <div class="txt">
+      <h2>Episode 3 — Mylo vs. the Supernova</h2>
+      <p>The trilogy finale: 16 caves and a three-screen ending.</p>
+      <span class="play">Play Episode 3 &rarr; <span class="key">3</span></span>
+    </div>
+  </a>
+</div>
+
+<footer>
+  Saves, high scores, config and key bindings are kept separately for each
+  episode. Crystal Caves is &copy; Apogee Entertainment; this is a
+  decompilation-driven port.
+</footer>
+
+<script>
+  /* Number keys jump straight into an episode. */
+  document.addEventListener('keydown', (ev) => {
+    if (ev.defaultPrevented || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    const ep = { '1': '', '2': '?ep=2', '3': '?ep=3' }[ev.key];
+    if (ep !== undefined) location.href = 'game.html' + ep;
+  });
+</script>
+</body>
+</html>

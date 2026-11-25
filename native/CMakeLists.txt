@@ -80,7 +80,8 @@ if(NOT SDL3_FOUND)
 endif()
 
 # -------------------------------------------------------------- targets
-add_executable(caves host.c keymap.c persist.c synth.c)
+# launcher.c: episode picker, only in the Episode 1 binary (the launcher).
+add_executable(caves host.c keymap.c persist.c synth.c launcher.c)
 target_link_libraries(caves PRIVATE ccore SDL3::SDL3)
 if(UNIX)
   target_link_libraries(caves PRIVATE m)   # synth.c speaker filter (sin/cos)
@@ -139,3 +140,13 @@ endfunction()
 
 add_episode_target(ep2 2)
 add_episode_target(ep3 3)
+
+# ------------------------------------------- per-episode save isolation test
+# Three tiny variants of persist_test.c, one per CC_EPISODE namespace; they
+# link the Episode 1 core (only its state/shell API is needed) and are run
+# against one shared temp dir by `make -C native test-persist-isolation`.
+foreach(ep 1 2 3)
+  add_executable(persist_test_ep${ep} persist_test.c persist.c)
+  target_compile_definitions(persist_test_ep${ep} PRIVATE CC_EPISODE=${ep})
+  target_link_libraries(persist_test_ep${ep} PRIVATE ccore SDL3::SDL3)
+endforeach()

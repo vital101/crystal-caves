@@ -8,14 +8,18 @@
  *
  * Visibility is auto-detected from the pointer type, with a manual on/off
  * toggle persisted under its own localStorage key.  That key is deliberately
- * separate from cc1.config.v2: the v2 document mirrors the original CC1.CFG
- * fields and is validated strictly by persist.js.
+ * separate from the CC1.CFG-equivalent config in persist.js (which is
+ * validated strictly and namespaced per episode): the touch toggle is a
+ * device-level preference shared by all three episodes, so its key
+ * (`cc.touch.v1`) carries no episode prefix.  The pre-trilogy name
+ * (`cc1.touch.v1`) is still read so an existing toggle survives.
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.CCTouch = factory();
 })(typeof self !== 'undefined' ? self : this, function () {
-  const STORAGE_KEY = 'cc1.touch.v1';
+  const STORAGE_KEY = 'cc.touch.v1';
+  const LEGACY_KEY = 'cc1.touch.v1';
 
   /* The four action flags are the same ones the gamepad path in game.html
    * drives; they are independent of the redefinable keyboard bindings. */
@@ -46,7 +50,8 @@
 
   function loadEnabled() {
     try {
-      const v = localStorage.getItem(STORAGE_KEY);
+      let v = localStorage.getItem(STORAGE_KEY);
+      if (v === null) v = localStorage.getItem(LEGACY_KEY);
       if (v === '1') return true;
       if (v === '0') return false;
     } catch (_) {}

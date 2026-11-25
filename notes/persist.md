@@ -1,8 +1,35 @@
-# Crystal Caves Ep.1 — Phase 7 persistence notes
+# Crystal Caves persistence notes (all three episodes)
 
 This note documents the hardened browser save/config/high-score layer and the
 original DOS file semantics it replaces.  Addresses are load-module offsets
 (`file = load + 0x1E00`).
+
+## Per-episode namespaces (no clobbering)
+
+The three episodes share one engine and one storage location per platform,
+but every persistent key/file is prefixed with the episode number, so
+saves, high scores, config and key bindings can never clobber another
+episode's:
+
+| Platform | Episode 1 | Episode 2 | Episode 3 |
+|---|---|---|---|
+| Browser (`localStorage`) | `cc1.*` | `cc2.*` | `cc3.*` |
+| Native (SDL pref dir) | `cc1.*` | `cc2.*` | `cc3.*` |
+
+- The browser page selects the namespace before any load:
+  `game.js` reads the `?ep=` parameter and calls `CCPersist.setNamespace()`;
+  every key (`config.v2`, `hiscores.v1`, `save.<slot>`) is derived from it
+  (see `wasm/persist.js`).
+- The native binaries bake the number in at compile time
+  (`CC_EPISODE` in `native/persist.c`) — all three share the same pref
+  directory but write distinct `cc<N>.config.v2.json`, `cc<N>.hiscores.v1.json`
+  and `cc<N>.save.<slot>.b64` files.
+- Regression proof: `wasm/test_persist.js` (namespace switch round-trip) and
+  `make -C native test-persist-isolation` (three variants writing into one
+  shared directory, byte-identical cross-episode asserts).  CI runs both.
+- The touch-controls toggle is a device-level UI preference shared by all
+  episodes: `cc.touch.v1` in localStorage (no episode prefix; the
+  pre-trilogy `cc1.touch.v1` key is still read).  It is not game data.
 
 ## Save state (browser)
 

@@ -20,6 +20,9 @@ typedef struct {
 /* Call once at startup (uses SDL_GetPrefPath). */
 void cc_persist_init(void);
 
+/* Test hook: pin the directory (persist_test.c — save-file isolation). */
+void cc_persist_set_dir_for_test(const char *dir);
+
 cc_config cc_load_config(void);          /* validated, defaults on any error */
 int       cc_save_config(const cc_config *cfg);
 
