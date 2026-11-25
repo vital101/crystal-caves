@@ -215,8 +215,10 @@ static int menu_key(int key) {
     return 1;
 }
 
-/* Ending screen: qualify into name entry or straight to the table. */
+/* Ending screens: advance through the episode's sequence (ep3 has three),
+ * then qualify into name entry or straight to the table. */
 static int ending_key(void) {
+    if (++g_ending_screen < CC_EP_ENDING_SCREENS) return 1;
     if (cc_shell_hiscore_qualifies(g_pending_score)) {
         g_name[0] = 0;
         g_name_len = 0;

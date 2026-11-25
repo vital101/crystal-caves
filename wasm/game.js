@@ -11,19 +11,23 @@
 
   const W = CCGameRender.W, H = CCGameRender.H;
   const PARAMS = new URLSearchParams(location.search);
-  const EPISODE = PARAMS.get('ep') === '2' ? 2 : 1;
-  const ASSET = EPISODE === 2 ? 'assets_ep2/' : 'assets/';
-  const WASM_FILE = EPISODE === 2 ? 'render_ep2.wasm' : 'render.wasm';
+  const epParam = PARAMS.get('ep');
+  const EPISODE = epParam === '2' ? 2 : epParam === '3' ? 3 : 1;
+  const ASSET = EPISODE === 1 ? 'assets/' : `assets_ep${EPISODE}/`;
+  const WASM_FILE = EPISODE === 1 ? 'render.wasm' : `render_ep${EPISODE}.wasm`;
   const TEST_MODE = PARAMS.has('test');
-  CCPersist.setNamespace(EPISODE === 2 ? 'cc2' : 'cc1');
+  CCPersist.setNamespace(`cc${EPISODE}`);
   if (EPISODE === 2) {
     document.title = 'Crystal Caves Ep.2 — Slugging It Out';
+  } else if (EPISODE === 3) {
+    document.title = 'Crystal Caves Ep.3 — Mylo vs. the Supernova';
   }
   const epBtn = document.getElementById('epBtn');
   if (epBtn) {
-    epBtn.textContent = EPISODE === 2 ? 'Episode 1' : 'Episode 2';
+    const nextEp = EPISODE === 3 ? 1 : EPISODE + 1;
+    epBtn.textContent = `Episode ${nextEp}`;
     epBtn.addEventListener('click', () => {
-      location.href = EPISODE === 2 ? 'game.html' : 'game.html?ep=2';
+      location.href = nextEp === 1 ? 'game.html' : `game.html?ep=${nextEp}`;
     });
   }
   const cv = document.getElementById('cv');

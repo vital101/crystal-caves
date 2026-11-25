@@ -193,7 +193,7 @@ void cc_shell_render(void) {
             }
             break;
         case CC_SHELL_ENDING:
-            cc_draw_screen(3);
+            cc_draw_screen(CC_EP_ENDING_SCREEN_BASE + g_ending_screen);
             break;
         case CC_SHELL_CREDITS:
         case CC_SHELL_TITLE:
