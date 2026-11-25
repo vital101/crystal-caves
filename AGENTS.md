@@ -32,6 +32,7 @@ different thing.  See the README section *Develop in Docker (any platform)*.
 | `make lint` | Source-size/function-length report (0 failures since Phase 3) |
 | `make lint-strict` | Same report, exit 1 on violations (what CI runs) |
 | `make test-render-all` | Pixel-diff every level against `out/oracle_L*.png` |
+| `make test-render-ep2` | Pixel-diff all ep2 levels against `out/ep2/oracle_L*.png` (BYO data; skips if absent) |
 | `make test-data` | Run `../tools/check_oracle.py` (structural oracle assertions) |
 | `make test-exports` | Built wasm exports must match the Makefile `EXPORTS` list |
 | `make test-view` | 320x200 viewport crop regression |
@@ -450,6 +451,7 @@ The authoritative target list is the table at the top of this file.
 - `wasm/text.c/h`, `wasm/shell.c/h`, `wasm/render.h` — Phase 5 code
 - `wasm/sound.c/h`, `wasm/sound_data.h`, `wasm/sound_synth.js`, `wasm/audio.js` — Phase 6 sound
 - `wasm/test_browser.js` / `wasm/browser_expectations.json` — Phase 8 headless browser smoke
+- `wasm/test_render_all_ep2.js` — Episode 2 static-level pixel check (`make test-render-ep2`, BYO data)
 - `wasm/measure_perf.js` / `wasm/perf_baseline.json` — Phase 8 frame-budget/size checks
 - `notes/regression.md` — Phase 8 coverage matrix (target → fixture → harness)
 - `compose.yaml` + `docker/Dockerfile.dev` (+ `Dockerfile.dev.dockerignore`,

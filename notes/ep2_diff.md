@@ -270,6 +270,11 @@ python3 tools/export_level_overlay.py --episode ep2
   target).  Cave renders also match in cold-DS mode; the hub only matches when
   startup-seeded because its decorations depend on the RNG state the 0xC3E
   initializer establishes (this was already true for Episode 1).
+- **The unmodified wasm build already renders Episode 2:** fed with
+  `out/portable_ep2/`, the same `render.wasm` reproduces all 19 ep2 oracle
+  PNGs **pixel-exactly** (`make -C wasm test-render-ep2`, ~3 s; it skips when
+  the BYO data is absent).  No C or wasm changes were needed — the renderer is
+  entirely data-driven.
 - **Transition overlay:** `analyze_loader_tags.py --episode ep2` classifies every
   source-dependent write (no unclassified entries), and
   `export_level_overlay.py --episode ep2` produces a 487,439-byte version-2
