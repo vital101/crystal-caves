@@ -17,15 +17,20 @@ on:
 # that directory, so nothing runs on github.com).  Actions are loaded from
 # data.forgejo.org and referenced fully qualified, per the Forgejo docs.
 # No `permissions:` block: Forgejo ignores it (capabilities are granted
-# through Authorized Integrations) and these jobs only need the default
-# read token.
-#
+# through Authorized Integrations) and the test jobs only need the default
+# read token.  The release-asset uploads are the exception: they need a
+# token with repo write access, provided as the RELEASE_TOKEN secret
+# (the job's GITHUB_TOKEN is the fallback when the instance allows it).
+
 # Pushes to main and PRs run the fast test jobs.  Version tags (v1.0.0 or
 # 1.0.0) additionally run the release builds: the native matrix
 # (Ubuntu/Windows/macOS) compiles `caves`/`caves_ep2`/`caves_ep3`, runs the
 # digests + smokes + launcher-menu and save-isolation checks and uploads
 # per-OS artifacts, and a web-bundle job packages the complete
-# three-episode site (`make -C wasm bundle-web`).
+# three-episode site (`make -C wasm bundle-web`).  On tag builds each job
+# also attaches its bundle to the release that carries the tag (a release
+# created through the Forgejo interface, or a draft created on the fly
+# for a plain git-pushed tag).
 
 jobs:
   deterministic:
@@ -188,6 +193,35 @@ jobs:
             native/build/caves_ep3.exe
           if-no-files-found: error
 
+      # Tag builds: all three binaries as one per-OS bundle on the release.
+      # cmake -E tar is used for the packaging because cmake is guaranteed
+      # present on every leg of the matrix (and it handles zip on Windows).
+      - name: Attach the binaries to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          CC_API_URL: ${{ github.api_url }}
+          CC_REPO: ${{ github.repository }}
+          CC_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          CC_FALLBACK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ver="${{ github.ref_name }}"
+          case "${{ matrix.os }}" in
+            ubuntu*) out="caves-linux-$(uname -m)-$ver.tar.gz"; kind=tgz ;;
+            macos*)  out="caves-macos-$(uname -m)-$ver.tar.gz"; kind=tgz ;;
+            windows*) out="caves-windows-$(uname -m)-$ver.zip"; kind=zip ;;
+            *)       out="caves-${{ matrix.os }}-$ver.tar.gz"; kind=tgz ;;
+          esac
+          cd native/build
+          if [ "$kind" = zip ]; then
+            cmake -E tar cf "../$out" --format=zip \
+              caves.exe caves_ep2.exe caves_ep3.exe
+          else
+            cmake -E tar czf "../$out" caves caves_ep2 caves_ep3
+          fi
+          cd ../..
+          tools/upload_release_asset.sh "$ver" "$out" "$out"
+
   web-bundle:
     name: web bundle (all episodes)
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
@@ -219,6 +253,22 @@ jobs:
           name: crystal-caves-web-${{ github.ref_name }}
           path: wasm/dist/crystal-caves-web.tar.gz
           if-no-files-found: error
+
+      # Tag builds: the complete site (picker + all three episodes) as a
+      # release asset next to the per-OS binary bundles.
+      - name: Attach the web bundle to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          CC_API_URL: ${{ github.api_url }}
+          CC_REPO: ${{ github.repository }}
+          CC_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          CC_FALLBACK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ver="${{ github.ref_name }}"
+          out="crystal-caves-web-$ver.tar.gz"
+          cp wasm/dist/crystal-caves-web.tar.gz "$out"
+          tools/upload_release_asset.sh "$ver" "$out" "$out"
 
   oracle:
     name: oracle regeneration (manual)

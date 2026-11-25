@@ -116,7 +116,11 @@ the container misreads a CRLF `wasm/Makefile`.
 the release builds: the native matrix (Ubuntu/Windows/macOS) compiles
 `caves`/`caves_ep2`/`caves_ep3`, runs the digests + smokes + launcher-menu and
 save-isolation checks and uploads per-OS artifacts, and a web-bundle job
-packages the complete three-episode site (`make -C wasm bundle-web`).
+packages the complete three-episode site (`make -C wasm bundle-web`).  On tag
+builds each job also attaches its bundle to the tag's Forgejo release via
+`tools/upload_release_asset.sh` (UI-created releases are found by tag; plain
+git-pushed tags get a draft release).  The upload uses the `RELEASE_TOKEN`
+secret (repo-write PAT), falling back to the job token when allowed.
 
 ## Data Pipeline
 
@@ -445,6 +449,7 @@ The authoritative target list is the table at the top of this file.
 | `tools/export_shell_assets.py` | PCX screens, MNI banks, shell text/key/high-score export |
 | `tools/make_favicon.py` | Milo favicon set from GFX block 6 shape 0x19 (`make favicon`) |
 | `tools/make_social_card.py` | 1200x630 Open Graph card from the title screen (`make social-card`) |
+| `tools/upload_release_asset.sh` | Tag-build release assets via the Forgejo API (find by tag, idempotent re-upload) |
 | `tools/oracle_shell.py` | Real HUD + text-window oracle (`notes/hud_fixtures.json`, `notes/text_fixtures.json`) |
 | `tools/shell_exactness.py` | P5.R5 shell exactness capture (`notes/shell_exactness_fixtures.json`, high-score/keymap fixtures) |
 | `tools/make_shell_exact_data.py` | Generate `wasm/shell_exact_data.h` from exactness fixtures |

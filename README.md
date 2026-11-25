@@ -392,7 +392,8 @@ Authorized Integrations, while the jobs only need the default read token:
   `make test-browser` (which also checks the launch picker at `/`).
 
 **On every version tag** (and `workflow_dispatch`) — the release builds of
-**all three episodes**:
+**all three episodes**, each job attaching its bundle to the release that
+carries the tag:
 
 - **native build** — matrix over Ubuntu/Windows/macOS: a bootstrap step
   installs CMake/compiler/Python/git when a runner image lacks them, CMake
@@ -400,15 +401,25 @@ Authorized Integrations, while the jobs only need the default read token:
   FetchContent), the 929 golden-master digests re-run inside the native
   binary against `notes/refactor_digests.json`, headless SDL smoke runs
   cover all three episodes, the launcher picker and the per-episode
-  save-isolation check run, and the executables are uploaded as artifacts
+  save-isolation check run, the executables are uploaded as artifacts
   through Forgejo's `forgejo/upload-artifact` fork (the upstream
-  `actions/upload-artifact@v4` refuses any non-github.com server);
+  `actions/upload-artifact@v4` refuses any non-github.com server), and the
+  three binaries are attached to the release as one per-OS bundle
+  (`caves-linux-<arch>-<tag>.tar.gz`, `caves-macos-<arch>-<tag>.tar.gz`,
+  `caves-windows-<arch>-<tag>.zip`);
 - **web bundle** — `make -C wasm bundle-web` builds all three wasm modules
   and asset packs and packages the complete site (launch picker, game pages,
   `render.wasm` / `render_ep2.wasm` / `render_ep3.wasm` and the asset
-  directories) into one downloadable tarball artifact;
+  directories) into one downloadable tarball artifact, also attached to
+  the release (`crystal-caves-web-<tag>.tar.gz`);
 - **oracle regeneration** — manual `workflow_dispatch` job with
   capstone/unicorn for re-verifying fixtures.
+
+Release uploads speak to the Forgejo API with the `RELEASE_TOKEN` secret
+(create a token with repo write access under Settings → Actions → Secrets);
+the job's built-in token is the fallback when the instance permits it.  A
+release created through the Forgejo interface gets its assets directly; a
+plain `git push` of a tag creates a draft release to attach them to.
 
 ## Layout
 
