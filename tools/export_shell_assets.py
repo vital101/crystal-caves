@@ -77,6 +77,22 @@ SCREENS = [
     ("ending", "END"),
 ]
 
+
+def screens_for(episode):
+    """Per-episode PCX screen list; ep3 has a three-screen ending."""
+    base = [("apogee", "APG"), ("title", "TTL"), ("credits", "CDT")]
+    if episode == "ep3":
+        return base + [("ending1", "END1"), ("ending2", "END2"),
+                       ("ending3", "END3")]
+    return base + [("ending", "END")]
+
+
+def screen_path(fn):
+    # ep3 endings are CC3-END1.END..CC3-END3.END; all others PREFIX.NAME.
+    if fn.startswith("END") and fn != "END":
+        return os.path.join(EXTRACT, PREFIX + "-" + fn + ".END")
+    return os.path.join(EXTRACT, PREFIX + "." + fn)
+
 # Text blocks that end with the "END OF WINDOW" sentinel.  The sentinel's
 # length byte is the last byte in the block; text starts at start+1.
 SENTINEL = b"\rEND OF WINDOW"
@@ -357,8 +373,11 @@ def extract_text_blocks(mod):
     # Instructions pages after page 1 (they are not sentinel-terminated).
     p = find_needle(mod, "You@ll encounter many dangerous")
     if p is not None:
+        # Bound the run by the next sentinel-terminated block so the parse
+        # stops where this episode's instruction pages end (ep1 0x14908).
+        bound = min([b["start"] for b in blocks if b["start"] > p] + [len(mod)])
         idx = 2
-        while p < 0x14908:
+        while p < bound:
             lines, nxt = walk_forward(mod, p)
             if not lines:
                 break
@@ -488,10 +507,12 @@ def main():
     # PCX screens (indexed 4-bit pixels).
     screens = bytearray()
     meta = []
-    for sid, fn in SCREENS:
-        idx = decode_pcx(os.path.join(EXTRACT, PREFIX + "." + fn))
+    for sid, fn in screens_for(episode):
+        path = screen_path(fn)
+        idx = decode_pcx(path)
         screens += idx
-        meta.append({"id": sid, "file": fn, "offset": len(screens) - W * H,
+        meta.append({"id": sid, "file": os.path.basename(path),
+                     "offset": len(screens) - W * H,
                      "width": W, "height": H})
     open(os.path.join(OUT, "screens.bin"), "wb").write(screens)
     json.dump({"screen_bytes": W * H, "screens": meta},
