@@ -79,10 +79,10 @@ def main():
         description="Regenerate loader_tags.json (slow, Unicorn)")
     ap.add_argument("--episode", default="ep1", help="ep1, ep2, ...")
     ap.add_argument("--out", default=None)
-    args = ap.parse_args()
+    opts = ap.parse_args()
 
     import episode_config
-    episode_config.apply(args.episode)
+    episode_config.apply(opts.episode)
 
     srcs = {}
     for lv in SOURCES:
@@ -133,9 +133,9 @@ def main():
             entries.append([k] + tag)
         out[str(dest)] = entries
         print("level", dest, "entries", len(entries), flush=True)
-    path = args.out or (
-        os.path.join(ROOT, "notes", "loader_tags.json") if args.episode == "ep1"
-        else os.path.join(ROOT, "notes", args.episode, "loader_tags.json"))
+    path = opts.out or (
+        os.path.join(ROOT, "notes", "loader_tags.json") if opts.episode == "ep1"
+        else os.path.join(ROOT, "notes", opts.episode, "loader_tags.json"))
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as fh:
         json.dump(out, fh, indent=1)

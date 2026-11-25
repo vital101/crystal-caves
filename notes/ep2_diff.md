@@ -117,8 +117,10 @@ Byte-level distribution (matched union = 75.5% of the load module):
   source pointer); the decoder is CC1 `0x125F0`, unchanged.
 - **Anomaly:** CC2 arg 2 (= level 4, cave 2) issues **27** row calls: one extra
   copy of row 6, a blank-row clear (`0x6F09` source) and one extra row at the
-  end, with sources shifted by `0x29` bytes.  The resulting grid must come from
-  the oracle dump (R2), not from a fixed 25-row assumption.
+  end, with sources shifted by `0x29` bytes.  All indices stay in `0..24`, so
+  the 25-row map buffer is unchanged and the later load of each duplicate wins
+  — no variable-height support is needed.  The resulting grid still comes from
+  the oracle dump (R2).
 - The intro/finale object setup walks kinds `1..0x18` with the same data
   pointers in both episodes — the object catalogue is unchanged.
 
@@ -263,22 +265,42 @@ python3 tools/export_level_overlay.py --episode ep2
   at runtime.
 - **Static render parity:** the real EGA blitter executing CC2
   (`emulate_render.py --episode ep2 --startup`) produces PNGs **bit-identical**
-  to the independent Python renderer (`render_oracle.py --episode ep2`) for the
-  hub (L02) and cave 1 (L03).  Cave renders also match in cold-DS mode; the
-  hub only matches when startup-seeded because its decorations depend on the
-  RNG state the 0xC3E initializer establishes (this was already true for
-  Episode 1).
+  to the independent Python renderer (`render_oracle.py --episode ep2`) on
+  **all 19 levels** (0 warnings, every run ends at the loader's draw-map
+  target).  Cave renders also match in cold-DS mode; the hub only matches when
+  startup-seeded because its decorations depend on the RNG state the 0xC3E
+  initializer establishes (this was already true for Episode 1).
+- **Transition overlay:** `analyze_loader_tags.py --episode ep2` classifies every
+  source-dependent write (no unclassified entries), and
+  `export_level_overlay.py --episode ep2` produces a 487,439-byte version-2
+  `CCLO` overlay for all 19 levels.  Its structure matches Episode 1's pattern
+  (the hub record has the same 18,991 cell literals, 53 globals, 177 decor
+  entries and 16 door entries).  End-to-end transition replay is exercised by
+  the R4 wasm tests; both the tags and the overlay stay in git-ignored
+  `notes/ep2/` and `out/portable_ep2/`.
 - `emulate_render.py --startup` is new: it seeds DS from the real 0xC3E
   initializer, mirroring the wasm port's startup+loader sequence.
+- **Shell screens:** all four Episode 2 PCX files (`APG`, `TTL`, `CDT`, `END`)
+  are single 320x200 4-plane PCX images and decode with the existing
+  `decode_pcx` unchanged; only their content (and the `END` RLE size) differs.
+  Text-block discovery in `export_shell_assets.py` is Episode-1-specific
+  (hardcoded page offsets and menu fixtures) and stays R3 work.
 
 ## Open questions
 
-1. Identify the `0x273AE` handler-tail cluster (function at CC1 `0x27390`) and
-   whether it is reachable; capture a fixture if so.
-2. Determine cave 2's effective grid dimensions from the CC2 oracle run
-   (27 row loads, duplicate/clear/extra row).
-3. Confirm `TTL`/`END` share Episode 1's screen-bank format (generalise
-   `tools/export_shell_assets.py`).
+1. ~~Identify the `0x273AE` handler-tail cluster~~ — resolved: the function at
+   CC1 `0x27390` initializes a 6-byte-stride cell template (three words per
+   record; CC2 changes the first word from 0 to 2).  No near call, near jump,
+   far call or far-pointer table references it anywhere in either image, and
+   it is outside the 40x25 visible map, so it is linked-but-unreachable
+   procedure code (or border-only initialization) and has no handler role.
+2. ~~Determine cave 2's effective grid dimensions~~ — resolved: the extra row
+   loads stay within indices `0..24` and overwrite earlier loads, so the map
+   stays 25 rows.
+3. ~~Confirm `TTL`/`END` share Episode 1's screen-bank format~~ — resolved: all
+   four screens are single 320x200 4-plane PCX images and decode with the
+   existing `decode_pcx`; the text-block discovery in
+   `tools/export_shell_assets.py` is Episode-1-specific and needs R3 work.
 4. Find which shell code renders the order/shareware notice and episode name,
    and whether menu code changed at all (large regions match; check the small
    code gaps with a CC2 fixture).
