@@ -239,11 +239,18 @@ test-render-all: clang
 test-render-ep2: clang
 	node test_render_all_ep2.js
 
-# Episode 2 compiled data + gameplay frames + browser flow (BYO data; skips).
-test-ep2: ep2 ep2-assets test-render-ep2 test-ep2-browser test-ep2-transitions
-	node test_ep2_data.js
+# Episode 2 checks (BYO data).  Skips cleanly when the data is not present.
+test-ep2:
+	@if [ ! -f ../extracted/ep2/CC2-UNLZ.EXE ] || \
+	    [ ! -f ../notes/ep2/oracle_objects.json ]; then \
+	  echo "SKIP test-ep2: BYO Episode 2 data not present"; \
+	else \
+	  $(MAKE) ep2 ep2-assets && \
+	  $(MAKE) test-render-ep2 test-ep2-browser test-ep2-transitions && \
+	  node test_ep2_data.js; \
+	fi
 
-test-ep2-browser: ep2 ep2-assets
+test-ep2-browser:
 	node test_ep2_browser.js
 
 # Transition overlay replay against the ep2 loader fixtures.  The fixture is
