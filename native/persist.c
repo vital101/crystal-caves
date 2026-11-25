@@ -9,6 +9,15 @@
 #include "objects.h"
 #include "shell.h"
 
+#ifndef CC_EPISODE
+#define CC_EPISODE 1
+#endif
+#define CC_STR_(x) #x
+#define CC_STR(x) CC_STR_(x)
+#define CC_CFG_FILE "cc" CC_STR(CC_EPISODE) ".config.v2.json"
+#define CC_OLD_CFG_FILE "cc" CC_STR(CC_EPISODE) ".config.v1.json"
+#define CC_HS_FILE "cc" CC_STR(CC_EPISODE) ".hiscores.v1.json"
+
 #define HS_COUNT     10
 #define HS_NAME_MAX  20
 
@@ -312,7 +321,7 @@ static cc_config normalize_config(jval *raw) {
 
 cc_config cc_load_config(void) {
     long n;
-    char *text = read_file("cc1.config.v2.json", &n);
+    char *text = read_file(CC_CFG_FILE, &n);
     if (text) {
         jval *raw = json_parse(text);
         free(text);
@@ -321,7 +330,7 @@ cc_config cc_load_config(void) {
         return c;
     }
     /* Legacy v1: toggles preserved, DOS default bindings. */
-    text = read_file("cc1.config.v1.json", &n);
+    text = read_file(CC_OLD_CFG_FILE, &n);
     if (text) {
         jval *o = json_parse(text);
         free(text);
@@ -344,7 +353,7 @@ int cc_save_config(const cc_config *cfg) {
         "\"keys\":[%d,%d,%d,%d]}",
         cfg->version, cfg->sound, cfg->joystick, cfg->video,
         cfg->keys[0], cfg->keys[1], cfg->keys[2], cfg->keys[3]);
-    return write_file("cc1.config.v2.json", buf, n);
+    return write_file(CC_CFG_FILE, buf, n);
 }
 
 /* ----------------------------------------------------------- hiscores */
@@ -388,14 +397,14 @@ int cc_save_hiscores(void) {
     }
     *o++ = ']';
     *o = 0;
-    int ok = write_file("cc1.hiscores.v1.json", buf, (long)(o - buf));
+    int ok = write_file(CC_HS_FILE, buf, (long)(o - buf));
     free(buf);
     return ok;
 }
 
 int cc_load_hiscores(void) {
     long n;
-    char *text = read_file("cc1.hiscores.v1.json", &n);
+    char *text = read_file(CC_HS_FILE, &n);
     jval *arr = text ? json_parse(text) : 0;
     free(text);
     int ok = arr && arr->t == J_ARR && arr->n == HS_COUNT;
@@ -429,7 +438,7 @@ int cc_save_slot(int slot, unsigned char *stateP, int stateSize) {
     long blen;
     char *b64 = b64encode(stateP, n, &blen);
     char name[64];
-    snprintf(name, sizeof(name), "cc1.save.%d.b64", slot);
+    snprintf(name, sizeof(name), "cc%d.save.%d.b64", CC_EPISODE, slot);
     int ok = write_file(name, b64, blen);
     free(b64);
     return ok;
@@ -438,7 +447,7 @@ int cc_save_slot(int slot, unsigned char *stateP, int stateSize) {
 int cc_load_slot(int slot, unsigned char *stateP, int stateSize, int hubOnly) {
     if (slot < 0 || slot > 9 || !stateP || stateSize <= 0) return 0;
     char name[64];
-    snprintf(name, sizeof(name), "cc1.save.%d.b64", slot);
+    snprintf(name, sizeof(name), "cc%d.save.%d.b64", CC_EPISODE, slot);
     long n;
     char *b64 = read_file(name, &n);
     if (!b64 || n <= 0) { free(b64); return 0; }

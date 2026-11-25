@@ -62,6 +62,7 @@ different thing.  See the README section *Develop in Docker (any platform)*.
 | `make -C native build` | Native desktop build (CMake/SDL3): `native/build/caves` + `cc_digest` |
 | `make -C native test-digest` | Native golden-master digests vs `notes/refactor_digests.json` (929 snapshots) |
 | `make -C native test-smoke` | Headless SDL host run (`--smoke 120`, dummy drivers) |
+| `make -C native test-smoke-ep2` | Same for the native Episode 2 binary (BYO data) |
 | `make test-browser-update` | Regenerate `wasm/browser_expectations.json` framebuffer hashes |
 | `make perf` | wasm size + per-frame timing against the 57.1 ms game budget |
 | `make test-oracle-sound` | Regenerate the Unicorn sound trace, then compare |
@@ -376,8 +377,9 @@ The authoritative target list is the table at the top of this file.
   the browser smoke covers title -> intro -> hub -> save/restore -> finale.
   Two data-driven deltas are handled (crystal `w7` range, `handler_seg`
   `0x1F72`), and the ep2 fixtures exposed a latent formation-mover bug now
-  fixed.  Remaining: native desktop episode selection and Episode 3 (needs
-  user-supplied data); see `notes/ep2_diff.md`.
+  fixed.  The native build also has a `caves_ep2` target (same core, ep2 data
+  and embedded assets, `cc2.*` save files; `make -C native test-smoke-ep2`).
+  Remaining: Episode 3 (needs user-supplied data); see `notes/ep2_diff.md`.
 
 ## Tooling Entrypoints
 

@@ -350,6 +350,11 @@ runtime-loaded.
   high-score reload -> finale (4 pages) -> ending, with framebuffer hashes in
   `wasm/browser_expectations_ep2.json`.  All targets skip cleanly without the
   bring-your-own data; Episode-1 browser/digest suites still pass.
+- **Native:** CMake builds `caves_ep2` from the same core compiled against
+  `wasm/ep2_data` with `out/portable_ep2` embedded; config/high-score/save
+  files use `cc2.*` names and the window title is episode-specific.
+  `make -C native test-smoke-ep2` runs the headless SDL smoke (the target is
+  skipped at configure time when the BYO data is absent).
 
 ## Open questions
 

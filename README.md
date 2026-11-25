@@ -138,6 +138,17 @@ wasm build: `make -C native test-digest` runs the 929 SHA-256 snapshots from
 builds Windows/Linux/macOS binaries on every push and uploads them as
 artifacts.
 
+Episode 2 (bring-your-own registered data) builds the same way:
+
+```sh
+make -C wasm ep2 ep2-assets        # generated data headers + assets_ep2/
+make -C native test-smoke-ep2      # builds/runs native/build/caves_ep2 headless
+```
+
+`caves_ep2` embeds `out/portable_ep2`, sets an episode-specific window title
+and keeps its config, high scores and save slots in `cc2.*` files next to the
+Episode 1 `cc1.*` files.
+
 ## Controls
 
 Defaults follow the original DOS bindings, with Space and Up Arrow added as

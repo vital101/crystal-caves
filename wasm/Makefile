@@ -134,6 +134,12 @@ $(EP2_ASSETS)/sound.json: ../out/portable/sound.json
 ../out/portable_ep2/level_overlay.bin: ../notes/ep2/loader_tags.json
 	$(PYTHON) ../tools/export_level_overlay.py --episode ep2
 
+# The sound banks are byte-identical between the episodes; export_sound.py is
+# Episode-1-only, so the ep2 portable set reuses the same sound.json.
+../out/portable_ep2/sound.json: ../out/portable/sound.json
+	@mkdir -p ../out/portable_ep2
+	cp $< $@
+
 $(EP2_DATA)/startup_data.h: ../notes/ep2/startup.json
 	@mkdir -p $(EP2_DATA)
 	$(PYTHON) ../tools/make_startup_data.py --episode ep2 --out $@

@@ -85,3 +85,46 @@ target_link_libraries(caves PRIVATE ccore SDL3::SDL3)
 
 add_executable(cc_digest digest.c sha256.c)
 target_link_libraries(cc_digest PRIVATE ccore)
+
+# ------------------------------------------------- Episode 2 (BYO data)
+# The same core compiled against the generated Episode 2 data headers and
+# Episode 2 embedded assets.  Skipped when the bring-your-own data has not
+# been generated (make -C wasm ep2 && make -C wasm ep2-assets).
+set(PORTABLE_EP2 ${REPO}/out/portable_ep2)
+set(EP2_DATA ${WASM}/ep2_data)
+if(EXISTS ${EP2_DATA}/startup_data.h AND EXISTS ${EP2_DATA}/objects_data.h
+   AND EXISTS ${EP2_DATA}/cells_data.h AND EXISTS ${EP2_DATA}/episode_data.h
+   AND EXISTS ${PORTABLE_EP2}/levels.bin AND EXISTS ${PORTABLE_EP2}/screens.bin)
+  set(EMBED2_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated_ep2)
+  set(EMBED2_C ${EMBED2_DIR}/assets_embed.c)
+  set(EMBED2_H ${EMBED2_DIR}/assets_embed.h)
+  file(MAKE_DIRECTORY ${EMBED2_DIR})
+  set(EP2_PORTABLE_DEPS)
+  foreach(f gfx.bin levels.bin cells.bin level_overlay.bin screens.bin
+            mni_f1.bin mni_f2.bin mni_spl.bin palette.json sound.json)
+    list(APPEND EP2_PORTABLE_DEPS ${PORTABLE_EP2}/${f})
+  endforeach()
+  add_custom_command(
+    OUTPUT ${EMBED2_C} ${EMBED2_H}
+    COMMAND ${Python3_EXECUTABLE} ${REPO}/tools/embed_assets.py
+            ${EMBED2_C} ${EMBED2_H} ${PORTABLE_EP2}
+    DEPENDS ${EP2_PORTABLE_DEPS} ${REPO}/tools/embed_assets.py
+    COMMENT "Embedding Episode 2 portable assets")
+  add_library(ccore_ep2 STATIC ${CORE_SRC} ${EMBED2_C})
+  target_include_directories(ccore_ep2 PUBLIC
+    ${EP2_DATA} ${WASM} ${WASM}/render ${WASM}/game ${WASM}/text
+    ${WASM}/shell ${EMBED2_DIR})
+  target_compile_definitions(ccore_ep2 PRIVATE CC_HOST_LIBC CC_EPISODE=2)
+  target_compile_options(ccore_ep2 PRIVATE -ffreestanding -fno-builtin -O2)
+  if(MSVC)
+    target_compile_options(ccore_ep2 PRIVATE /W3)
+  else()
+    target_compile_options(ccore_ep2 PRIVATE -Wall -Wextra
+      -Wno-unused-parameter -Wno-unused-function)
+  endif()
+  add_executable(caves_ep2 host.c keymap.c persist.c synth.c)
+  target_compile_definitions(caves_ep2 PRIVATE CC_EPISODE=2)
+  target_link_libraries(caves_ep2 PRIVATE ccore_ep2 SDL3::SDL3)
+else()
+  message(STATUS "Episode 2 data not found; caves_ep2 target skipped (BYO data)")
+endif()

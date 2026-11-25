@@ -23,6 +23,15 @@
 #include "assets_embed.h"
 #include "keymap.h"
 #include "persist.h"
+
+#ifndef CC_EPISODE
+#define CC_EPISODE 1
+#endif
+#if CC_EPISODE == 2
+#define CC_WINDOW_TITLE "Crystal Caves Episode 2 - Slugging It Out"
+#else
+#define CC_WINDOW_TITLE "Crystal Caves Episode 1"
+#endif
 #include "synth.h"
 
 #define W 320
@@ -290,7 +299,7 @@ int main(int argc, char **argv) {
     }
     cc_keymap_init();
 
-    g_window = SDL_CreateWindow("Crystal Caves Episode 1",
+    g_window = SDL_CreateWindow(CC_WINDOW_TITLE,
                                 W * 3, H * 3, SDL_WINDOW_RESIZABLE);
     if (!g_window) { fprintf(stderr, "window: %s\n", SDL_GetError()); return 1; }
     g_renderer = SDL_CreateRenderer(g_window, NULL);
