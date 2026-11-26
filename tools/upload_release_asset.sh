@@ -86,8 +86,11 @@ echo "release $tag -> id $id"
 
 assets=$(curl -fsS -H "$auth" \
          "$api/repos/$repo/releases/$id/assets?limit=100" || true)
+# The name match tolerates whitespace after the colon, like every other
+# pattern in this script ("id": *): a server that pretty-prints its JSON
+# must not silently defeat the idempotent replacement.
 aid=$(printf '%s' "$assets" | tr '{' '\n' \
-      | sed -n "/\"name\":\"$name\"/s/.*\"id\": *\([0-9][0-9]*\).*/\1/p")
+      | sed -n "/\"name\": *\"$name\"/s/.*\"id\": *\([0-9][0-9]*\).*/\1/p")
 for a in $aid; do
     echo "removing existing asset $name (id $a)"
     curl -fsS -X DELETE -H "$auth" \

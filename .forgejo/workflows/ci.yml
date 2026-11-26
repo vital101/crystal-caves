@@ -217,7 +217,8 @@ jobs:
             cmake -E tar czf "../$out" caves caves_ep2 caves_ep3
           fi
           cd ../..
-          tools/upload_release_asset.sh "$ver" "$out" "$out"
+          # The archive was written to native/ by the cmake -E tar above.
+          tools/upload_release_asset.sh "$ver" "native/$out" "$out"
 
   web-bundle:
     name: web bundle (all episodes)
