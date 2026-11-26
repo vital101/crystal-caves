@@ -119,8 +119,9 @@ save-isolation checks and uploads per-OS artifacts, and a web-bundle job
 packages the complete three-episode site (`make -C wasm bundle-web`).  On tag
 builds each job also attaches its bundle to the tag's Forgejo release via
 `tools/upload_release_asset.sh` (UI-created releases are found by tag; plain
-git-pushed tags get a draft release).  The upload uses the `RELEASE_TOKEN`
-secret (repo-write PAT), falling back to the job token when allowed.
+git-pushed tags get a draft release).  The upload authenticates with the job's
+built-in `GITHUB_TOKEN` — the same mechanism `candid_app`'s release workflow
+uses; no extra secret.
 
 ## Data Pipeline
 

@@ -415,11 +415,11 @@ carries the tag:
 - **oracle regeneration** — manual `workflow_dispatch` job with
   capstone/unicorn for re-verifying fixtures.
 
-Release uploads speak to the Forgejo API with the `RELEASE_TOKEN` secret
-(create a token with repo write access under Settings → Actions → Secrets);
-the job's built-in token is the fallback when the instance permits it.  A
-release created through the Forgejo interface gets its assets directly; a
-plain `git push` of a tag creates a draft release to attach them to.
+Release uploads speak to the Forgejo API with the job's built-in token
+(`secrets.GITHUB_TOKEN`) — the same mechanism `candid_app`'s release
+workflow uses, so no extra secret is required.  A release created through
+the Forgejo interface gets its assets directly; a plain `git push` of a tag
+creates a draft release to attach them to.
 
 ## Layout
 

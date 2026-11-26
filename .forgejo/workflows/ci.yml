@@ -17,10 +17,9 @@ on:
 # that directory, so nothing runs on github.com).  Actions are loaded from
 # data.forgejo.org and referenced fully qualified, per the Forgejo docs.
 # No `permissions:` block: Forgejo ignores it (capabilities are granted
-# through Authorized Integrations) and the test jobs only need the default
-# read token.  The release-asset uploads are the exception: they need a
-# token with repo write access, provided as the RELEASE_TOKEN secret
-# (the job's GITHUB_TOKEN is the fallback when the instance allows it).
+# through Authorized Integrations).  The release-asset uploads authenticate
+# with the job's built-in token (secrets.GITHUB_TOKEN) — the same
+# mechanism candid_app's release workflow uses; no extra secret is needed.
 
 # Pushes to main and PRs run the fast test jobs.  Version tags (v1.0.0 or
 # 1.0.0) additionally run the release builds: the native matrix
@@ -200,10 +199,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         env:
-          CC_API_URL: ${{ github.api_url }}
-          CC_REPO: ${{ github.repository }}
-          CC_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          CC_FALLBACK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORGEJO_SERVER_URL: ${{ forgejo.server_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ver="${{ github.ref_name }}"
           case "${{ matrix.os }}" in
@@ -260,10 +257,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         env:
-          CC_API_URL: ${{ github.api_url }}
-          CC_REPO: ${{ github.repository }}
-          CC_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          CC_FALLBACK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORGEJO_SERVER_URL: ${{ forgejo.server_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ver="${{ github.ref_name }}"
           out="crystal-caves-web-$ver.tar.gz"
